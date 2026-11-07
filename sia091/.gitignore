@@ -7,3 +7,4 @@ data/
 *.bin
 *.safetensors
 .ipynb_checkpoints/
+eval/figures/
