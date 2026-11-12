@@ -28,20 +28,31 @@ def process_document(file_path, chunk_size, overlap):
     return retriever, f"Ready: {len(pages)} page(s) split into {len(chunks)} chunks."
 
 
+def format_hits(hits):
+    # One line per retrieved chunk with its page and similarity score
+    lines = []
+    for number, hit in enumerate(hits, start=1):
+        preview = hit["text"][:90].replace("\n", " ")
+        lines.append(f"{number}. page {hit['page']} | score {hit['score']:.2f} | {preview}...")
+    return "\n".join(lines)
+
+
 def ask_question(question, retriever, top_k):
     # Find the best chunks, then pull the answer out of them
     if retriever is None:
-        return "Please process a document first.", "", ""
+        return "Please process a document first.", "", "", ""
     try:
         hits = retriever.search(question, int(top_k))
         result = answerer.answer(question, hits)
     except (ValueError, RuntimeError) as error:
-        return f"Error: {error}", "", ""
+        return f"Error: {error}", "", "", ""
 
+    # Show what the retriever found, so the person can see how the answer was reached
+    retrieved = format_hits(hits)
     if result["page"] is None:
-        return result["answer"], "", ""
+        return result["answer"], "", "", retrieved
     source = f"Page {result['page']} | confidence {result['score']:.2f}"
-    return result["answer"], source, result["context"]
+    return result["answer"], source, result["context"], retrieved
 
 
 with gr.Blocks(title="Document Q&A") as demo:
@@ -65,6 +76,7 @@ with gr.Blocks(title="Document Q&A") as demo:
             answer = gr.Textbox(label="Answer", interactive=False)
             source = gr.Textbox(label="Source", interactive=False)
             context = gr.Textbox(label="Source text", lines=6, interactive=False)
+            retrieved = gr.Textbox(label="Retrieved chunks", lines=6, interactive=False)
 
     process_button.click(
         process_document,
@@ -74,7 +86,7 @@ with gr.Blocks(title="Document Q&A") as demo:
     ask_button.click(
         ask_question,
         inputs=[question, retriever_state, top_k],
-        outputs=[answer, source, context],
+        outputs=[answer, source, context, retrieved],
     )
 
 if __name__ == "__main__":
