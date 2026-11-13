@@ -377,9 +377,7 @@ class HybridFoodClassifier(nn.Module):
                     "fused_global": fused_global,
                 }
             )
-<<<<<<< HEAD
         return output
-
 # ---------------------------------------------------------------------------
 # Checkpoint helpers
 # ---------------------------------------------------------------------------
@@ -425,7 +423,20 @@ def _strip_module_prefix(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
 def _convert_state_dict_keys(
     state_dict: Dict[str, torch.Tensor], model_keys
 ) -> Dict[str, torch.Tensor]:
-    """Translate DeiT key names between transformers 4.x and 5.x."""
+    """Translate DeiT key names between transformers 4.x and 5.x.
+
+    transformers 4.x:
+        vit_branch.vit.encoder.layer.0.attention.attention.query.weight
+        vit_branch.vit.encoder.layer.0.attention.output.dense.weight
+        vit_branch.vit.encoder.layer.0.intermediate.dense.weight
+        vit_branch.vit.encoder.layer.0.output.dense.weight
+
+    transformers 5.x:
+        vit_branch.vit.layers.0.attention.q_proj.weight
+        vit_branch.vit.layers.0.attention.o_proj.weight
+        vit_branch.vit.layers.0.mlp.fc1.weight
+        vit_branch.vit.layers.0.mlp.fc2.weight
+    """
     model_uses_layers = any(key.startswith("vit_branch.vit.layers.") for key in model_keys)
     model_uses_qkv_proj = any(".attention.q_proj." in key for key in model_keys)
 
@@ -515,14 +526,33 @@ def _download(repo_id: str, filename: str, cache_dir: str | None) -> str:
             "Check your internet connection and Hugging Face access."
         ) from exc
 
-
 # Public API
 def load_model(
     device: str | torch.device | None = None,
     repo_id: str = REPO_ID,
     cache_dir: str | None = None,
 ) -> Tuple[nn.Module, transforms.Compose, Dict[int, str]]:
-    """Download and load the pre-trained hybrid Food-101 classifier."""
+    """Download and load the pre-trained hybrid Food-101 classifier.
+
+    Parameters
+    ----------
+    device:
+        ``"cpu"``, ``"cuda"``, ``"mps"`` or a ``torch.device``.  Defaults to
+        CUDA when available, otherwise CPU.
+    repo_id:
+        Hugging Face model repository.  Defaults to the model specified in
+        the assignment.
+    cache_dir:
+        Optional Hugging Face cache directory.
+
+    Returns
+    -------
+    (model, transform, idx_to_label)
+        ``model`` is in eval mode with gradients disabled, ``transform`` is
+        the torchvision preprocessing pipeline (224x224, ImageNet
+        normalisation), and ``idx_to_label`` maps model output indices to
+        Food-101 category names.
+    """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
@@ -548,6 +578,8 @@ def load_model(
         freeze_early_layers=False,
     )
 
+    # First try an exact load (handles checkpoints saved with the same
+    # transformers version that is installed here).
     try:
         model.load_state_dict(state_dict, strict=True)
         LOGGER.info("Checkpoint loaded with exact key match.")
@@ -559,6 +591,10 @@ def load_model(
             LOGGER.info("Checkpoint loaded after DeiT key conversion.")
         except RuntimeError:
             missing, unexpected = model.load_state_dict(converted, strict=False)
+            # Auxiliary heads are only used during training, and the DeiT
+            # pooler is not used for inference, so those may legitimately be
+            # absent from a checkpoint.  Anything else missing indicates a
+            # real architecture/key-mapping mismatch.
             allowed_missing = (
                 "vit_branch.vit.pooler.",
                 "cnn_aux_classifier.",
@@ -575,7 +611,8 @@ def load_model(
                 ) from first_error
             if missing or unexpected:
                 LOGGER.warning(
-                    "Loaded checkpoint with %d missing and %d unexpected keys.",
+                    "Loaded checkpoint with %d missing and %d unexpected keys "
+                    "(allowed non-inference keys only).",
                     len(missing),
                     len(unexpected),
                 )
@@ -593,6 +630,7 @@ def load_model(
         ]
     )
 
+    # Convenient attributes for callers.
     model.device = device  # type: ignore[attr-defined]
     model.idx_to_label = idx_to_label  # type: ignore[attr-defined]
     model.class_names = class_names  # type: ignore[attr-defined]
@@ -614,6 +652,3 @@ __all__ = [
     "HybridFoodClassifier",
     "load_model",
 ]
-=======
-        return output
->>>>>>> main
