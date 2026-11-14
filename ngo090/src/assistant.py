@@ -832,6 +832,9 @@ class RiskPilot:
         if _asks_to_close(question):
             text = ("Yes, I would. " + text if rec.kind == "close_false_positive"
                     else "Not yet. " + text)
+        if investigation.suggested_note:
+            text += (" Want it on the record? Say \"add your note\" and I'll write up my "
+                     "findings as a note.")
         return text
 
     def _transaction_text(self, case: Case, investigation) -> str:

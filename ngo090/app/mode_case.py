@@ -168,11 +168,6 @@ def _investigation_panel(case, tag: str) -> None:
         st.caption("Re-read after the case changed — this is what the assistant says about the "
                    "case as it stands now.")
     st.markdown(ui.investigation_html(result), unsafe_allow_html=True)
-    # The draft note is recorded from the chat, not from a button here: the
-    # analyst says "add your note" and RiskPilot appends it, the same way
-    # everything else with the assistant is said, not clicked.
-    if result.suggested_note:
-        st.caption('Like the draft? Say "add your note" in the chat and it goes on the case.')
     # The panel spans the page now, so the two buttons keep a button's width
     # instead of stretching across it.
     if result.recommendation.changes_anything:

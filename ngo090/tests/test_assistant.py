@@ -4,6 +4,8 @@ These tests never touch Streamlit. They build the same toolkit, proposal queue
 and transcript the app builds, and drive the assistant exactly as the chat box
 does -- which is the point of the tool layer: a conversation is a script.
 """
+from types import SimpleNamespace
+
 import pytest
 
 from src.agent import AGENT_TAG, approve, reject
@@ -275,7 +277,6 @@ class _DraftAgent:
         self._note = note
 
     def investigate(self, number):
-        from types import SimpleNamespace
         return SimpleNamespace(suggested_note=self._note, agent="riskpilot/test")
 
 
@@ -299,6 +300,18 @@ def test_add_your_note_with_no_draft_asks_rather_than_writes(world):
     reply = world.pilot.converse(world.case.case_id, "add the suggested note")
     assert reply.action["kind"] == "clarify"
     assert world.cases.get(world.case.case_id).notes == ""
+
+
+def test_the_recommendation_offers_the_note_in_the_chat(world):
+    """The panel no longer shows the draft; the chat is where it is offered."""
+    investigation = SimpleNamespace(
+        recommendation=SimpleNamespace(kind="escalate", proposed_priority="urgent",
+                                       requires_override=False),
+        risk=99.0, policy_decision="review", related=None,
+        suggested_note="Transfer 1,944,969 at hour 00 -- risk 99.0, review.")
+    text = world.pilot._recommend_text(world.case, investigation)
+    assert '"add your note"' in text
+    assert "as a note" in text
 
 
 def test_a_stated_verdict_changes_only_the_resolution(world):
@@ -444,6 +457,7 @@ class FakeInvestigation:
         self.recommendation = N(kind=kind, rule="R3", proposed_priority=priority,
                                 requires_override=override, label=kind,
                                 rationale="risk is high")
+        self.suggested_note = "Cash out 477,067 at hour 03 -- risk 99.2, review."
 
 
 def speaking(world, **kwargs):
