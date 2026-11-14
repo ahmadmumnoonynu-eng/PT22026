@@ -30,6 +30,11 @@ class Movie(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="movie", cascade="all, delete-orphan"
     )
 
+    @property
+    def genres(self) -> list[str]:
+        """Convenience: ordered genre names for serialization."""
+        return [link.genre.name for link in self.genre_links]
+
 
 class Genre(Base):
     __tablename__ = "genres"
