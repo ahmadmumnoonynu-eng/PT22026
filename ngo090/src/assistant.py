@@ -48,9 +48,9 @@ MAX_NOTE = 2_000          # a note longer than this is a paste, not a note
 
 CAPABILITIES = (
     "I can tell you why it was flagged, what the system decided, what else looks like "
-    "it, and what I would do about it. I can also change the case -- false positive, "
-    "confirmed fraud, close, reopen, priority -- though those wait for your approval. "
-    "Notes I just add."
+    "it, and what I would do about it -- with a draft note you can record by saying "
+    "\"add your note\". I can also change the case -- false positive, confirmed fraud, "
+    "close, reopen, priority -- though those wait for your approval. Notes I just add."
 )
 
 # Social turns. They are here because a wall of capabilities in reply to "thanks"
@@ -67,8 +67,8 @@ _ACKS = ("thanks", "thank you", "thx", "cheers", "ok", "okay", "got it",
 @dataclass(frozen=True)
 class Intent:
     """What the analyst asked for, after parsing. `detail` is the payload."""
-    kind: str                 # help / note / close_false_positive / close_fraud / close
-                              # priority / reopen / question / unknown
+    kind: str                 # help / note / adopt_note / close_false_positive /
+                              # close_fraud / close / priority / reopen / question / unknown
     detail: str = ""
     raw: str = ""
 
@@ -227,6 +227,20 @@ def parse(message: str) -> Intent:
     # transcript untouched, and a note's text is read from the raw message
     # below, so a misspelled word inside a note is never rewritten.
     text = _fix_typos(text)
+
+    # 2c -- adopting the assistant's own draft: "add your note", "save the
+    # suggested note". Checked before rule 3 because "add your note" also
+    # matches the dictate-a-note pattern and would be read as an empty note.
+    # What marks it out: the command verb is at the front, and the note
+    # referred to is the one the assistant drafted, not text the analyst is
+    # dictating -- so "what did you write in your notes?" stays a question.
+    if re.match(r"^(?:add|append|save|write|record|log|put|adopt|keep|use|take)\b", text) \
+            and (re.search(r"\byour notes?\b", text)
+                 or re.search(r"\b(?:suggested|proposed|drafted?)\s+notes?\b", text)
+                 or re.search(r"\b(?:suggestion|recommendation)s?\b.*\bnotes?\b", text)
+                 or re.search(r"\bnotes?\b.*\byou\s+(?:suggested|proposed|drafted|wrote|made)\b", text)
+                 or re.search(r"\badopt\b.*\bnotes?\b", text)):
+        return Intent("adopt_note", raw=raw)
 
     # 3 -- a note: "add this to the note: ...", "note: ..." --------------
     if re.match(r"^notes?\s*[:\-]", text) or (
@@ -406,6 +420,8 @@ class RiskPilot:
             return self._social(case, intent)
         if intent.kind == "note":
             return self._note(case, intent)
+        if intent.kind == "adopt_note":
+            return self._adopt_note(case, intent)
         if intent.kind == "resolution":
             return self._resolution(case, intent)
         if intent.kind == "close_false_positive":
@@ -440,6 +456,29 @@ class RiskPilot:
         self.tools.update_case(case.case_id, note=f"Note added via {self.name}: {text}")
         return self._say(case, f"Added to the notes on {case.case_id}: \"{text}\"", intent,
                          action={"kind": "note", "note": text})
+
+    def _adopt_note(self, case: Case, intent: Intent) -> Reply:
+        """"Add your note" -- the analyst records the draft I wrote.
+
+        The draft comes from a fresh reading of the case, so what lands in
+        the notes is what the rules say about the case as it stands now.
+        Like any note it is the one write that needs no approver: additive,
+        attributed, and it cannot change a status or close the case.
+        """
+        try:
+            investigation = self.agent.investigate(case.number)
+        except ToolError:
+            investigation = None
+        if investigation is None or not investigation.suggested_note:
+            return self._say(
+                case,
+                "I don't have a draft for this case yet -- ask me what I'd do first, "
+                "then tell me to add the note.",
+                intent, action={"kind": "clarify"})
+        note = f"Assistant ({investigation.agent}): {investigation.suggested_note}"
+        self.tools.update_case(case.case_id, note=note)
+        return self._say(case, f"Added my draft to the notes on {case.case_id}.", intent,
+                         action={"kind": "note", "note": investigation.suggested_note})
 
     def _resolution(self, case: Case, intent: Intent) -> Reply:
         """A stated verdict changes the resolution field -- and nothing else.

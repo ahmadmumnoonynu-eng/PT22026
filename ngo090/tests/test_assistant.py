@@ -11,7 +11,7 @@ from src.assistant import ASSISTANT_NAME, RiskPilot, parse
 from src.cases import CaseStore
 from src.chat import ChatStore
 from src.proposals import ProposalStore
-from src.tools import Toolkit
+from src.tools import Toolkit, ToolError
 
 
 class World:
@@ -55,6 +55,10 @@ def world(tmp_path):
     ("note: the customer confirmed the transfer", "note", "the customer confirmed the transfer"),
     ("add a note saying the customer confirmed", "note", "the customer confirmed"),
     ("add this to the note", "note", ""),
+    ("add your note", "adopt_note", ""),
+    ("save the suggested note", "adopt_note", ""),
+    ("add the note you suggested", "adopt_note", ""),
+    ("save your suggestion as a note", "adopt_note", ""),
     ("set priority to high", "priority", "high"),
     ("make it urgent", "priority", "urgent"),
     ("escalate", "priority", "urgent"),
@@ -86,6 +90,7 @@ def test_commands_are_read_as_commands(message, kind, detail):
     "what do you recommend?",
     "is it a false positive?",
     "what is the status?",
+    "what did you write in your notes?",
 ])
 def test_questions_are_never_read_as_instructions(message):
     assert parse(message).kind == "question"
@@ -258,6 +263,40 @@ def test_a_note_is_written_directly_and_attributed(world):
 
 def test_a_note_without_content_asks_rather_than_writes(world):
     reply = world.pilot.converse(world.case.case_id, "add this to the note")
+    assert reply.action["kind"] == "clarify"
+    assert world.cases.get(world.case.case_id).notes == ""
+
+
+class _DraftAgent:
+    """Stands in for the real agent: one reading with a fixed draft note."""
+
+    def __init__(self, note="Cash out 477,067 at hour 03 -- risk 95.1, review.\n"
+                             "Assistant suggestion: escalate (R2)."):
+        self._note = note
+
+    def investigate(self, number):
+        from types import SimpleNamespace
+        return SimpleNamespace(suggested_note=self._note, agent="riskpilot/test")
+
+
+def test_add_your_note_records_the_assistant_draft(world):
+    """The button is gone: the draft is adopted by saying so in the chat."""
+    world.pilot.agent = _DraftAgent()
+    reply = world.pilot.converse(world.case.case_id, "add your note")
+    assert reply.action["kind"] == "note"
+    stored = world.cases.get(world.case.case_id)
+    assert "Assistant (riskpilot/test):" in stored.notes          # attributed
+    assert "Assistant suggestion" in stored.notes
+    assert stored.status == "investigating" and not stored.closed  # nothing else moved
+
+
+def test_add_your_note_with_no_draft_asks_rather_than_writes(world):
+    class _NoDraft(_DraftAgent):
+        def investigate(self, number):
+            raise ToolError("no live feed")
+
+    world.pilot.agent = _NoDraft()
+    reply = world.pilot.converse(world.case.case_id, "add the suggested note")
     assert reply.action["kind"] == "clarify"
     assert world.cases.get(world.case.case_id).notes == ""
 

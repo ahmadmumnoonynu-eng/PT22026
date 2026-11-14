@@ -599,7 +599,7 @@ class InvestigationAgent:
 
     def _suggested_note(self, transaction, assessment, explanation,
                         cluster: int, recommendation: Recommendation) -> str:
-        """A draft note the analyst can adopt with one click.
+        """A draft note the analyst can adopt from the chat.
 
         The analyst still writes the case notes -- this only saves the typing:
         the findings in the order they mattered, ending with what the rules
