@@ -136,24 +136,39 @@ def test_filing_without_a_queue_is_refused(tmp_path):
 # --------------------------------------------------------------------------- #
 # The rules
 # --------------------------------------------------------------------------- #
-def rule_of(tmp_path, policy=DEFAULT, tx=FRAUD, priority=None, corpus=None):
+def rule_of(tmp_path, policy=DEFAULT, tx=FRAUD, priority=None, corpus=None,
+            closed=False, status=None):
     tools, _, case, tx = build(tmp_path, policy=policy, tx=tx, priority=priority)
+    if closed or status:
+        from src.tools import Toolkit as T
+
+        T(cases=tools.cases).update_case(
+            case.case_id, status=status, state="closed" if closed else None)
     return agent_for(tools, tx, corpus=corpus).investigate(case.number)
 
 
-def test_r1_blocks_escalate_a_non_urgent_case(tmp_path):
+def test_r1_a_blocked_case_gets_a_verdict_suggestion(tmp_path):
     investigation = rule_of(tmp_path, priority="low")
     assert investigation.policy_decision == "block"
-    assert investigation.recommendation.kind == "escalate"
-    assert investigation.recommendation.rule == "R1"
-    assert investigation.recommendation.proposed_priority == "urgent"
-    assert not investigation.recommendation.requires_override
+    rec = investigation.recommendation
+    assert (rec.kind, rec.rule) == ("close_fraud", "R1")
+    assert rec.proposed_status == "confirmed_fraud" and rec.proposed_state == "closed"
+    assert rec.proposed_priority == "urgent"          # blocked fraud is queue-top while you check
+    assert not rec.requires_override                  # agreeing with the policy, not overriding it
+    assert "money never moved" in rec.rationale
 
 
-def test_r2_a_blocked_urgent_case_is_left_alone(tmp_path):
+def test_r1_a_blocked_urgent_case_skips_the_priority_change(tmp_path):
     investigation = rule_of(tmp_path, priority="urgent")
-    assert (investigation.recommendation.kind, investigation.recommendation.rule) == ("keep_open", "R2")
-    assert not investigation.recommendation.changes_anything
+    rec = investigation.recommendation
+    assert (rec.kind, rec.rule) == ("close_fraud", "R1")
+    assert rec.proposed_priority is None              # already urgent: no rule proposes what is true
+    assert rec.proposed_status == "confirmed_fraud"
+
+
+def test_r1_an_already_closed_fraud_case_is_left_alone(tmp_path):
+    investigation = rule_of(tmp_path, priority="urgent", closed=True, status="confirmed_fraud")
+    assert investigation.recommendation.kind == "keep_open"
 
 
 def test_r3_very_high_review_is_escalated(tmp_path):
@@ -404,3 +419,11 @@ def test_importing_the_agent_does_not_load_streamlit():
                          text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     assert out.stdout.strip() == "False", out.stderr
+
+
+def test_the_suggested_note_reads_like_an_analyst_note(tmp_path):
+    """The draft the analyst can adopt: findings first, suggestion last."""
+    investigation = rule_of(tmp_path, tx=PAYMENT)
+    note = investigation.suggested_note
+    assert note.startswith("Payment ")
+    assert "risk" in note and "Assistant suggestion: close as false positive (R6)" in note

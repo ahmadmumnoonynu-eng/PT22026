@@ -225,6 +225,7 @@ div[class*="st-key-chat_proposal_actions"]{margin-top:14px;}
 .fa-rec{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 13px;border-radius:12px;
 background:rgba(255,255,255,.035);border:1px solid rgba(96,140,220,.18);margin-bottom:12px;}
 .fa-rec b{font-size:15px;}
+.fa-note-draft{border:1px dashed rgba(125,184,255,.4);border-radius:12px;padding:10px 13px;margin:10px 0 2px;font-size:13.5px;line-height:1.55;color:#cfe0f8;white-space:pre-wrap;}.fa-note-draft b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7db8ff;margin-bottom:4px;}
 .fa-rec .fa-rule{color:#8fa3c2;font-size:12px;}
 .fa-tag.escalate{background:rgba(245,158,11,.16);color:#fcd34d;border:1px solid rgba(245,158,11,.42);}
 .fa-tag.close_fraud{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.4);}
@@ -1094,6 +1095,15 @@ def investigation_html(investigation) -> str:
     record, without turning the panel into a function-name dump.
     """
     rec = investigation.recommendation
+    would = []
+    if rec.proposed_status:
+        from src.cases import STATUS_LABELS as L
+        would.append("resolution " + L.get(rec.proposed_status, rec.proposed_status).lower())
+    if rec.proposed_state:
+        would.append("state " + rec.proposed_state)
+    if rec.proposed_priority:
+        from src.cases import PRIORITY_LABELS as L
+        would.append("priority " + L.get(rec.proposed_priority, rec.proposed_priority).lower())
     writer = "template" if investigation.writer == "template" else investigation.writer
     tags = [f'<span class="fa-badge">{escape(getattr(investigation, "agent", ""))}</span>',
             f'<span class="fa-badge ok">written by {escape(writer)}</span>']
@@ -1115,8 +1125,12 @@ def investigation_html(investigation) -> str:
         f'<div class="fa-narr">{escape(investigation.narrative)}</div>'
         f'<div class="fa-rec"><span class="fa-tag {rec.kind}">{escape(rec.label)}</span>'
         f'<span class="fa-rule">rule {escape(rec.rule)} · risk {investigation.risk:.1f} · '
-        f'policy says {escape(investigation.policy_decision)}</span></div>'
-        f'<div class="fa-sub2" style="margin-top:4px">Evidence ({len(investigation.evidence)})</div>'
+        f'policy says {escape(investigation.policy_decision)}'
+        + (f' · would set {", ".join(would)}' if would else "")
+        + '</span></div>'
+        + (f'<div class="fa-note-draft"><b>Suggested note</b>'
+           f'{escape(investigation.suggested_note)}</div>' if investigation.suggested_note else "")
+        + f'<div class="fa-sub2" style="margin-top:4px">Evidence ({len(investigation.evidence)})</div>'
         f'<div class="fa-evlist">{evidence}</div>'
         f'{gaps}'
         f'</div></div>')

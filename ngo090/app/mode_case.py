@@ -25,7 +25,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import ui
-from common import agent_for, chats, pilot_for, proposals, toolkit
+from common import agent_for, cases_path, chats, get_case_store, pilot_for, proposals, toolkit
 from src.agent import approve, reject
 from src.cases import PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS
 from src.tools import Toolkit, ToolError
@@ -168,6 +168,23 @@ def _investigation_panel(case, tag: str) -> None:
         st.caption("Re-read after the case changed — this is what the assistant says about the "
                    "case as it stands now.")
     st.markdown(ui.investigation_html(result), unsafe_allow_html=True)
+
+    # The suggested note is a draft, not a write: pressing the button is the
+    # analyst recording it, and the text says who drafted it.
+    if result.suggested_note:
+        if st.button("Add to notes", key=f"add_note_{case.number}",
+                     icon=":material/edit_note:",
+                     help="Appends the assistant's draft to the case notes under your name "
+                     "as the recorder. Nothing else changes."):
+            tools = toolkit(tag) if tag else Toolkit(cases=get_case_store(str(cases_path())))
+            try:
+                tools.update_case(case.case_id,
+                                  note=f"Assistant ({result.agent}): {result.suggested_note}")
+            except ToolError as exc:
+                st.error(str(exc))
+                return
+            st.toast("Note added to the case")
+            st.rerun()                        # show the note and the re-read panel now
     # The panel spans the page now, so the two buttons keep a button's width
     # instead of stretching across it.
     if result.recommendation.changes_anything:

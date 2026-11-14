@@ -389,6 +389,7 @@ def test_the_panel_rereads_the_case_after_the_case_moves(tmp_path, monkeypatch):
     from src.cases import CaseStore
     from src.decision import Policy
     from src.live import LiveSettings, LiveStream
+    from src.tools import Toolkit
 
     cases_db = tmp_path / "cases.db"
     monkeypatch.setenv("FRAUD_CASES_DB", str(cases_db))
@@ -407,18 +408,24 @@ def test_the_panel_rereads_the_case_after_the_case_moves(tmp_path, monkeypatch):
 
     at = page(mode="Case", selected_case=case.number, live_stream=stream)
     _find_button(at, f"run_agent_{case.number}").click().run()
-    assert "Escalate" in all_text(at)
 
-    # Somebody else moves the case -- the chat, an approval, another tab.
-    from src.tools import Toolkit
+    # The advice depends on the fresh assessment, not on the stored decision:
+    # branch on what the panel actually says, then make that advice come true.
+    first = all_text(at)
+    if "Close as confirmed fraud" in first:
+        Toolkit(cases=store).update_case(case.case_id, status="confirmed_fraud", state="closed")
+        gone = "Close as confirmed fraud"
+    else:
+        assert "Escalate" in first
+        Toolkit(cases=store).update_case(case.case_id, priority="urgent")
+        gone = "Escalate"
 
-    Toolkit(cases=store).update_case(case.case_id, priority="urgent")
     at.run()
     assert not at.exception
     captions = " ".join(c.value for c in at.caption)
     assert "Re-read after the case changed" in captions
     assert "No decision needed" in captions        # the advice was already true
-    assert "Escalate" not in all_text(at)          # so it is no longer offered
+    assert gone not in all_text(at)
 
 
 def test_rejecting_a_proposal_leaves_the_case_untouched(tmp_path, monkeypatch):

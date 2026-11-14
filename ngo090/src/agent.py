@@ -119,7 +119,7 @@ class Recommendation:
     def label(self) -> str:
         return {"escalate": "Escalate", "close_fraud": "Close as confirmed fraud",
                 "close_false_positive": "Close as false positive",
-                "keep_open": "Keep open"}.get(self.kind, self.kind)
+                "keep_open": "Keep investigating"}.get(self.kind, self.kind)
 
     @property
     def changes_anything(self) -> bool:
@@ -150,6 +150,7 @@ class Investigation:
     history: tuple[CaseEvent, ...] = ()
     writer: str = "template"
     agent: str = AGENT_TAG
+    suggested_note: str = ""            # a draft the analyst can adopt, not a write
 
     @property
     def risk(self) -> float:
@@ -333,23 +334,20 @@ def _recommend(case: Case, assessment: Assessment | None, related: RelatedResult
     decision = assessment.decision if assessment is not None else case.decision
     risk = float(assessment.risk) if assessment is not None else float(case.risk)
 
-    # R1: the policy blocks it, the case is not at the top of the queue -> say so.
-    # The check is on the case's own priority, not on the risk: a blocked case
-    # whose analyst already marked it urgent (R2) needs no further advice.
-    if decision == BLOCK and case.priority != "urgent":
+    # R1: the policy blocked it -- the money never moved, and blocking is the
+    # system's own fraud call. The suggestion that follows is the closing
+    # verdict, not another queue tweak: confirmed fraud, with urgent priority
+    # while the analyst checks it. The proposal is the suggestion; approving
+    # it is what closes the case. A case already closed as confirmed fraud is
+    # left alone -- no rule proposes what is already true.
+    if decision == BLOCK and not (case.closed and case.status == "confirmed_fraud"):
         return Recommendation(
-            kind="escalate", rule="R1",
-            rationale=(f"the policy already blocks this transaction (risk {risk:.1f}), so the case "
-                       f"should carry urgent priority rather than {case.priority_label.lower()}"),
-            proposed_priority="urgent", support=2)
-
-    # R2: blocked and already urgent -> the queue is right, leave the records alone.
-    if decision == BLOCK:
-        return Recommendation(
-            kind="keep_open", rule="R2",
-            rationale=(f"the transaction is blocked and the case is already urgent; there is "
-                       f"nothing to change while the investigation is open"),
-            support=1)
+            kind="close_fraud", rule="R1",
+            rationale=(f"the policy blocked this transaction (risk {risk:.1f}), so the money never "
+                       f"moved; the case closes as confirmed fraud unless the investigation "
+                       f"finds it legitimate"),
+            proposed_status="confirmed_fraud", proposed_state="closed",
+            proposed_priority=None if case.priority == "urgent" else "urgent", support=2)
 
     # R3: very high risk sent to review -> it belongs at the top of the queue.
     # If it already is, say that instead of filing a proposal that changes nothing.
@@ -413,7 +411,8 @@ def _recommend(case: Case, assessment: Assessment | None, related: RelatedResult
     # suspicious look-alikes: closing it would be a guess, so it stays open.
     return Recommendation(
         kind="keep_open", rule="R7",
-        rationale="the evidence is not strong enough to close the case either way",
+        rationale=("no rule fires: the evidence does not settle it either way, so keep "
+                   "investigating -- the verdict is yours to make"),
         support=0)
 
 
@@ -588,11 +587,37 @@ class InvestigationAgent:
         steps.append(Step("proposal", "Proposal",
                           f"written by {writer_name} · awaiting a human decision", _ms(started)))
 
+        suggested = self._suggested_note(transaction, assessment, explanation,
+                                         cluster, recommendation)
+
         return Investigation(
             case=case, transaction=transaction, assessment=assessment, explanation=explanation,
             related=related, recommendation=recommendation, narrative=narrative,
             evidence=tuple(evidence), steps=tuple(steps), gaps=tuple(gaps),
-            history=tuple(history), writer=writer_name, agent=self.agent)
+            history=tuple(history), writer=writer_name, agent=self.agent,
+            suggested_note=suggested)
+
+    def _suggested_note(self, transaction, assessment, explanation,
+                        cluster: int, recommendation: Recommendation) -> str:
+        """A draft note the analyst can adopt with one click.
+
+        The analyst still writes the case notes -- this only saves the typing:
+        the findings in the order they mattered, ending with what the rules
+        suggest. It says "suggestion" because that is all it is.
+        """
+        risk = float(assessment.risk) if assessment is not None else None
+        decision = assessment.decision if assessment is not None else None
+        lines = [f"{transaction['type'].replace('_', ' ').title()} "
+                 f"{transaction['amount']:,.0f} at hour {transaction['hour']:02d}"
+                 + (f" -- risk {risk:.1f}, {decision}." if risk is not None else ".")]
+        if explanation is not None and explanation.reasons_up:
+            lines.append("; ".join(r.text for r in explanation.reasons_up[:2]) + ".")
+        if cluster:
+            lines.append(f"{cluster} related transaction(s) score at or above "
+                         f"{CLUSTER_RISK:.0f}.")
+        lines.append(f"Assistant suggestion: {recommendation.label.lower()} "
+                     f"({recommendation.rule}).")
+        return "\n".join(lines)
 
     # -- filing it ------------------------------------------------------ #
     def file(self, investigation: Investigation) -> Proposal:

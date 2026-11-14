@@ -36,7 +36,7 @@ KIND_LABELS = {
     "escalate": "Escalate",
     "close_fraud": "Close as confirmed fraud",
     "close_false_positive": "Close as false positive",
-    "keep_open": "Keep open",
+    "keep_open": "Keep investigating",
     "priority": "Change priority",
     "reopen": "Reopen",
     "resolution": "Set resolution",
