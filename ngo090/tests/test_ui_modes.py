@@ -380,6 +380,47 @@ def test_the_assistant_runs_from_the_case_page_and_waits_for_approval(tmp_path, 
     assert ProposalStore(proposals_db).get(item.number).status == "approved"
 
 
+def test_the_panel_rereads_the_case_after_the_case_moves(tmp_path, monkeypatch):
+    """A reading belongs to the case it read: when the case moves, so does the panel.
+
+    The chat is the usual culprit -- the analyst asks, approves inline, and the
+    investigation panel was still recommending the change that just happened.
+    """
+    from src.cases import CaseStore
+    from src.decision import Policy
+    from src.live import LiveSettings, LiveStream
+
+    cases_db = tmp_path / "cases.db"
+    monkeypatch.setenv("FRAUD_CASES_DB", str(cases_db))
+    monkeypatch.setenv("FRAUD_PROPOSALS_DB", str(tmp_path / "proposals.db"))
+    monkeypatch.setenv("FRAUD_CHAT_DB", str(tmp_path / "chat.db"))
+
+    stream = LiveStream(_engine(), seed=7, now=0.0, settings=LiveSettings(300, 0.03, False, 2.0, False))
+    stream.advance(Policy(), now=30.0)
+    flagged = stream.rows[stream.rows["decision"] != "approve"]
+    row = flagged.sort_values("risk", ascending=False).iloc[0]
+
+    store = CaseStore(cases_db)
+    case = store.create(txn_id=int(row.id), risk=float(row.risk), decision=str(row.decision),
+                        amount=float(row.amount), tx_type=str(row.type), source="live",
+                        priority="low", explanation="panel refresh")
+
+    at = page(mode="Case", selected_case=case.number, live_stream=stream)
+    _find_button(at, f"run_agent_{case.number}").click().run()
+    assert "Escalate" in all_text(at)
+
+    # Somebody else moves the case -- the chat, an approval, another tab.
+    from src.tools import Toolkit
+
+    Toolkit(cases=store).update_case(case.case_id, priority="urgent")
+    at.run()
+    assert not at.exception
+    captions = " ".join(c.value for c in at.caption)
+    assert "Re-read after the case changed" in captions
+    assert "No decision needed" in captions        # the advice was already true
+    assert "Escalate" not in all_text(at)          # so it is no longer offered
+
+
 def test_rejecting_a_proposal_leaves_the_case_untouched(tmp_path, monkeypatch):
     from src.cases import CaseStore
     from src.proposals import ProposalStore

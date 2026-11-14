@@ -107,12 +107,27 @@ def _editor(case, tools: Toolkit) -> None:
 # --------------------------------------------------------------------------- #
 # The investigation panel (deterministic rules -> proposal)
 # --------------------------------------------------------------------------- #
+def _reading(tag: str, case) -> dict | None:
+    """One investigation, stamped with the version of the case it read."""
+    try:
+        found = agent_for(toolkit(tag)).investigate(case.number)
+    except ToolError as exc:
+        st.error(str(exc))
+        return None
+    return {"result": found, "stamp": case.updated_at}
+
+
 def _investigation_panel(case, tag: str) -> None:
     """Run the rules, read the evidence, send the recommendation for approval.
 
     Nothing this section does can change the case: "Run" only reads, and "Send
     for approval" writes a proposal. The case moves on the Approvals page or in
     the chat, when a person says so.
+
+    What the case *does* change is this panel. A reading is only true for the
+    case it read: once the chat, an approval or an edit moves the case, the
+    reading is re-done instead of being left on screen recommending something
+    that already happened.
     """
     store = proposals()
     pending = store.pending_for(case.number)
@@ -124,21 +139,34 @@ def _investigation_panel(case, tag: str) -> None:
         return
 
     key = f"investigation_{case.number}"
+    reading = st.session_state.get(key)
+    reread = reading is not None and reading.get("stamp") != case.updated_at
+    if reread:
+        # The case moved since this reading was taken. Re-read it now rather
+        # than showing a recommendation about the case as it used to be.
+        st.session_state.pop(key, None)
+        reading = _reading(tag, case)
+        if reading is not None:
+            st.session_state[key] = reading
+
     if st.button("Run investigation", key=f"run_agent_{case.number}",
                  icon=":material/travel_explore:", help="Reads the case, compares it with the "
                  "live feed, asks the Risk Manager and recommends an action. It cannot edit the case."):
-        try:
-            st.session_state[key] = agent_for(toolkit(tag)).investigate(case.number)
-        except ToolError as exc:
-            st.error(str(exc))
+        reading = _reading(tag, case)
+        if reading is None:
             return
+        st.session_state[key] = reading
+        reread = False
 
-    result = st.session_state.get(key)
+    result = (reading or {}).get("result")
     if result is None:
         st.caption("RiskPilot gathers the evidence an analyst would want, then recommends an "
                    "action. You approve it. Nothing is changed until you do.")
         return
 
+    if reread:
+        st.caption("Re-read after the case changed — this is what the assistant says about the "
+                   "case as it stands now.")
     st.markdown(ui.investigation_html(result), unsafe_allow_html=True)
     # The panel spans the page now, so the two buttons keep a button's width
     # instead of stretching across it.
@@ -150,7 +178,9 @@ def _investigation_panel(case, tag: str) -> None:
             except ToolError as exc:
                 st.error(str(exc))
                 return
-            st.session_state.pop(key, None)
+            # The reading is kept, not dropped: if the proposal is rejected the
+            # case has not moved, and this reading is still what the rules say
+            # about it.
             st.toast(f"Proposal {filed.number} sent for approval")
             st.rerun()
         if right.button("Discard", key=f"discard_agent_{case.number}"):
