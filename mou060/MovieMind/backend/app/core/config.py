@@ -1,0 +1,108 @@
+"""Typed application settings.
+
+Loaded from environment variables and an optional ``.env`` file. In
+production the app must fail fast when required secrets are missing or
+insecure — see ``Settings._enforce_production_safety``.
+"""
+
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+Environment = Literal["development", "test", "production"]
+
+_DEVELOPMENT_DEFAULT_SECRET = "dev-only-secret-change-me"
+
+
+class Settings(BaseSettings):
+    """Central configuration for the MovieMind backend."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=True,
+    )
+
+    # --- Application identity -------------------------------------------------
+    APP_NAME: str = "MovieMind API"
+    APP_ENV: Environment = "development"
+    API_V1_PREFIX: str = "/api/v1"
+    DEBUG: bool = False
+
+    # --- Security -------------------------------------------------------------
+    SECRET_KEY: str = _DEVELOPMENT_DEFAULT_SECRET
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=1, le=24 * 60)
+    JWT_ALGORITHM: str = "HS256"
+
+    # --- Database -------------------------------------------------------------
+    # Example (Neon): postgresql+psycopg://user:password@host/dbname?sslmode=require
+    DATABASE_URL: str = "postgresql+psycopg://moviemind:moviemind@localhost:5432/moviemind"
+
+    # --- CORS -----------------------------------------------------------------
+    # Comma-separated list of explicit frontend origins. Never use "*".
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # --- ML model -------------------------------------------------------------
+    MODEL_ARTIFACT_DIR: str = "artifacts"
+    MODEL_DEVICE: Literal["cpu", "cuda"] = "cpu"
+    ENABLE_DEMO_ENDPOINTS: bool = True
+
+    # --- Observability ----------------------------------------------------------
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parsed CORS origin list."""
+        if not self.CORS_ORIGINS.strip():
+            return []
+        return [o.strip().rstrip("/") for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def _no_wildcard_origins(cls, value: str) -> str:
+        if "*" in value:
+            raise ValueError("Wildcard CORS origins are not allowed; list explicit origins")
+        return value
+
+    @field_validator("API_V1_PREFIX")
+    @classmethod
+    def _prefix_slash_format(cls, value: str) -> str:
+        value = value.strip()
+        if not value.startswith("/"):
+            raise ValueError("API_V1_PREFIX must start with '/'")
+        return value.rstrip("/") or "/"
+
+    def _enforce_production_safety(self) -> None:
+        """Raise if production configuration is missing or insecure."""
+        if self.APP_ENV != "production":
+            return
+        problems: list[str] = []
+        if not self.SECRET_KEY or self.SECRET_KEY == _DEVELOPMENT_DEFAULT_SECRET:
+            problems.append("SECRET_KEY is missing or still set to the development default")
+        if self.DEBUG:
+            problems.append("DEBUG must be false in production")
+        if not self.DATABASE_URL:
+            problems.append("DATABASE_URL is required in production")
+        if problems:
+            raise RuntimeError(
+                "Refusing to start in production with unsafe configuration: " + "; ".join(problems)
+            )
+
+    @property
+    def is_production(self) -> bool:
+        return self.APP_ENV == "production"
+
+    @property
+    def is_development(self) -> bool:
+        return self.APP_ENV == "development"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return the cached settings instance (safe to use as a FastAPI dependency)."""
+    settings = Settings()
+    settings._enforce_production_safety()
+    return settings
