@@ -1,9 +1,4 @@
-"""Database session management.
 
-The engine is created lazily so the app can boot (and serve /health) even
-when PostgreSQL is not reachable yet; the readiness endpoint reports the
-true connection state instead of crashing at import time.
-"""
 
 from __future__ import annotations
 

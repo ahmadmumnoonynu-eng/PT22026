@@ -1,4 +1,4 @@
-"""Declarative base and shared column mixins."""
+
 
 from __future__ import annotations
 
