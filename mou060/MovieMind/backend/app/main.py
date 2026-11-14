@@ -20,6 +20,7 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import get_logger, setup_logging
+from app.services import model_service
 
 setup_logging()
 logger = get_logger("main")
@@ -30,6 +31,8 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     logger.info("startup app=%s env=%s", settings.APP_NAME, settings.APP_ENV)
+    # Load the model once at startup; on failure readiness reports it honestly.
+    model_service.load_model_once()
     yield
     logger.info("shutdown")
 

@@ -38,9 +38,11 @@ def test_ready_reports_checks_and_is_controlled():
     assert "checks" in body
     assert "database" in body["checks"]
     assert "model" in body["checks"]
-    # Model is a Phase-2 stub => readiness is honestly not-ready for now.
-    assert body["checks"]["model"]["status"] == "not_configured"
-    assert r.status_code in (200, 503)  # 503 when model/db not ready; never 500
+    # Model is now really loaded (Phase 3); DB status depends on connectivity.
+    assert body["checks"]["model"]["status"] == "loaded"
+    assert body["checks"]["database"]["status"] in ("ok", "unavailable")
+    # Controlled: 200 when both ready, 503 otherwise; never a 500 crash.
+    assert r.status_code in (200, 503)
 
 
 def test_request_id_header_present():
