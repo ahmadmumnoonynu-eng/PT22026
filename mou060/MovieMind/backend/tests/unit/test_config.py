@@ -30,9 +30,9 @@ def test_api_prefix_must_start_with_slash():
 
 
 def test_production_fails_fast_on_dev_secret():
+    # SECRET_KEY defaults to the development placeholder -> must fail in prod.
     s = Settings(
         APP_ENV="production",
-        SECRET_KEY="dev-only-secret-change-me",
         DATABASE_URL="postgresql+psycopg://x@localhost/db",
         _env_file=None,
     )

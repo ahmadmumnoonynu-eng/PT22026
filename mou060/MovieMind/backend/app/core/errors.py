@@ -84,6 +84,12 @@ class ConflictApiError(ApiError):
     log_level = logging.INFO
 
 
+class NotImplementedApiError(ApiError):
+    status_code = status.HTTP_501_NOT_IMPLEMENTED
+    code = "not_implemented"
+    log_level = logging.INFO
+
+
 class DatabaseUnavailableError(ApiError):
     """The database is unreachable or otherwise unusable."""
 

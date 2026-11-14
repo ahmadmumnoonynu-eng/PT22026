@@ -83,28 +83,28 @@ MovieMind/
 
 ### Phase 1 — Repository, environment & artifact audit
 
-- [ ] **T1.1 Record the environment** **[Must have]**
+- [x] **T1.1 Record the environment** **[Must have]**
   - **Purpose:** Lock the Python/PyTorch baseline before writing code.
   - **Details:** Run `py --version` and `py -3.11 -m venv .venv` to confirm a Python version compatible with the chosen PyTorch CPU wheel. Pin Python (3.11 recommended) and document the exact PyTorch version selected via the official selector.
   - **Files:** `backend/README.md` (env section), `backend/requirements.txt` or `pyproject.toml`.
   - **Dependencies:** none.
   - **Acceptance:** `python -c "import sys, torch; print(sys.version, torch.__version__)"` prints a consistent version; the choice is recorded in the README.
 
-- [ ] **T1.2 Audit the real artifact bundle and notebook** **[Must have]**
+- [x] **T1.2 Audit the real artifact bundle and notebook** **[Must have]**
   - **Purpose:** Replace spec assumptions with facts before any loading code is written.
   - **Details:** Enumerate every file in `backend/artifacts/`; record exact filenames, JSON shapes, mapping direction (`raw ID → index`), tensor keys (via `torch.load(..., map_location="cpu", weights_only=True)` on `moviemind_ncf.pt`), and the notebook's save format. Confirm the architecture in `app/ml/model_architecture.py` matches the notebook's `MovieMindNCF` (two definitions: notebook lines ~694 and ~1525).
   - **Files:** a written `backend/ARTIFACTS.md` (or section of README) capturing the findings table from §0.
   - **Dependencies:** T1.1.
   - **Acceptance:** `ARTIFACTS.md` lists every artifact, its real name, shape, and any discrepancy from the spec (config filename, missing `training_metrics.json`); a sample state-dict key is recorded.
 
-- [ ] **T1.3 Fix `.gitignore`** **[Must have]**
+- [x] **T1.3 Fix `.gitignore`** **[Must have]**
   - **Purpose:** Keep model weights, dataset exports, secrets, and venvs out of Git.
   - **Details:** Ignore `backend/artifacts/` (entire dir), `.env`, `*.pt`/`*.pth`/`*.ckpt`, `__pycache__/`, `.venv/`, `venv/`, and `ml/data/`. Keep the existing rules.
   - **Files:** `.gitignore`.
   - **Dependencies:** none.
   - **Acceptance:** `git status` after staging shows no `.pt`, no `artifacts/*.json`, no `.env` tracked.
 
-- [ ] **T1.4 Create virtual environment & dependency manifest** **[Must have]**
+- [x] **T1.4 Create virtual environment & dependency manifest** **[Must have]**
   - **Purpose:** Reproducible Windows-local environment.
   - **Details:** Add `requirements.txt` (or `pyproject.toml`) pinning `fastapi`, `uvicorn[standard]`, `pydantic`, `pydantic-settings`, `sqlalchemy>=2.0`, `alembic`, `psycopg[binary]` (or `asyncpg` — decide and record), `python-jose` or `pyjwt`, `pwdlib[argon2]` (or `argon2-cffi`), `python-multipart`, `httpx`, `pytest`, `ruff`, and the chosen `torch` CPU wheel.
   - **Files:** `backend/requirements.txt`.
@@ -115,28 +115,28 @@ MovieMind/
 
 ### Phase 2 — Backend foundation
 
-- [ ] **T2.1 Typed settings** **[Must have]**
+- [x] **T2.1 Typed settings** **[Must have]**
   - **Purpose:** Central, validated configuration with safe defaults and production fail-fast.
   - **Details:** `BaseSettings` (pydantic-settings) reading `.env`. At minimum: `APP_NAME`, `APP_ENV`, `API_V1_PREFIX` (default `/api/v1`), `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DATABASE_URL`, `CORS_ORIGINS` (list), `MODEL_ARTIFACT_DIR`, `MODEL_DEVICE` (default `cpu`), `ENABLE_DEMO_ENDPOINTS`, `LOG_LEVEL`. Production must raise if `SECRET_KEY`/`DATABASE_URL` are missing or `SECRET_KEY` is a placeholder.
   - **Files:** `backend/app/core/config.py`, `backend/.env.example`.
   - **Dependencies:** T1.4.
   - **Acceptance:** `Settings()` parses `.env`; `APP_ENV=production` with a dummy `SECRET_KEY` fails fast; `.env.example` has placeholder values + comments only.
 
-- [ ] **T2.2 Structured logging & request correlation** **[Must have]**
+- [x] **T2.2 Structured logging & request correlation** **[Must have]**
   - **Purpose:** Consistent logs that never leak secrets/tokens.
   - **Details:** Configure stdlib `logging` (or `loguru` if approved) to stdout with JSON or key-value format; add a middleware that attaches a `request_id` and logs method/path/status/duration.
   - **Files:** `backend/app/core/logging.py`, middleware in `backend/app/main.py`.
   - **Dependencies:** T2.1.
   - **Acceptance:** A request produces a log line with correlation id and no password/token/header body.
 
-- [ ] **T2.3 Consistent error handling & exception model** **[Must have]**
+- [x] **T2.3 Consistent error handling & exception model** **[Must have]**
   - **Purpose:** Uniform error bodies and no stack-trace leakage.
   - **Details:** Define `ApiError`/custom exceptions and global handlers mapping to `{"detail": ...}` (and optional `code`/`request_id`). Distinguish 400/401/403/404/409/422/500/503. Map DB-unavailable and model-unavailable to distinct 503 semantics.
   - **Files:** `backend/app/core/errors.py`, handlers registered in `main.py`.
   - **Dependencies:** T2.2.
   - **Acceptance:** Unhandled exceptions return a generic 500 with a logged (not returned) traceback.
 
-- [ ] **T2.4 App shell, routers, health & readiness** **[Must have]**
+- [x] **T2.4 App shell, routers, health & readiness** **[Must have]**
   - **Purpose:** Bootable FastAPI app with operational endpoints.
   - **Details:** `main.py` creates the app, mounts `/api/v1` router, registers CORS (explicit origins, no wildcard-with-credentials), includes `GET /` (service identity), `GET /api/v1/health` (liveness), `GET /api/v1/ready` (DB + model readiness). Readiness must be a 503 with a clear diagnostic when the model artifacts are missing/incompatible or the DB is unreachable.
   - **Files:** `backend/app/main.py`, `backend/app/api/v1/router.py`, `backend/app/api/v1/endpoints/health.py`.
@@ -148,36 +148,36 @@ MovieMind/
 ### Phase 3 — Model artifact validation & NCF inference
 
 > **Critical compatibility checks (must all pass before any model-backed endpoint ships):**
-> - [ ] Architecture is byte-for-byte equivalent to the notebook `MovieMindNCF` (layer structure, embedding dims, concat order, activations, dropout, output layer).
-> - [ ] Checkpoint loads via `torch.load(path, map_location="cpu", weights_only=True)` with **no pickle trust**.
-> - [ ] `state_dict` keys match the constructed model's `state_dict().keys()` exactly (no `module.` prefix mismatch).
-> - [ ] `num_users`/`num_movies` from `model_config.json` ≥ max mapping index + 1, and mapping indices are within embedding range.
-> - [ ] `model.eval()` + `torch.inference_mode()` used for all inference; model loaded **once** at startup, on CPU by default.
-> - [ ] Sample inference returns a finite score in `[0.5, 5.0]`.
-> - [ ] Unknown MovieLens user/movie IDs raise controlled 404/422, never `IndexError`.
+> - [x] Architecture is byte-for-byte equivalent to the notebook `MovieMindNCF` (layer structure, embedding dims, concat order, activations, dropout, output layer).
+> - [x] Checkpoint loads via `torch.load(path, map_location="cpu", weights_only=True)` with **no pickle trust**.
+> - [x] `state_dict` keys match the constructed model's `state_dict().keys()` exactly (no `module.` prefix mismatch).
+> - [x] `num_users`/`num_movies` from `model_config.json` ≥ max mapping index + 1, and mapping indices are within embedding range.
+> - [x] `model.eval()` + `torch.inference_mode()` used for all inference; model loaded **once** at startup, on CPU by default.
+> - [x] Sample inference returns a finite score in `[0.5, 5.0]`.
+> - [x] Unknown MovieLens user/movie IDs raise controlled 404/422, never `IndexError`.
 
-- [ ] **T3.1 Model loader** **[Must have]**
+- [x] **T3.1 Model loader** **[Must have]**
   - **Purpose:** Load config, mappings, and checkpoint once at startup; fail clearly if anything is wrong.
   - **Details:** Read `model_config.json` (actual name), `user_mapping.json`, `movie_mapping.json`, and `moviemind_ncf.pt`. Construct `MovieMindNCF` from config. Validate mapping index bounds and config fields. Attach a `model_version`/artifact version and expose it via diagnostics. Use `weights_only=True`.
   - **Files:** `backend/app/ml/model_loader.py`.
   - **Dependencies:** T1.2, T2.1.
   - **Acceptance:** Loader returns a `LoadedModel` dataclass (model, config, mappings, version); missing/incompatible artifacts raise a descriptive error that surfaces in `/ready`.
 
-- [ ] **T3.2 Model architecture parity** **[Must have]**
+- [x] **T3.2 Model architecture parity** **[Must have]**
   - **Purpose:** Guarantee inference reproduces training.
   - **Details:** Keep `MovieMindNCF` in `app/ml/model_architecture.py`; verify its forward path against the notebook (GMF element-wise product, MLP concat, final concat `[gmf; mlp_vector]`, `squeeze(1)`). Add a unit test asserting the module's parameter names/shapes match the checkpoint.
   - **Files:** `backend/app/ml/model_architecture.py`, test in `tests/unit/test_model_architecture.py`.
   - **Dependencies:** T3.1.
   - **Acceptance:** `model.state_dict().keys()` equals checkpoint keys; a shape test passes without loading weights.
 
-- [ ] **T3.3 NCF inference wrapper** **[Must have]**
+- [x] **T3.3 NCF inference wrapper** **[Must have]**
   - **Purpose:** Batch, CPU-friendly rating prediction for known MovieLens IDs only.
   - **Details:** `predict(user_id, movie_id)` and `predict_batch(pairs)` translating raw IDs via mappings; returns float ratings. Reject unknown IDs explicitly. Use `torch.inference_mode()`.
   - **Files:** `backend/app/ml/recommenders/ncf_recommender.py` (or `app/ml/inference.py`).
   - **Dependencies:** T3.1, T3.2.
   - **Acceptance:** A known sample (from notebook) returns a finite score in range; unknown IDs raise a typed error.
 
-- [ ] **T3.4 Model smoke test & `/model/info`** **[Must have]**
+- [x] **T3.4 Model smoke test & `/model/info`** **[Must have]**
   - **Purpose:** Deterministic proof the real bundle works; diagnosable model state.
   - **Details:** Add `GET /api/v1/model/info` returning version/type/loaded-status/supported features (no secrets). Add a smoke test that loads the real `backend/artifacts/` bundle and asserts finite predictions in `[0.5, 5.0]`.
   - **Files:** `backend/app/api/v1/endpoints/model.py`, `tests/model/test_artifact_smoke.py`.
@@ -188,27 +188,27 @@ MovieMind/
 
 ### Phase 4 — Database foundation
 
-- [ ] **T4.1 SQLAlchemy engine & session** **[Must have]**
+- [x] **T4.1 SQLAlchemy engine & session** **[Must have]**
   - **Purpose:** Typed DB access with a test-friendly session factory.
   - **Details:** `engine`, `SessionLocal`, and a FastAPI dependency yielding a session per request; enable UTC handling. Use parameterized queries only.
   - **Files:** `backend/app/db/session.py`, `backend/app/db/base.py`.
   - **Dependencies:** T2.1.
   - **Acceptance:** A session can connect to the configured PostgreSQL; a failing connection surfaces via `/ready`.
 
-- [ ] **T4.2 Base model & enums** **[Must have]**
+- [x] **T4.2 Base model & enums** **[Must have]**
   - **Purpose:** Shared `DeclarativeBase`, UUID/`datetime(UTC)` conventions, role enum.
   - **Files:** `backend/app/db/base.py`, `backend/app/db/models/`.
   - **Dependencies:** T4.1.
   - **Acceptance:** Models import cleanly and register on the metadata.
 
-- [ ] **T4.3 Schema migration** **[Must have]**
+- [x] **T4.3 Schema migration** **[Must have]**
   - **Purpose:** Versioned, reproducible schema for User, Movie, Rating, WatchlistItem (+ optional Genre/MovieGenre, RefreshToken if approved).
   - **Details:** One Alembic initial migration creating all tables with FKs, unique constraints (`(user_id, movie_id)` on rating & watchlist), indexes on search/foreign-key columns, and explicit `ondelete` behavior. Decide genres as **normalized relation vs JSONB** — record the decision (recommend normalized `Genre`/`MovieGenre`; see open decision).
   - **Files:** `backend/alembic/versions/xxxx_initial.py`, `backend/alembic/env.py`.
   - **Dependencies:** T4.2.
   - **Acceptance:** `alembic upgrade head` on an empty DB creates all tables; `alembic downgrade base` drops them.
 
-- [ ] **T4.4 UTC timestamps, indexes & constraints audit** **[Must have]**
+- [x] **T4.4 UTC timestamps, indexes & constraints audit** **[Must have]**
   - **Purpose:** Guarantee the invariants the API relies on (uniqueness, ordering, deletion).
   - **Details:** Ensure `created_at`/`updated_at` default to UTC; verify unique + FK indexes exist; confirm ratings/watchlist uniqueness is enforced at DB level.
   - **Files:** models + migration.
@@ -219,21 +219,21 @@ MovieMind/
 
 ### Phase 5 — Movie catalogue & data import
 
-- [ ] **T5.1 Movie model & schemas** **[Must have]**
+- [x] **T5.1 Movie model & schemas** **[Must have]**
   - **Purpose:** Internal movie record with validated `movielens_id` mapping.
   - **Details:** `Movie` with `id` (UUID), `movielens_id` (nullable unique int), `title`, `genres` (per chosen approach), `overview`, `release_year`, `poster_url` (all nullable), cached `average_rating`/`ratings_count`, timestamps. Pydantic response schemas (never raw ORM objects).
   - **Files:** `backend/app/db/models/movie.py`, `backend/app/schemas/movie.py`.
   - **Dependencies:** T4.3.
   - **Acceptance:** A movie can be created and serialized with `movielens_id` preserved.
 
-- [ ] **T5.2 Idempotent MovieLens import script** **[Must have]**
+- [x] **T5.2 Idempotent MovieLens import script** **[Must have]**
   - **Purpose:** Load `movies.csv` (and optionally `ratings.csv`) without duplication and without treating MovieLens ratings as user ratings.
   - **Details:** CLI script (`scripts/import_movielens.py`) reading `movies.csv`; upsert by `movielens_id`; split the `|`-separated genres; report imported/updated/skipped/failed counts; tolerate malformed rows; **never** import ratings into `Rating`. Document dataset download + license.
   - **Files:** `backend/scripts/import_movielens.py`.
   - **Dependencies:** T5.1.
   - **Acceptance:** Running twice yields zero new records the second time; output reports counts; `ratings.csv` import (if added) does not touch `Rating`.
 
-- [ ] **T5.3 Movie browse/search/filter API** **[Must have]**
+- [x] **T5.3 Movie browse/search/filter API** **[Must have]**
   - **Purpose:** Paginated, searchable, filterable catalogue.
   - **Details:** `GET /api/v1/movies` with `limit`/`offset` (safe max), `q` (parameterized ILIKE), `genre`, `year`, `sort`/`direction` (allow-listed). `GET /api/v1/movies/{movie_id}` (decide and document whether UUID or MovieLens ID; recommend internal UUID with an optional `movielens_id` lookup). `GET /api/v1/movies/genres`. `GET /api/v1/movies/popular` (name it "popular", not "trending", until a real ranking rule exists).
   - **Files:** `backend/app/api/v1/endpoints/movies.py`, repository/service in `app/repositories`/`app/services`.
@@ -244,28 +244,28 @@ MovieMind/
 
 ### Phase 6 — Authentication & users
 
-- [ ] **T6.1 User model & password hashing** **[Must have]**
+- [x] **T6.1 User model & password hashing** **[Must have]**
   - **Purpose:** Secure account records.
   - **Details:** `User` with UUID `id`, normalized unique `email`, unique `username`, `password_hash`, `display_name`, `role`, `is_active`, timestamps. Hash with Argon2id (`pwdlib[argon2]` or `argon2-cffi`). Never store plaintext.
   - **Files:** `backend/app/db/models/user.py`, `backend/app/core/security.py`.
   - **Dependencies:** T4.3.
   - **Acceptance:** Hash is verifiable and non-reversible; duplicate email/username rejected.
 
-- [ ] **T6.2 JWT creation & validation** **[Must have]**
+- [x] **T6.2 JWT creation & validation** **[Must have]**
   - **Purpose:** Short-lived access tokens with correct claims.
   - **Details:** HS256 (or approved) tokens with `sub` = user UUID, `exp`, `iat`, `type=access`. Validate signature + expiry + type. `get_current_user` dependency derives identity **only** from the token (never a client-supplied ID).
   - **Files:** `backend/app/core/security.py`, `backend/app/api/dependencies.py`.
   - **Dependencies:** T6.1.
   - **Acceptance:** Expired/forged tokens rejected; valid token resolves the correct user.
 
-- [ ] **T6.3 Register / login / logout / refresh** **[Must have]**
+- [x] **T6.3 Register / login / logout / refresh** **[Must have]**
   - **Purpose:** Account lifecycle endpoints.
   - **Details:** `POST /auth/register` (normalize+validate email, hash password, return tokens — or 201 + login, per approved flow), `POST /auth/login` (avoid account-enumeration: same generic message on unknown email vs bad password), `POST /auth/refresh` and `POST /auth/logout` (only if refresh tokens approved; otherwise 501/stub). If refresh tokens are built, store **hashed** token identifiers with rotation + reuse detection.
   - **Files:** `backend/app/api/v1/endpoints/auth.py`, `backend/app/schemas/auth.py`.
   - **Dependencies:** T6.2.
   - **Acceptance:** Register→login→`GET /users/me` works; login failures don't reveal whether the account exists.
 
-- [ ] **T6.4 Profile endpoints & authorization** **[Must have]**
+- [x] **T6.4 Profile endpoints & authorization** **[Must have]**
   - **Purpose:** Current-user profile read/update.
   - **Details:** `GET /users/me`, `PATCH /users/me` (allow-listed fields only). `DELETE /users/me` deferred until a deletion/retention policy is defined (open decision #7/#14) — return 501 until approved.
   - **Files:** `backend/app/api/v1/endpoints/users.py`.

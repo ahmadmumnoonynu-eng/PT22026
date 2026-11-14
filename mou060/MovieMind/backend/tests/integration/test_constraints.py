@@ -19,18 +19,23 @@ from app.db.models.user import User
 from app.db.models.watchlist import WatchlistItem
 
 
-def _user(email: str = "test@example.com") -> User:
-    return User(email=email, password_hash="x")
+def _email(prefix: str = "test") -> str:
+    return f"{prefix}-{uuid.uuid4().hex[:12]}@example.com"
 
 
-def _movie(title: str = "Test Movie", movielens_id: int = 9000000) -> Movie:
-    return Movie(title=title, movielens_id=movielens_id)
+def _user(email: str | None = None) -> User:
+    return User(email=email or _email(), password_hash="x")
+
+
+def _movie(title: str = "Test Movie", movielens_id: int | None = None) -> Movie:
+    return Movie(title=title, movielens_id=movielens_id or uuid.uuid4().int % 100000000)
 
 
 def test_duplicate_email_rejected(db):
-    db.add(_user("dup@example.com"))
+    email = _email("dup")
+    db.add(_user(email))
     db.flush()
-    db.add(_user("dup@example.com"))
+    db.add(_user(email))
     with pytest.raises(IntegrityError):
         db.flush()
 
@@ -60,7 +65,7 @@ def test_duplicate_watchlist_rejected(db):
 
 
 def test_user_delete_cascades(db):
-    user = _user("cascade@example.com")
+    user = _user()
     movie = _movie()
     db.add_all([user, movie])
     db.flush()
@@ -79,14 +84,14 @@ def test_user_delete_cascades(db):
 
 
 def test_invalid_role_rejected(db):
-    user = User(email="role@example.com", password_hash="x", role="superuser")
+    user = User(email=_email("role"), password_hash="x", role="superuser")
     db.add(user)
     with pytest.raises(IntegrityError):
         db.flush()
 
 
 def test_timestamps_autopopulated(db):
-    user = _user("ts@example.com")
+    user = _user()
     db.add(user)
     db.flush()
     assert user.created_at is not None
@@ -94,15 +99,16 @@ def test_timestamps_autopopulated(db):
 
 
 def test_movie_movielens_id_unique(db):
-    db.add(_movie("A", movielens_id=9000001))
+    mlid = uuid.uuid4().int % 100000000
+    db.add(_movie("A", movielens_id=mlid))
     db.flush()
-    db.add(_movie("B", movielens_id=9000001))
+    db.add(_movie("B", movielens_id=mlid))
     with pytest.raises(IntegrityError):
         db.flush()
 
 
 def test_uuid_primary_key_generated(db):
-    user = _user("uuid@example.com")
+    user = _user()
     db.add(user)
     db.flush()
     assert isinstance(user.id, uuid.UUID)

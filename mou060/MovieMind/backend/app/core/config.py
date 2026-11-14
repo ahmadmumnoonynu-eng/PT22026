@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
 
-_DEVELOPMENT_DEFAULT_SECRET = "dev-only-secret-change-me"
+_DEVELOPMENT_DEFAULT_SECRET = "dev-only-secret-change-me-not-for-production-0123456789"
 
 
 class Settings(BaseSettings):
