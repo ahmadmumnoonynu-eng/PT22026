@@ -5,9 +5,10 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import ForeignKey, Numeric, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.models.movie import Movie
 
 
 class Rating(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -24,3 +25,7 @@ class Rating(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     # 0.5–5.0 in 0.5 increments -> one decimal place, max value 5.0 (2 digits).
     score: Mapped[float] = mapped_column(Numeric(2, 1), nullable=False)
+
+    # Read-only navigation for serialization; no schema change. Load eagerly via
+    # selectinload in the repository to avoid N+1 queries.
+    movie: Mapped[Movie] = relationship(Movie)

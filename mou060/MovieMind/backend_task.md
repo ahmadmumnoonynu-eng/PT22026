@@ -276,21 +276,21 @@ MovieMind/
 
 ### Phase 7 — Ratings & watchlist
 
-- [ ] **T7.1 Rating create/update (upsert)** **[Must have]**
+- [x] **T7.1 Rating create/update (upsert)** **[Must have]**
   - **Purpose:** One rating per user per movie, transaction-safe.
   - **Details:** `POST /api/v1/ratings` upserts on `(user_id, movie_id)`. Validate score on `0.5–5.0` in `0.5` steps (pending owner approval of scale). Return saved rating + timestamps.
   - **Files:** `backend/app/api/v1/endpoints/ratings.py`, `backend/app/schemas/rating.py`.
   - **Dependencies:** T6.2, T5.1.
   - **Acceptance:** Re-rating the same movie updates (not duplicates); invalid scores/steps → 422.
 
-- [ ] **T7.2 Rating read/delete + ownership** **[Must have]**
+- [x] **T7.2 Rating read/delete + ownership** **[Must have]**
   - **Purpose:** List/get/remove own ratings; strict ownership.
   - **Details:** `GET /ratings/me`, `GET /ratings/me/{movie_id}`, `DELETE /ratings/me/{movie_id}`. All derive user from token; enforce `user_id == current_user`.
   - **Files:** ratings endpoint.
   - **Dependencies:** T7.1.
   - **Acceptance:** User A cannot read/delete User B's rating (404 or 403, consistent).
 
-- [ ] **T7.3 Watchlist add/list/remove** **[Must have]**
+- [x] **T7.3 Watchlist add/list/remove** **[Must have]**
   - **Purpose:** Personal watchlist with duplicates blocked at DB level.
   - **Details:** `POST /watchlist/{movie_id}`, `GET /watchlist` (paginated), `DELETE /watchlist/{movie_id}`. Unique `(user_id, movie_id)`; ownership enforced.
   - **Files:** `backend/app/api/v1/endpoints/watchlist.py`, watchlist model/schema.
