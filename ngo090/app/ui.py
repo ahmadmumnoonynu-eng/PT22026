@@ -277,6 +277,26 @@ div[class*="st-key-chat_scroll"]::-webkit-scrollbar-thumb{background:rgba(120,16
 div[class*="st-key-case_head_tools"]{justify-content:flex-end;}
 div[data-testid="stPopoverBody"]{width:400px;max-width:92vw;}
 div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"]{gap:.4rem !important;}
+/* ---- scenario comparison: two scenarios, one set of measures ---- */
+.fa-cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px;}
+@media (max-width:1100px){.fa-cmp{grid-template-columns:minmax(0,1fr);}}
+.fa-cmpcard{border-color:rgba(96,140,220,.26);}
+.fa-cmpcard.b{border-color:rgba(125,184,255,.55);box-shadow:0 10px 34px rgba(37,99,235,.22);}
+.fa-cmpname{font-size:20px;font-weight:700;letter-spacing:-.2px;margin:4px 0 6px;}
+.fa-cmpline{font-size:12.8px;color:#9db0cf;line-height:1.6;}
+.fa-cmpstats{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap;}
+.fa-cmpstats span{display:block;font-size:10.5px;color:#8fa3c2;text-transform:uppercase;letter-spacing:.07em;
+font-weight:700;margin-bottom:3px;}
+.fa-cmpstats b{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;}
+.fa-diff{font-variant-numeric:tabular-nums;font-weight:650;}
+.fa-diff.up{color:#34d399;}.fa-diff.down{color:#fb7185;}.fa-diff.flat{color:#9db0cf;}
+.fa-bars.cmp .fa-bar{grid-template-columns:minmax(120px,1.1fr) 2fr 96px;}
+.fa-table tr.fa-strong td{border-top:1px solid rgba(96,140,220,.3);font-weight:650;color:#f2f7ff;}
+.fa-verdict{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:16px;
+background:linear-gradient(135deg,rgba(37,99,235,.20),rgba(11,20,40,.55));
+border:1px solid rgba(96,140,220,.38);font-size:14.2px;line-height:1.6;color:#e2ecfb;}
+.fa-verdict b{color:#fff;}
+.fa-verdict svg{flex:none;margin-top:1px;}
 </style>
 """
 
@@ -569,7 +589,7 @@ def header_html(state: str, period: str, title: str, pill: bool = True) -> str:
                   "stopped": ("Stopped", "idle"), "finished": ("Replay finished", "done"),
                   "testing": ("Ready to test", "live"), "live": ("Simulated live", "live"),
                   "cases": ("Stored on disk", "done"), "audit": ("Append-only", "done"),
-                  "case": ("Case file", "done"),
+                  "case": ("Case file", "done"), "compare": ("Backtest, not a forecast", "done"),
                   "approvals": ("Human in the loop", "idle")}[state]
     status = (f'<div class="fa-pills"><div class="fa-pill"><i class="fa-dot {dot}"></i>{label}</div></div>'
               if pill else "")
@@ -679,6 +699,71 @@ def advisor_html(rec, current_block: float, current_capacity: int) -> str:
             f'<div><div class="fa-klabel" style="margin-bottom:6px">Net benefit by auto-block risk score</div>{blocks}</div>'
             f'<div><div class="fa-klabel" style="margin-bottom:6px">Net benefit by daily review capacity</div>{caps}</div></div>' + foot)
     return compact(f'<div class="fa-root"><div style="margin-top:16px">{card("Policy advisor", body, "cash")}</div></div>')
+
+
+# --------------------------------------------------------------------------- #
+# Scenario comparison
+# --------------------------------------------------------------------------- #
+def compare_cards_html(cards: list[dict]) -> str:
+    """The two scenario panels: [{'eyebrow','name','corpus','policy','stats'}]."""
+    body = "".join(
+        f'<div class="fa-card fa-cmpcard{" b" if i else ""}">'
+        f'<div class="fa-klabel">{escape(card["eyebrow"])}</div>'
+        f'<div class="fa-cmpname">{escape(card["name"])}</div>'
+        f'<div class="fa-cmpline">{escape(card["corpus"])}</div>'
+        f'<div class="fa-cmpline">{escape(card["policy"])}</div>'
+        f'<div class="fa-cmpstats">'
+        + "".join(f'<div><span>{escape(label)}</span><b>{escape(value)}</b></div>'
+                  for label, value in card["stats"])
+        + '</div></div>'
+        for i, card in enumerate(cards))
+    return compact(f'<div class="fa-root"><div class="fa-cmp">{body}</div></div>')
+
+
+def comparison_table_html(rows: list[dict], left: str, right: str) -> str:
+    """The six measures side by side. rows: label, left, right, diff, tone, strong."""
+    head = "".join(f"<th>{escape(h)}</th>" for h in ("Measure", left, right, "Difference"))
+    body = "".join(
+        f'<tr{" class=fa-strong" if row.get("strong") else ""}><td>{escape(row["label"])}</td>'
+        f'<td style="text-align:right">{escape(row["left"])}</td>'
+        f'<td style="text-align:right">{escape(row["right"])}</td>'
+        f'<td style="text-align:right"><span class="fa-diff {row["tone"]}">{escape(row["diff"])}</span></td></tr>'
+        for row in rows)
+    return (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
+
+
+def decomposition_html(items: list[dict], net: str) -> str:
+    """Where the net difference came from: items are label, value, tone."""
+    top = max((abs(i["value"]) for i in items), default=0.0) or 1.0
+    rows = "".join(
+        f'<div class="fa-bar"><span>{escape(i["label"])}</span><div class="fa-track">'
+        f'<div class="fa-fill{" down" if i["value"] >= 0 else ""}" '
+        f'style="width:{abs(i["value"]) / top * 100:.0f}%"></div></div>'
+        f'<em class="fa-diff {i["tone"]}">{escape(i["text"])}</em></div>' for i in items)
+    return (f'<div class="fa-bars cmp">{rows}'
+            f'<div class="fa-bar" style="border-top:1px solid rgba(96,140,220,.18);padding-top:11px">'
+            f'<span style="font-weight:650;color:#e6edf7">Net difference</span><span></span>'
+            f'<em style="font-weight:700">{escape(net)}</em></div></div>')
+
+
+def verdict_html(text: str, meta: str = "") -> str:
+    """The one sentence worth quoting, plus a quiet line of method notes."""
+    extra = f'<div class="fa-note" style="margin-top:8px">{meta}</div>' if meta else ""
+    return compact(f'<div class="fa-root"><div class="fa-verdict">{icon("shield-check", "#7db8ff", 22)}'
+                   f'<div>{escape(text)}{extra}</div></div></div>')
+
+
+def pattern_table_html(rows: list[dict], left: str, right: str) -> str:
+    """Catch rate per fraud shape. rows: pattern, cases, left, right."""
+    head = "".join(f"<th>{escape(h)}</th>" for h in ("Fraud shape", "Cases", left, right))
+    body = "".join(
+        f'<tr><td>{escape(row["pattern"])}</td><td style="text-align:right">{escape(row["cases"])}</td>'
+        f'<td style="text-align:right">{escape(row["left"])}</td>'
+        f'<td style="text-align:right">{escape(row["right"])}</td></tr>'
+        for row in rows)
+    return (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
 
 
 # --------------------------------------------------------------------------- #

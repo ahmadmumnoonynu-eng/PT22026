@@ -153,7 +153,7 @@ python run_local.py
 
 The app needs a trained run, so run the training command in section 4 first. Model files are not stored in the repository. `results/replay_sample.csv.gz` is, so the replay mode has data to work with as soon as the models exist.
 
-The three modes are buttons in the left sidebar (the active one is highlighted); each mode keeps its own settings when you move between them. Switching modes fades the new page in and scrolls it to the top, while a running live feed keeps repainting without restarting the animation. The visible page is mirrored into the URL (`?page=cases`, `?page=case&case=C-0007`), so reloading the tab — or opening the link again — lands on the page you were on instead of the live feed; a link to a case that no longer exists falls back to the list.
+The four modes are buttons in the left sidebar (the active one is highlighted); each mode keeps its own settings when you move between them. Switching modes fades the new page in and scrolls it to the top, while a running live feed keeps repainting without restarting the animation. The visible page is mirrored into the URL (`?page=cases`, `?page=case&case=C-0007`), so reloading the tab — or opening the link again — lands on the page you were on instead of the live feed; a link to a case that no longer exists falls back to the list.
 
 ### 7.1 Historical replay
 
@@ -185,7 +185,20 @@ The generator draws its type mix, amounts and receiver balances from the replaye
 - **Upload a file:** up to 20,000 rows. Required columns `type`, `amount`, `oldbalanceOrg`, `oldbalanceDest`; optional `hour` or `step`, and `isFraud` if the true labels are known. Header names are case insensitive and extra columns are ignored. Rows that fail validation are listed with a reason instead of failing the whole file. A template file can be downloaded, and the scored file can be downloaded again with risk, decision and reason per row.
 - Review capacity is not applied here, because it only means something for transactions spread over time.
 
-### 7.4 Decision policy and money
+### 7.4 Scenario comparison
+
+A fourth mode, and a pure read: score the same transactions twice and subtract the results (`src/scenario.py`). A scenario is four things -- the traffic, the scores, the policy, the costs -- and every offered pairing changes exactly one of them:
+
+- **Balanced vs Strict:** the two presets on identical transactions and scores.
+- **Balanced vs Strict at the same capacity:** staffing held identical, so the threshold and review cut-off are isolated.
+- **Normal traffic vs market shift:** one policy, one window, two worlds -- from the middle of the window the model's inputs change (amounts 10x, new receivers). Money is still counted on what the transactions were actually worth.
+- **Known fraud vs new fraud pattern:** a synthetic corpus from a fixed seed, where half the fraud switches from emptied accounts to small transfers between established ones. The engine was never taught that shape, and the per-pattern catch table shows the result.
+
+The page shows the six measures (fraud caught, false alarms, review workload, amount saved, missed fraud, net benefit) with signed, colour-coded differences, a decomposition of the net difference (more fraud stopped, more review cost, more blocked customers), the cumulative net-benefit lines of both scenarios over the simulated hours, and a one-sentence verdict written in plain words.
+
+Three honesty guards are built in: both sides must draw the **same transactions** (`Corpus.pair_id`; a different sample number is reported as two runs, not a comparison), moving **two axes at once** is called out because no single cause can be named, and every paired comparison carries a **bootstrap range** on the net-benefit difference -- when zero is inside the range, the verdict says "inside the noise" instead of quoting a winner. Like the policy advisor, this is a backtest on labelled traffic: guidance, not a forecast.
+
+### 7.5 Decision policy and money
 
 The policy is set in two popovers available in every mode:
 
@@ -210,7 +223,7 @@ net benefit = money saved - review costs - friction costs
 
 **Policy advisor** (replay mode, off by default). Sweeps auto-block thresholds from 90 to 100 and review capacities from 0 to 1,000, evaluates each combination on the replayed transactions, and reports the one with the highest net benefit. Because it uses the true labels of that period, it is a backtest and guidance, not a prediction. One button copies the recommendation into the policy.
 
-### 7.5 Drift monitoring
+### 7.6 Drift monitoring
 
 The drift monitor uses the Population Stability Index (PSI). Below 0.10 is stable, 0.10–0.25 is "watch", above 0.25 means the traffic has changed and the model may be less reliable. It needs no labels, which is the point: fraud labels arrive days or weeks late.
 
@@ -220,13 +233,13 @@ The drift monitor uses the Population Stability Index (PSI). Below 0.10 is stabl
 
 Both "market shift" toggles exist to make this alert fire.
 
-### 7.6 Explanations
+### 7.7 Explanations
 
 For each alert the app reports the facts that pushed the score up or down. The method is occlusion: take the transaction, replace one input with a typical value (the median of an unlabelled training sample), and measure how much the engine's raw score drops. The drop is that input's contribution. It needs no extra library and works for any model, including the unsupervised one.
 
 Explanations are only computed for transactions at or above risk 80, which is the range the policy can actually flag; this keeps the replay fast. They describe what the engine reacted to, not proof of fraud.
 
-### 7.7 Tool layer
+### 7.8 Tool layer
 
 Everything the dashboard does is also available as a small, deterministic, Streamlit-free API in `src/tools.py`. A `Toolkit` bundles one risk engine, one policy, the case store and (optionally) a corpus of transactions to compare against, and exposes the functions the app itself is built on:
 
@@ -252,7 +265,7 @@ print(tools.assess_risk({"type": "TRANSFER", "amount": 250000,
                          "oldbalanceOrg": 250000, "oldbalanceDest": 0}).to_dict())
 ```
 
-### 7.8 Why account-level investigation is not built (yet)
+### 7.9 Why account-level investigation is not built (yet)
 
 A natural next set of tools would be account-shaped: search by sender, search by receiver, per-account velocity, repeat-offender accounts, and "compare with this account's history". They are deliberately not built, because this dataset cannot support them:
 
@@ -268,7 +281,7 @@ What the data does support is already in the tool layer: `find_related_transacti
 
 The account-shaped tools belong to the bank-card fraud version of this system, where a card and a merchant are real, persistent entities with history. There, the same `Toolkit` gains `search_transactions(account=...)`, `account_velocity(...)` and `compare_to_history(...)` without touching the decision, case or audit layers — those are already transaction-shaped and would stay as they are.
 
-### 7.9 The investigation assistant and its approval gate
+### 7.10 The investigation assistant and its approval gate
 
 One assistant, not autonomous agents (`src/agent.py`). It runs on the same tool layer the UI uses and does seven things for a case: receives it, requests the transaction details, checks related activity, asks the Risk Manager for a fresh assessment, summarizes the evidence, recommends an action and files a proposal. It **reads everything and writes nothing**: the only thing it can produce is a row in an append-only proposal queue (`src/proposals.py`), and the Risk Manager — the deterministic policy — keeps the actual decision.
 
@@ -280,7 +293,7 @@ The panel is not a snapshot. Every reading is stamped with the case version it r
 
 An optional language-model writer only rephrases the narrative. It sees nothing but the evidence list, and any reply that introduces a number the evidence does not contain is discarded in favour of the deterministic template — a failed or hallucinating writer degrades to the template wording, recorded as such. The screen shows the narrative, the evidence list and an explicit "what was not checked, and why" section; the full step trace with timings and the tool each fact came from is kept in the data — it rides along with the proposal when one is filed — so the work stays auditable without exposing function names to the analyst.
 
-### 7.10 The case page, and RiskPilot in conversation
+### 7.11 The case page, and RiskPilot in conversation
 
 Three fields, three words, everywhere. A case carries a **state** (open or closed — whether the work is finished), a **resolution** (investigating, confirmed fraud, false positive — the verdict on the transaction) and a **priority** (low to urgent — how hard to work it). They move independently: an open case can already name its resolution, and a closed one always carries it. The system's own **decision** (approved, sent to review, blocked) is a fourth field and nobody edits it. The UI was once less careful — the resolution dropdown said "Status", the list had both a "Status" and a "State" filter, and RiskPilot said "resolution" — which left an analyst asking "what is status, what is resolution?". The labels now read Resolution / State / Priority, RiskPilot answers "what's the status?" by naming all three ("Open, still investigating — no verdict yet. Urgent priority…"), it can explain the vocabulary when asked directly, and "should I change the resolution?" is routed to the resolution rather than to the general recommendation. The SQLite column is still called `status` and still holds the resolution: renaming a column in an append-only store buys nothing but a migration, so the name stays internal and the comments say what it holds.
 
@@ -335,6 +348,7 @@ ngo090/
 │   ├── mode_replay.py        # mode 1: historical replay
 │   ├── mode_live.py          # mode 2: live simulation
 │   ├── mode_testing.py       # mode 3: transaction testing
+│   ├── mode_compare.py       # mode 4: scenario comparison
 │   ├── mode_cases.py         # workspace: the list of investigation cases
 │   ├── mode_case.py          # workspace: one case, with RiskPilot beside it
 │   ├── mode_audit.py         # workspace: the decision log
@@ -356,6 +370,7 @@ ngo090/
 │   ├── cases.py              # investigation cases and their history (SQLite)
 │   ├── audit.py              # the append-only decision log (SQLite)
 │   ├── monitor.py            # replay state -> dashboard numbers
+│   ├── scenario.py           # scenarios, the paired comparison, the bootstrap range
 │   ├── replay.py             # replay window and sampling
 │   ├── live.py               # the live stream: clock, catch-up, decisions
 │   ├── generator.py          # PaySim-format transaction generator

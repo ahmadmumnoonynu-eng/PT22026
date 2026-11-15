@@ -49,11 +49,11 @@ def test_the_app_lands_on_live_simulation_without_errors():
 
 
 def test_the_sidebar_navigates_between_modes():
-    """The three modes plus the two workspace pages are sidebar buttons: clicking one redraws the page."""
+    """The four modes plus the three workspace pages are sidebar buttons: clicking one redraws the page."""
     at = page()
     nav = [b for b in at.sidebar.button if b.key and b.key.startswith("nav_")]
-    assert {b.key for b in nav} == {"nav_live", "nav_replay", "nav_testing", "nav_cases",
-                                    "nav_audit", "nav_approvals"}
+    assert {b.key for b in nav} == {"nav_live", "nav_replay", "nav_testing", "nav_compare",
+                                    "nav_cases", "nav_audit", "nav_approvals"}
     assert not at.exception
 
     at.sidebar.button(key="nav_replay").click().run()
@@ -64,6 +64,10 @@ def test_the_sidebar_navigates_between_modes():
     assert not at.exception
     assert at.session_state["mode"] == "Transaction testing"
     assert "Single transaction" in all_text(at)
+    at.sidebar.button(key="nav_compare").click().run()
+    assert not at.exception
+    assert at.session_state["mode"] == "Scenario comparison"
+    assert "What changes if we change one thing?" in all_text(at)
     at.sidebar.button(key="nav_cases").click().run()
     assert not at.exception
     assert at.session_state["mode"] == "Cases"
@@ -536,3 +540,25 @@ def test_a_quick_prompt_starts_the_conversation(tmp_path, monkeypatch):
     assert "make it urgent" in body                 # a position, in the first line
     assert "approval" in body                       # and the way to act on it
     assert ChatStore(tmp_path / "chat.db").count(case.case_id) == 2
+
+
+def test_the_compare_page_shows_two_scenarios_and_the_difference():
+    """The page scores the same window twice and diffs it (src/scenario.py)."""
+    at = page(mode="Scenario comparison")
+    assert not at.exception
+    body = all_text(at)
+    assert "What changes if we change one thing?" in body
+    assert "Side by side" in body and "Where the difference comes from" in body
+    assert "Fraud caught" in body and "Net benefit" in body
+    assert "Balanced" in body and "Strict" in body
+
+
+def test_the_compare_page_switches_to_the_new_pattern_pairing():
+    """Changing the pairing rebuilds both scenarios; the pattern table appears."""
+    at = page(mode="Scenario comparison")
+    at.selectbox(key="pairing").set_value("Known fraud vs new fraud pattern").run()
+    assert not at.exception
+    body = all_text(at)
+    assert "Catch rate by fraud shape" in body
+    assert "Small transfers" in body
+    assert "Known pattern" in body and "New pattern" in body

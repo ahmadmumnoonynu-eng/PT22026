@@ -29,6 +29,7 @@ import mode_agent                   # noqa: E402
 import mode_audit                  # noqa: E402
 import mode_case                   # noqa: E402
 import mode_cases                  # noqa: E402
+import mode_compare                # noqa: E402
 import mode_live                   # noqa: E402
 import mode_replay                 # noqa: E402
 import mode_testing                # noqa: E402
@@ -36,13 +37,15 @@ import ui                          # noqa: E402
 from src.artifacts import discover_runs  # noqa: E402
 
 REPLAY, LIVE, TESTING = "Historical replay", "Live simulation", "Transaction testing"
+COMPARE = "Scenario comparison"     # a batch read: two policies or two worlds, one set of numbers
 CASES = "Cases"                     # the list of cases: a workspace page, not a mode
 CASE = "Case"                       # one case, opened from the list or from an alert
 AUDIT = "Audit"                     # the decision log: workspace too
 APPROVALS = "Approvals"             # the assistant's queue: workspace too
-MODES = (LIVE, REPLAY, TESTING)    # the live feed is what greets the analyst
+MODES = (LIVE, REPLAY, TESTING, COMPARE)    # the live feed is what greets the analyst
 SLUG = common.PAGE_SLUGS           # the same slug the URL uses, so the two cannot drift
 ICON = {LIVE: ":material/sensors:", REPLAY: ":material/history:", TESTING: ":material/science:",
+        COMPARE: ":material/compare_arrows:",
         CASES: ":material/folder_shared:", CASE: ":material/description:",
         AUDIT: ":material/receipt_long:", APPROVALS: ":material/fact_check:"}
 
@@ -170,6 +173,8 @@ def main() -> None:
             mode_replay.render(header, tag, run)
         elif mode == LIVE:
             mode_live.render(header, tag, run, engine)
+        elif mode == COMPARE:
+            mode_compare.render(header, tag, run)
         elif mode == CASES:
             mode_cases.render(header, store, tag)
         elif mode == CASE:

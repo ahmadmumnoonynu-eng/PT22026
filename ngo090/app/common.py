@@ -209,6 +209,7 @@ PAGE_SLUGS = {
     "Live simulation": "live",
     "Historical replay": "replay",
     "Transaction testing": "testing",
+    "Scenario comparison": "compare",
     "Cases": "cases",
     "Case": "case",
     "Audit": "audit",
