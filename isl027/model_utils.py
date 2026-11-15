@@ -1,57 +1,81 @@
-﻿import re
+﻿import os
+import re
 from functools import lru_cache
+from typing import Dict, List
+
 from sentence_transformers import SentenceTransformer, util
-import os
+
+# Force offline mode for fast, reproducible local execution
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-# Path to the locally cached model
-LOCAL_MODEL_PATH = os.path.expanduser("~/.cache/huggingface/hub/models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2/snapshots")
-
-SKILLS = [
+# Predefined skill dictionary for keyword extraction
+SKILLS: List[str] = [
     "python", "java", "javascript", "typescript", "c++", "c#", "sql",
     "html", "css", "react", "node.js", "django", "flask", "fastapi",
-    "machine learning", "deep learning", "nlp", "computer vision",
-    "data analysis", "data visualization", "pandas", "numpy",
+    "machine learning", "ml", "deep learning", "nlp", "computer vision",
+    "data analysis", "data analytics", "data science", "pandas", "numpy",
     "scikit-learn", "tensorflow", "pytorch", "keras",
-    "power bi", "tableau", "excel",
-    "aws", "azure", "gcp", "docker", "kubernetes", "git", "linux",
+    "power bi", "tableau", "excel", "git", "github", "version control",
+    "aws", "azure", "gcp", "docker", "kubernetes", "linux",
     "communication", "teamwork", "leadership", "problem solving",
     "project management", "agile", "scrum",
 ]
 
+
 @lru_cache(maxsize=1)
-def load_model():
-    # Find the exact snapshot folder dynamically
-    snapshot_dir = os.listdir(LOCAL_MODEL_PATH)[0]
-    exact_path = os.path.join(LOCAL_MODEL_PATH, snapshot_dir)
-    return SentenceTransformer(exact_path)
+def load_model() -> SentenceTransformer:
+    """
+    Load and cache the pre-trained SentenceTransformer model.
+    Using lru_cache ensures the model is only loaded into memory once.
+    """
+    return SentenceTransformer(MODEL_NAME, local_files_only=True)
+
 
 def normalize_text(text: str) -> str:
+    """Converts text to lowercase and removes extra whitespaces."""
     return re.sub(r"\s+", " ", text.lower()).strip()
 
-def extract_skills(text: str) -> list:
+
+def extract_skills(text: str) -> List[str]:
+    """
+    Extracts known skills from the given text using regular expressions.
+    Returns a sorted list of unique skills found.
+    """
     text_norm = normalize_text(text)
-    found = []
+    found_skills = []
+    
     for skill in SKILLS:
+        # Regex ensures exact word matches (e.g., 'java' won't match 'javascript')
         pattern = r"(?<!\w)" + re.escape(skill) + r"(?!\w)"
         if re.search(pattern, text_norm):
-            found.append(skill)
-    return sorted(set(found))
+            found_skills.append(skill)
+            
+    return sorted(set(found_skills))
+
 
 def extract_text_from_pdf(path: str) -> str:
+    """Extracts raw text content from an uploaded PDF file."""
     try:
         from pypdf import PdfReader
     except ImportError:
-        raise RuntimeError("pypdf is not installed.")
+        raise RuntimeError("pypdf is not installed. Run: pip install pypdf")
         
     reader = PdfReader(path)
     text = "\n".join([page.extract_text() or "" for page in reader.pages]).strip()
+    
     if not text:
-        raise ValueError("Could not extract text from the PDF.")
+        raise ValueError("Could not extract text from the PDF. It might be an image-based PDF.")
     return text
 
-def analyze_match(cv_text: str, jd_text: str) -> dict:
+
+def analyze_match(cv_text: str, jd_text: str) -> Dict:
+    """
+    Compares the CV and Job Description to calculate a reliable match score.
+    Uses a blended metric: 60% Semantic Similarity + 40% Skill Match Ratio.
+    """
     cv_text = (cv_text or "").strip()
     jd_text = (jd_text or "").strip()
     
@@ -59,18 +83,31 @@ def analyze_match(cv_text: str, jd_text: str) -> dict:
         raise ValueError("Both CV and Job Description are required.")
 
     model = load_model()
+    
+    # 1. Semantic Similarity (Contextual meaning)
     cv_emb = model.encode(cv_text, convert_to_tensor=True, normalize_embeddings=True)
     jd_emb = model.encode(jd_text, convert_to_tensor=True, normalize_embeddings=True)
-    
-    similarity = float(util.cos_sim(cv_emb, jd_emb)[0][0])
-    score = round(max(0.0, min(1.0, similarity)) * 100, 1)
+    raw_similarity = float(util.cos_sim(cv_emb, jd_emb)[0][0])
+    semantic_score = raw_similarity * 100
 
+    # 2. Skill Match Ratio (Exact keyword matches)
     cv_skills = set(extract_skills(cv_text))
     jd_skills = set(extract_skills(jd_text))
+    
+    matched_skills = sorted(cv_skills & jd_skills)
+    missing_skills = sorted(jd_skills - cv_skills)
+    
+    # Avoid division by zero if JD has no recognizable skills
+    if len(jd_skills) > 0:
+        skill_match_ratio = (len(matched_skills) / len(jd_skills)) * 100
+    else:
+        skill_match_ratio = semantic_score 
 
-    matched = sorted(cv_skills & jd_skills)
-    missing = sorted(jd_skills - cv_skills)
+    # 3. Blended Final Score
+    final_score = (semantic_score * 0.6) + (skill_match_ratio * 0.4)
+    score = round(min(100.0, max(0.0, final_score)), 1)
 
+    # Determine qualitative match level
     if score >= 75:
         level = "Strong match"
     elif score >= 50:
@@ -78,16 +115,10 @@ def analyze_match(cv_text: str, jd_text: str) -> dict:
     else:
         level = "Low match"
 
-    if missing:
-        rec = f"The CV matches at a {level.lower()} level. Consider adding these skills: {', '.join(missing)}."
-    else:
-        rec = f"The CV matches at a {level.lower()} level. No major skill gaps found."
-
     return {
-        "score": score, 
-        "similarity": similarity, 
-        "level": level, 
-        "matched": matched, 
-        "missing": missing, 
-        "recommendation": rec
+        "score": score,
+        "similarity": raw_similarity,
+        "level": level,
+        "matched": matched_skills,
+        "missing": missing_skills
     }
