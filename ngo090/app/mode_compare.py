@@ -363,14 +363,12 @@ def render(header, tag: str, run) -> None:
 
     # ---- the measures ----------------------------------------------------- #
     st.markdown(ui.compare_cards_html(_cards(cmp)), unsafe_allow_html=True)
-    grid = st.columns([1.5, 1])
-    with grid[0]:
-        st.markdown(ui.card("Side by side", ui.comparison_table_html(
-            _table_rows(cmp), cmp.left.name, cmp.right.name), "bars"), unsafe_allow_html=True)
-    with grid[1]:
-        items, net = _decomposition(cmp)
-        st.markdown(ui.card("Where the difference comes from",
-                            ui.decomposition_html(items, net), "cash"), unsafe_allow_html=True)
+    items, net = _decomposition(cmp)
+    st.markdown(ui.two_cards(
+        ui.card("Side by side", ui.comparison_table_html(
+            _table_rows(cmp), cmp.left.name, cmp.right.name), "bars"),
+        ui.card("Where the difference comes from",
+                ui.decomposition_html(items, net), "cash")), unsafe_allow_html=True)
 
     st.markdown(_overlay(cmp), unsafe_allow_html=True)
 

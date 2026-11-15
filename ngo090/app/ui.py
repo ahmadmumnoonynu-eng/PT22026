@@ -291,18 +291,16 @@ font-weight:700;margin-bottom:3px;}
 .fa-diff{font-variant-numeric:tabular-nums;font-weight:650;}
 .fa-diff.up{color:#34d399;}.fa-diff.down{color:#fb7185;}.fa-diff.flat{color:#9db0cf;}
 .fa-bars.cmp .fa-bar{grid-template-columns:minmax(120px,1.1fr) 2fr 96px;}
-/* The toolbar (Comparison + traffic + Costs) reads as one row: Streamlit
-   bottom-aligns the columns, so every control sits on the selectbox baseline. */
 div[class*="st-key-cmp_sides"]{margin:8px 0 4px;}
-/* Side by side + Where the difference comes from: the two panels in this row
-   share one height, so neither ends early next to the other. */
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp)>div[data-testid="stColumn"]{display:flex;flex-direction:column;}
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stVerticalBlock"]{flex:1;display:flex;flex-direction:column;}
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stElementContainer"],
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stMarkdown"]{flex:1;display:flex;flex-direction:column;}
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-root{flex:1;display:flex;width:100%;}
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-card{flex:1;width:100%;display:flex;flex-direction:column;}
-div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-bars.cmp{flex:1;justify-content:space-evenly;gap:10px;}
+/* Two panels on one row rendered as our own grid (not st.columns): a CSS grid
+   row stretches, so "Side by side" and "Where the difference comes from" always
+   share the same height -- Streamlit's columns would leave the shorter one
+   ending early. */
+.fa-duo{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:stretch;margin:4px 0 16px;}
+@media (max-width:1100px){.fa-duo{grid-template-columns:minmax(0,1fr);}}
+.fa-duo>.fa-card{height:100%;}
+.fa-duo>.fa-card:has(.fa-bars.cmp){display:flex;flex-direction:column;}
+.fa-duo .fa-bars.cmp{flex:1;justify-content:space-evenly;gap:10px;}
 .fa-table tr.fa-strong td{border-top:1px solid rgba(96,140,220,.3);font-weight:650;color:#f2f7ff;}
 .fa-verdict{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:16px;margin:10px 0 8px;
 background:linear-gradient(135deg,rgba(37,99,235,.20),rgba(11,20,40,.55));
@@ -730,6 +728,11 @@ def compare_cards_html(cards: list[dict]) -> str:
         + '</div></div>'
         for i, card in enumerate(cards))
     return compact(f'<div class="fa-root"><div class="fa-cmp">{body}</div></div>')
+
+
+def two_cards(left: str, right: str) -> str:
+    """Two cards on one grid row (see .fa-duo in STYLE): they share a height."""
+    return compact(f'<div class="fa-root"><div class="fa-duo">{left}{right}</div></div>')
 
 
 def comparison_table_html(rows: list[dict], left: str, right: str) -> str:
