@@ -27,6 +27,9 @@ backend/data/
 *.log
 pip_install.log
 
+# Local planning notes
+backend_task.md
+
 # OS / editor
 .DS_Store
 Thumbs.db
