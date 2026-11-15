@@ -26,7 +26,7 @@ the change in words before it lands, which is the confirmation step.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.agent import CLUSTER_MIN, CLUSTER_RISK, InvestigationAgent
 from src.cases import Case, PRIORITY_LABELS
@@ -43,6 +43,21 @@ _COMMAND_VERBS = ("mark", "close", "set", "flag", "resolve", "treat", "classify"
                   "change", "raise", "lower", "bump", "move")
 _POLITE = re.compile(r"^(?:please|kindly|can you|could you|would you|will you|hey|hi|ok|okay)\b[\s,]*")
 _LEAD_IN = re.compile(r"^(?:and|then|also|so)\b[\s,]*")
+
+# A whole turn that is only a courtesy. Matched on the raw sentence, before
+# politeness is stripped -- stripping turns "ok" into nothing, and an empty
+# sentence used to read as a greeting.
+_ACK_PHRASE = re.compile(
+    r"^(?:ok|okay|alright|perfect|great|cool|nice|got it|understood|sounds good|noted)"
+    r"(?: then)?(?:[,\s]+(?:thanks|thank you|thx|cheers))?[!. ]*$")
+
+# Whole-turn answers to a question the assistant just asked. Kept exact on
+# purpose: "yes, close it as fraud" is a command and must not be read as a
+# bare yes, and a bare yes must never pick a change on the analyst's behalf.
+_CONFIRM = re.compile(r"^(?:yes|yeah|yep|yup|sure|do it|go ahead|go for it|please do|"
+                      r"proceed|do the needful|ok(?:ay)?[,\s]+(?:do it|go ahead|proceed)|"
+                      r"confirm|confirmed|that'?s right|exactly)[!. ]*$")
+_DECLINE = re.compile(r"^(?:no|nope|nah|don'?t|do not|no need|never ?mind|leave it|nothing)\b")
 
 MAX_NOTE = 2_000          # a note longer than this is a paste, not a note
 
@@ -92,6 +107,16 @@ def _core(message: str) -> str:
             break
         text = stripped
     return text.strip(" .!")
+
+
+# A message can hold more than one instruction ("mark it fraud and close it").
+# Splitting on conjunctions and punctuation is how the rest of a message is
+# found -- and why nothing in it is ever executed silently.
+_CLAUSE_SPLIT = re.compile(r"(?:[,;.]|\band\b|\bthen\b|\balso\b)", re.IGNORECASE)
+
+
+def _segments(text: str) -> list[str]:
+    return [part.strip() for part in _CLAUSE_SPLIT.split(str(text or "")) if part.strip()]
 
 
 # The words the grammar keys on. A misspelling of one of these is corrected
@@ -170,6 +195,20 @@ def _is_question(text: str) -> bool:
                          r"any|list|give)\b", text))
 
 
+def _unquote(text: str) -> str:
+    """A note dictated inside quotes is the text *inside* them.
+
+    Analysts paste sentences from tickets and mail ("add this note: "This is a
+    confirmed fraud""); the quotes are punctuation around the note, not part of
+    what they wrote.
+    """
+    text = text.strip().strip(" :-,.")
+    for opening, closing in (('"', '"'), ("'", "'"), ("\u201c", "\u201d"), ("\u2018", "\u2019")):
+        if len(text) >= 2 and text.startswith(opening) and text.endswith(closing):
+            return text[1:-1].strip()
+    return text
+
+
 def _note_text(raw: str) -> str:
     """The part of an 'add this to the note ...' sentence that is the note.
 
@@ -178,22 +217,23 @@ def _note_text(raw: str) -> str:
     """
     found = re.search(r"\bnotes?\b\s*[:\-\u2014]\s*(?P<text>.*)$", raw, re.IGNORECASE)
     if found:
-        return found.group("text").strip()
+        return _unquote(found.group("text"))
     # The word "note" itself misspelled ("add to the nots: ..."): the intent
     # fired on the corrected text, so recover the payload after a separator.
     # Only with a separator -- a loose match could swallow the wrong words,
     # and a note is the one place the analyst's text must stay verbatim.
     found = re.search(r"\bnot[a-z]{0,4}\b\s*[:\-\u2014]\s*(?P<text>.*)$", raw, re.IGNORECASE)
     if found:
-        return found.group("text").strip()
+        return _unquote(found.group("text"))
     found = re.search(r"\bnotes?\b\s*(?P<text>.*)$", raw, re.IGNORECASE)
     if not found:
         return ""
-    rest = found.group("text").strip(" :-,.")
+    rest = found.group("text").strip().lstrip(" :-,.")
     for lead in ("saying that ", "saying ", "that ", "with ", "as "):
         if rest.lower().startswith(lead):
             rest = rest[len(lead):].strip()
-    return rest
+            break
+    return _unquote(rest)
 
 
 def parse(message: str) -> Intent:
@@ -205,17 +245,31 @@ def parse(message: str) -> Intent:
     must never be read as an instruction.
     """
     raw = " ".join(str(message or "").split()).strip()
+    plain = raw.lower().strip(" .!")
     text = _core(raw)
-    if not text:                                    # nothing but politeness: "hi", "ok then"
-        return Intent("greeting", raw=raw)
+    if not text and not plain:                      # an empty turn
+        return Intent("unknown", raw=raw)
 
     # 1 -- somebody is being polite, not asking about the case -----------
     # Answered on its own: a capability list in reply to "thanks" is the
-    # fastest way to make an assistant feel like a form.
-    if text in _GREETINGS:
+    # fastest way to make an assistant feel like a form. Matched on `plain`
+    # as well as `text`, because stripping "ok" as politeness used to leave
+    # an empty sentence, which then read as a greeting.
+    if text in _GREETINGS or plain in _GREETINGS:
         return Intent("greeting", raw=raw)
-    if text in _ACKS or re.match(r"^thank(?:s| you)\b", text):
+    if text in _ACKS or plain in _ACKS or _ACK_PHRASE.match(plain) \
+            or re.match(r"^thank(?:s| you)\b", plain):
         return Intent("ack", raw=raw)
+
+    # 1b -- a whole-turn answer to a question just asked. It never picks an
+    # action by itself: the analyst says what they want, the assistant files
+    # it. Without this, "yes" answered as if it were a summary request.
+    if _CONFIRM.match(text) or _CONFIRM.match(plain):
+        return Intent("confirm", raw=raw)
+    if _DECLINE.match(text) and len(text.split()) <= 5 \
+            and not any(re.match(r"^(?:" + "|".join(_COMMAND_VERBS) + r")\b", _core(c))
+                        for c in _segments(raw)):
+        return Intent("decline", raw=raw)
 
     # 2 -- a request for the manual --------------------------------------
     if re.match(r"^(help|commands?|what can you do|how can you help|what do you do)\b", text) \
@@ -229,21 +283,27 @@ def parse(message: str) -> Intent:
     text = _fix_typos(text)
 
     # 2c -- adopting the assistant's own draft: "add your note", "save the
-    # suggested note". Checked before rule 3 because "add your note" also
-    # matches the dictate-a-note pattern and would be read as an empty note.
-    # What marks it out: the command verb is at the front, and the note
-    # referred to is the one the assistant drafted, not text the analyst is
-    # dictating -- so "what did you write in your notes?" stays a question.
+    # suggested note", "write up your findings". Checked before rule 3 because
+    # "add your note" also matches the dictate-a-note pattern and would be
+    # read as an empty note. What marks it out: the command verb is at the
+    # front, and what is being written is the assistant's work, not text the
+    # analyst is dictating -- so "what did you write in your notes?" stays a
+    # question, and "add this to the note: your findings were wrong" stays a
+    # note (the colon gives a dictated payload).
     if re.match(r"^(?:add|append|save|write|record|log|put|adopt|keep|use|take)\b", text) \
+            and not re.search(r"\bnotes?\s*[:\-\u2014]", text) \
             and (re.search(r"\byour notes?\b", text)
                  or re.search(r"\b(?:suggested|proposed|drafted?)\s+notes?\b", text)
                  or re.search(r"\b(?:suggestion|recommendation)s?\b.*\bnotes?\b", text)
                  or re.search(r"\bnotes?\b.*\byou\s+(?:suggested|proposed|drafted|wrote|made)\b", text)
-                 or re.search(r"\badopt\b.*\bnotes?\b", text)):
+                 or re.search(r"\badopt\b.*\bnotes?\b", text)
+                 or re.search(r"\byour\s+(?:findings?|analysis|summary|write-?up|read(?:ing)?)\b", text)
+                 or re.search(r"\bwhat\s+you\s+(?:found|think|concluded|recommend)\b", text)
+                 or re.match(r"^(?:write|type|draft)\s+up\b", text)):
         return Intent("adopt_note", raw=raw)
 
-    # 3 -- a note: "add this to the note: ...", "note: ..." --------------
-    if re.match(r"^notes?\s*[:\-]", text) or (
+    # 3 -- a note: "add this to the note: ...", "note: ...", "note that ..." --
+    if re.match(r"^notes?\s*[:\-]", text) or re.match(r"^note\s+that\b", text) or (
             re.match(r"^(?:add|append|write|put)\b", text) and re.search(r"\bnotes?\b", text)):
         return Intent("note", _note_text(raw), raw)
 
@@ -260,7 +320,8 @@ def parse(message: str) -> Intent:
         verdict = "confirmed_fraud"
     closing = bool(re.search(r"\b(?:clos\w*|shut\w*)\b", text))
     if verdict is not None and (command or "resolution" in text
-                                or re.match(r"^(?:it'?s|this is|that'?s)\b", text)) \
+                                or re.match(r"^(?:it'?s|this is|that'?s|clearly|obviously|"
+                                            r"definitely|surely)\b", text)) \
             and (command or not _is_question(text)):
         if closing:
             return Intent("close_false_positive" if verdict == "false_positive"
@@ -268,7 +329,7 @@ def parse(message: str) -> Intent:
         return Intent("resolution", verdict, raw)
 
     # 5 -- "close it", "mark it closed": which resolution? asked later.
-    if re.match(r"^close\b", text) or re.match(r"^mark\b.*\bas closed\b", text):
+    if re.match(r"^close\b", text) or re.match(r"^mark\b.*\bclosed\b", text):
         return Intent("close", raw=raw)
 
     # 6 -- priority ------------------------------------------------------
@@ -286,6 +347,63 @@ def parse(message: str) -> Intent:
     if _is_question(text):
         return Intent("question", raw=raw)
     return Intent("unknown", raw=raw)
+
+
+_NOT_ACTIONS = ("question", "unknown", "greeting", "ack", "help", "confirm", "decline")
+
+
+def _same_action(other: Intent, intent: Intent) -> bool:
+    """Was this clause the instruction the reply already carried out?"""
+    if other.kind == intent.kind and (other.detail == intent.detail or not other.detail):
+        return True
+    # A note's own opening clause ("add this to the note: ...") parses as a
+    # note too -- its text is shorter only because the sentence was cut at a
+    # comma. It is the same instruction, not a second one.
+    if intent.kind in ("note", "adopt_note") and other.kind == intent.kind:
+        return True
+    if intent.kind in ("close_fraud", "close_false_positive"):
+        if other.kind == "close":
+            return True
+        wanted = "confirmed_fraud" if intent.kind == "close_fraud" else "false_positive"
+        return other.kind == "resolution" and other.detail == wanted
+    return False
+
+
+def _about_this_case(clause: str, other: Intent) -> bool:
+    """Does a clause inside a dictated note talk about the case, or about the world?
+
+    "customer will close the account tomorrow" is note text. "close it as
+    confirmed fraud" is a second instruction that landed in the note by
+    accident. The difference is what the clause points at.
+    """
+    if re.search(r"\b(?:it|this|the case|the transaction|case)\b", clause.lower()):
+        return True
+    return other.kind in ("close_fraud", "close_false_positive", "resolution", "reopen")
+
+
+def _stray_commands(message: str, intent: Intent) -> list[str]:
+    """Instructions in the message that the reply did not carry out.
+
+    One intent per turn stays the rule -- a proposal is a single, auditable
+    change -- but a second instruction must never disappear in silence. The
+    note rule used to swallow everything after the colon, and a compound
+    command executed its first half and dropped the rest without a word.
+    """
+    out: list[str] = []
+    for clause in _segments(message):
+        core = _core(_fix_typos(clause))
+        if not core or not re.match(
+                r"^(?:" + "|".join(_COMMAND_VERBS) + r"|reopen)\b", core):
+            continue
+        other = parse(clause)
+        if other.kind in _NOT_ACTIONS or _same_action(other, intent):
+            continue
+        if intent.kind in ("note", "adopt_note") and not _about_this_case(clause, other):
+            continue
+        text = clause.strip(" .")
+        if text and text not in out:
+            out.append(text)
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -315,24 +433,29 @@ _TOPICS = (
     # The verdict on its own, ahead of "should i ..." in `recommend`: "should I
     # change the resolution?" is a question about the resolution, and reading
     # it as a general recommendation answered about priority instead.
-    ("resolution", ("resolution", "verdict", "outcome")),
+    ("resolution", ("resolution", "verdict", "outcome", "right call",
+                    "should this be closed", "should it be closed",
+                    "should this be a false positive")),
     ("recommend", ("recommend", "should i", "what should", "next step", "advice", "advise",
                    "suggest", "what do you think", "your call", "worth escalating", "would you",
-                   "do you think i should")),
+                   "do you think i should", "do i need to", "what do i do")),
     ("judge", ("is it fraud", "is this fraud", "fraud or not", "legit", "is it real",
-               "should i worry", "how bad", "how serious", "is it safe")),
+               "should i worry", "how bad", "how serious", "is it safe",
+               "does this look like fraud", "look like a false positive")),
     ("how", ("how did you decide", "how do you know", "which rule", "what rule",
              "how did you get", "walk me through")),
     ("why", ("why", "reason", "flagged", "suspicious", "explain")),
     ("related", ("related", "similar", "cluster", "look-alike", "lookalike",
-                 "other transaction", "same account", "linked")),
+                 "other transaction", "same account", "linked", "part of a ring",
+                 "related transactions", "similar transactions", "related cases")),
     ("policy", ("policy", "threshold", "rule", "decision", "auto-block", "block", "approve",
                 "review")),
     ("risk", ("risk", "score", "probability", "confidence")),
     ("notes", ("note", "comment")),
-    ("history", ("history", "timeline", "events", "who worked", "updated", "changed")),
+    ("history", ("history", "timeline", "events", "who worked", "updated", "changed",
+                 "worked on", "touched")),
     ("transaction", ("transaction", "amount", "details", "hour", "balance", "sender",
-                     "receiver")),
+                     "receiver", "who sent", "what time", "type of")),
     ("status", ("status", "state", "priority", "open", "closed", "resolution")),
 )
 
@@ -351,12 +474,41 @@ def _contradicts(decision: str, kind: str) -> bool:
     return False
 
 
+# Field nouns. A question that names one of these asks about that field, even
+# when a longer generic phrase is present: "what verdict should I record?" is
+# about the verdict, not about "should i" (a recommendation).
+_STRONG_WORDS = frozenset({"resolution", "verdict", "outcome", "status", "priority",
+                           "risk", "score", "note", "notes", "history", "transaction",
+                           "policy", "threshold", "related"})
+
+
 def _topic(question: str) -> str:
+    """Which answer the question asks for.
+
+    The most specific phrase wins, not the first one in the table: "should i
+    worry about this?" is a judgement, not a recommendation, and it used to
+    lose to the generic "should i" above it. Naming a field counts for more
+    than a longer phrase that says nothing about the subject. Table order only
+    breaks exact ties.
+
+    A question that opens with "why" is an explanation whatever else it
+    mentions ("why is the risk so high?"), unless it matches a long phrase
+    that names a different answer outright ("why is there a difference between
+    status and resolution?"), or it asks about closing -- there the analyst
+    wants a position, and the recommendation gives one ("Yes, I would. ...").
+    """
     text = _fix_typos(_core(question))
+    best, best_weight, best_len = "", 0, 0
     for name, words in _TOPICS:
-        if any(word in text for word in words):
-            return name
-    return ""
+        for word in words:
+            if word not in text:
+                continue
+            weight = len(word) + (6 if word in _STRONG_WORDS else 0)
+            if weight > best_weight:            # ties keep the earlier topic
+                best, best_weight, best_len = name, weight, len(word)
+    if re.match(r"^(?:why|how come)\b", text) and best_len < 12 and not _asks_to_close(text):
+        return "why"
+    return best
 
 
 def _asks_to_close(question: str) -> bool:
@@ -415,9 +567,16 @@ class RiskPilot:
             raise ToolError(f"Case {case_id!r} does not exist.")
         case = found.case
         intent = parse(message)
+        answer = self._respond(case, intent, message)
+        return self._echo_strays(answer, message, intent)
 
+    def _respond(self, case: Case, intent: Intent, message: str) -> Reply:
         if intent.kind in ("help", "greeting", "ack"):
             return self._social(case, intent)
+        if intent.kind == "confirm":
+            return self._confirm(case, intent)
+        if intent.kind == "decline":
+            return self._decline(case, intent)
         if intent.kind == "note":
             return self._note(case, intent)
         if intent.kind == "adopt_note":
@@ -578,6 +737,48 @@ class RiskPilot:
     def _say(self, case: Case, text: str, intent: Intent,
              action: dict | None = None) -> Reply:
         return Reply(text, intent.kind, action=action or {"kind": "answer"}, case=case)
+
+    def _confirm(self, case: Case, intent: Intent) -> Reply:
+        """"yes" -- an answer to a question, never an instruction.
+
+        Filing whatever was recommended a turn ago would mean acting on a
+        sentence the analyst did not write. It asks for the change in words
+        instead; the proposal that follows is the confirmation.
+        """
+        return self._say(
+            case,
+            f"Which change should I prepare for {case.case_id}? Say it in full -- "
+            f"\"close it as confirmed fraud\", \"mark it as false positive\" or "
+            f"\"make it urgent\" -- and I'll put it up for approval.",
+            intent, action={"kind": "clarify"})
+
+    def _decline(self, case: Case, intent: Intent) -> Reply:
+        """"no", "don't close it" -- the one answer that changes nothing."""
+        return self._say(
+            case,
+            f"Understood -- nothing changes. {case.case_id} stays "
+            f"{case.state_label.lower()}, {case.status_label.lower()}, "
+            f"{case.priority_label.lower()} priority.",
+            intent, action={"kind": "noop"})
+
+    def _echo_strays(self, reply: Reply, message: str, intent: Intent) -> Reply:
+        """Say back any instruction the reply did not act on.
+
+        Silent partial execution is the worst failure a case assistant can
+        have: the analyst believes two things happened and one did not. The
+        action stays single, the acknowledgement never is.
+        """
+        if intent.kind in _NOT_ACTIONS:
+            return reply
+        strays = _stray_commands(message, intent)
+        if not strays:
+            return reply
+        heard = "; ".join(f"\"{s}\"" for s in strays[:2])
+        if len(strays) > 2:
+            heard += f" and {len(strays) - 2} more"
+        tail = (f" I also heard {heard}. I haven't acted on that -- one change per message. "
+                f"Say it on its own and I'll put it up for approval.")
+        return replace(reply, text=reply.text + tail)
 
     # -- social turns --------------------------------------------------- #
     def _social(self, case: Case, intent: Intent) -> Reply:
@@ -830,8 +1031,11 @@ class RiskPilot:
                     f"is and work it.")
 
         if _asks_to_close(question):
-            text = ("Yes, I would. " + text if rec.kind == "close_false_positive"
-                    else "Not yet. " + text)
+            # The prefix has to agree with the sentence behind it. When the
+            # recommendation *is* "close as confirmed fraud", "Not yet."
+            # contradicted the very next clause.
+            agrees = rec.kind in ("close_false_positive", "close_fraud")
+            text = ("Yes, I would. " if agrees else "Not yet. ") + text
         if investigation.suggested_note:
             text += (" Want it on the record? Say \"add your note\" and I'll write up my "
                      "findings as a note.")
@@ -895,8 +1099,8 @@ class RiskPilot:
         else:
             text = f"The resolution says {case.status_label.lower()}."
 
-        asks = bool(re.search(r"should i|change|update|set it|different|right call",
-                              _core(question)))
+        asks = bool(re.search(r"should (?:i|this|it|we)|change|update|set it|different|"
+                              r"right call", _core(question)))
         if not asks:
             return text
         rec = investigation.recommendation if investigation is not None else None
