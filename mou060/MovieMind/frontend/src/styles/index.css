@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mm-bg: #080b1b;
+  --mm-bg-elevated: #0d1126;
+  --mm-surface: #12172f;
+  --mm-surface-strong: #1a1d3b;
+  --mm-surface-glass: rgb(28 24 61 / 78%);
+  --mm-primary: #762bfa;
+  --mm-primary-bright: #923cff;
+  --mm-primary-deep: #4d18c9;
+  --mm-accent: #c17bff;
+  --mm-gold: #ffbe3d;
+  --mm-text: #f7f5ff;
+  --mm-text-muted: #b5b4cc;
+  --mm-text-subtle: #8586a5;
+  --mm-border: rgb(164 151 220 / 16%);
+  --mm-success: #35c98a;
+  --mm-danger: #f06b83;
+  --mm-card-shadow: 0 22px 55px rgb(0 0 0 / 24%);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--mm-bg); }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--mm-bg); }
+button, input { font: inherit; }
+a { color: inherit; text-decoration: none; }
+
+.text-gradient { background: linear-gradient(110deg, var(--mm-accent), #8e45ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero-orbit { background: radial-gradient(circle at 73% 34%, rgb(146 60 255 / 34%), transparent 19rem), radial-gradient(circle at 100% 100%, rgb(36 105 214 / 25%), transparent 25rem), linear-gradient(112deg, rgb(18 14 43 / 96%), rgb(18 24 64 / 84%)); }
+.hero-reel { background: radial-gradient(ellipse at 54% 48%, rgb(177 91 255 / 30%), transparent 12rem), repeating-linear-gradient(25deg, transparent 0 26px, rgb(220 198 255 / 12%) 27px 31px, transparent 32px 62px); mask-image: linear-gradient(to left, black 20%, transparent 100%); }
+.auth-stage { background: radial-gradient(circle at 20% 15%, rgb(118 43 250 / 24%), transparent 24rem), radial-gradient(circle at 85% 80%, rgb(27 77 171 / 22%), transparent 26rem), var(--mm-bg); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
