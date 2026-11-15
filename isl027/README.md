@@ -3,6 +3,9 @@
 ## Project Overview
 This is an interactive Machine Learning application that compares a Curriculum Vitae (CV) with a Job Description (JD). It uses Natural Language Processing (NLP) to calculate a semantic match score and identify skill gaps. The app also highlights the matched skills directly within the CV text.
 
+## Motivation and Justification
+According to the course guidelines, students are encouraged to explore innovative applications beyond the provided examples. This project addresses a real-world NLP problem: semantic text similarity and information extraction. It helps job seekers understand their fit for a role and identifies skill gaps, making it a meaningful Machine Learning task that aligns with the course's NLP domain.
+
 ## Machine Learning Model
 - **Model:** sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 - **Source:** Hugging Face Model Hub
@@ -19,7 +22,7 @@ This is an interactive Machine Learning application that compares a Curriculum V
 ## Capabilities and Limitations
 **Capabilities:**
 - Fast inference on CPU.
-- Handles both English and Bengali text effectively (thanks to the multilingual model).
+- Handles both English and Bengali text effectively.
 - Provides a user-friendly interface using Gradio.
 
 **Limitations:**
