@@ -116,6 +116,24 @@ def _reading(tag: str, case) -> dict | None:
         return None
     return {"result": found, "stamp": case.updated_at}
 
+def _refresh_reading(case, tag: str) -> None:
+    """Re-read the case before anything renders the reading.
+
+    The export popover sits in the page header, and a popover's widgets are
+    computed on every rerun, header included -- while the panel that stores a
+    reading sits at the bottom of the page. Run the re-read here, first, so
+    the same rerun never shows a report about the case as it used to be.
+    """
+    key = f"investigation_{case.number}"
+    reading = st.session_state.get(key)
+    if reading is not None and reading.get("stamp") != case.updated_at:
+        fresh = _reading(tag, case)
+        if fresh is not None:
+            fresh["reread"] = True
+            st.session_state[key] = fresh
+        else:
+            st.session_state.pop(key, None)
+
 
 def _investigation_panel(case, tag: str) -> None:
     """Run the rules, read the evidence, send the recommendation for approval.
@@ -126,8 +144,8 @@ def _investigation_panel(case, tag: str) -> None:
 
     What the case *does* change is this panel. A reading is only true for the
     case it read: once the chat, an approval or an edit moves the case, the
-    reading is re-done instead of being left on screen recommending something
-    that already happened.
+    reading is re-done (in _refresh_reading, before the page renders) instead
+    of being left on screen recommending something that already happened.
     """
     store = proposals()
     pending = store.pending_for(case.number)
@@ -140,14 +158,7 @@ def _investigation_panel(case, tag: str) -> None:
 
     key = f"investigation_{case.number}"
     reading = st.session_state.get(key)
-    reread = reading is not None and reading.get("stamp") != case.updated_at
-    if reread:
-        # The case moved since this reading was taken. Re-read it now rather
-        # than showing a recommendation about the case as it used to be.
-        st.session_state.pop(key, None)
-        reading = _reading(tag, case)
-        if reading is not None:
-            st.session_state[key] = reading
+    reread = bool(reading and reading.get("reread"))
 
     if st.button("Run investigation", key=f"run_agent_{case.number}",
                  icon=":material/travel_explore:", help="Reads the case, compares it with the "
@@ -157,6 +168,12 @@ def _investigation_panel(case, tag: str) -> None:
             return
         st.session_state[key] = reading
         reread = False
+        # Rerun before drawing anything else: the header's Export popover was
+        # computed earlier in this same run, without the reading, and a
+        # popover shows the widgets of the last completed run. Without this,
+        # the first export after an investigation would silently carry no
+        # recommendation.
+        st.rerun()
 
     result = (reading or {}).get("result")
     if result is None:
@@ -309,6 +326,47 @@ def _history_panel(case, events) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# The export: the case as a PDF report or a CSV table
+# --------------------------------------------------------------------------- #
+def _export_panel(case, events) -> None:
+    """Download the case as a PDF report or a CSV table.
+
+    An export is a read -- the same rule as everything else the assistant
+    touches: nothing here can move a case. The recommendation is included only
+    when the on-screen reading is still fresh (stamped with the case's current
+    version); otherwise the report carries the record alone and says so.
+    """
+    from src.report import case_report_csv, case_report_pdf, csv_file_name, pdf_file_name
+
+    reading = st.session_state.get(f"investigation_{case.number}")
+    fresh = reading is not None and reading.get("stamp") == case.updated_at
+    investigation = reading.get("result") if fresh else None
+
+    st.caption("The same content in two shapes -- a report to hand to a reviewer, and a "
+               "table to drop into a spreadsheet. The export only reads: nothing on the "
+               "case moves."
+               + ("" if fresh else " Run the investigation first if you want the "
+                                   "recommendation and evidence in the report."))
+    # The report is stamped with the case version it read, so an unchanged case
+    # exports byte-identical files. The key carries a digest of the payload:
+    # Streamlit keeps serving the media first registered for a key, so a key
+    # that never changes would keep serving a report made before the reading.
+    generated = case.updated_at[:19].replace("T", " ") + " UTC"
+    pdf_data = case_report_pdf(case, events, investigation, generated)
+    csv_data = case_report_csv(case, events, investigation)
+    st.download_button(
+        "Download PDF report", data=pdf_data,
+        file_name=pdf_file_name(case), mime="application/pdf",
+        key=f"case_pdf_{case.number}_{abs(hash(pdf_data)) % 10**8}",
+        icon=":material/picture_as_pdf:", type="primary", use_container_width=True)
+    st.download_button(
+        "Download CSV", data=csv_data,
+        file_name=csv_file_name(case), mime="text/csv",
+        key=f"case_csv_{case.number}_{abs(hash(csv_data)) % 10**8}",
+        icon=":material/table_view:", use_container_width=True)
+
+
+# --------------------------------------------------------------------------- #
 # The page
 # --------------------------------------------------------------------------- #
 def render(header, store, tag: str = "") -> None:
@@ -326,6 +384,7 @@ def render(header, store, tag: str = "") -> None:
     tools = toolkit(tag) if tag else Toolkit(cases=store)
     pilot = pilot_for(tools)
     events = store.events(case.number)
+    _refresh_reading(case, tag)          # before the header: the export reads the reading too
 
     # Heading: back, the case, then the status pill and its history beside it.
     # The pill is a disabled button so the pair sits in one native row: a
@@ -345,6 +404,11 @@ def render(header, store, tag: str = "") -> None:
                             width="content", help="Everything that happened to this "
                             "case: who changed what, and when."):
                 _history_panel(case, events)
+            with st.popover("Export", icon=":material/download:", key="case_export",
+                            width="content", help="Download this case as a PDF report or "
+                            "a CSV table -- the facts, the recommendation, the evidence "
+                            "and the trail. Reading only; nothing changes."):
+                _export_panel(case, events)
 
     left, right = st.columns([1.55, 1], gap="medium")
     with left:
