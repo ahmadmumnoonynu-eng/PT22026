@@ -1,0 +1,12 @@
+﻿.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+*.bin
+*.pt
+*.safetensors
+datasets/
+models/
+hf_cache/
+.DS_Store
