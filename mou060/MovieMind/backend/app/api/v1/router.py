@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, health, model, movies, ratings, users, watchlist
+from app.api.v1.endpoints import (
+    auth,
+    health,
+    model,
+    movies,
+    ratings,
+    recommendations,
+    users,
+    watchlist,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["operations"])
@@ -12,3 +21,4 @@ api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(users.router, tags=["users"])
 api_router.include_router(ratings.router, tags=["ratings"])
 api_router.include_router(watchlist.router, tags=["watchlist"])
+api_router.include_router(recommendations.router, tags=["recommendations"])

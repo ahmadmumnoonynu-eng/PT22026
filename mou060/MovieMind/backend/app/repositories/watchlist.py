@@ -73,6 +73,11 @@ def list_items(
     return list(db.scalars(stmt).unique()), total
 
 
+def list_movie_ids(db: Session, *, user_id: uuid.UUID) -> list[uuid.UUID]:
+    """Return the movie ids on the user's watchlist (for recommendation exclusion)."""
+    return list(db.scalars(select(WatchlistItem.movie_id).where(WatchlistItem.user_id == user_id)))
+
+
 def remove(db: Session, *, user_id: uuid.UUID, movie_id: uuid.UUID) -> bool:
     """Remove a movie from the user's watchlist; return False if absent."""
     item = db.scalar(

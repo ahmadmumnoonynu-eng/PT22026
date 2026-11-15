@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     MODEL_DEVICE: Literal["cpu", "cuda"] = "cpu"
     ENABLE_DEMO_ENDPOINTS: bool = True
 
+    # --- Recommendations ------------------------------------------------------
+    # Number of ratings a user needs before personalized (content-based)
+    # recommendations replace the popularity fallback (open decision #9).
+    MIN_RATINGS_FOR_PERSONALIZATION: int = Field(default=5, ge=1)
+
     # --- Observability ----------------------------------------------------------
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 

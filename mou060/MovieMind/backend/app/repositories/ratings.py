@@ -75,6 +75,11 @@ def list_ratings(
     return list(db.scalars(stmt).unique()), total
 
 
+def list_movie_ids(db: Session, *, user_id: uuid.UUID) -> list[uuid.UUID]:
+    """Return the movie ids the user has rated (for recommendation exclusion)."""
+    return list(db.scalars(select(Rating.movie_id).where(Rating.user_id == user_id)))
+
+
 def delete(db: Session, *, user_id: uuid.UUID, movie_id: uuid.UUID) -> bool:
     """Delete the user's rating for a movie; return False if none exists."""
     rating = db.scalar(select(Rating).where(Rating.user_id == user_id, Rating.movie_id == movie_id))
