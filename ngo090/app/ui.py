@@ -281,7 +281,7 @@ div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"]{gap:.4rem !impo
 .fa-cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:4px 0 16px;}
 @media (max-width:1100px){.fa-cmp{grid-template-columns:minmax(0,1fr);}}
 .fa-cmpcard{border-color:rgba(96,140,220,.26);}
-.fa-cmpcard.b{border-color:rgba(125,184,255,.55);box-shadow:0 10px 34px rgba(37,99,235,.22);}
+.fa-cmpcard.b{border-color:rgba(125,184,255,.55);}
 .fa-cmpname{font-size:20px;font-weight:700;letter-spacing:-.2px;margin:4px 0 6px;}
 .fa-cmpline{font-size:12.8px;color:#9db0cf;line-height:1.6;}
 .fa-cmpstats{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap;}
