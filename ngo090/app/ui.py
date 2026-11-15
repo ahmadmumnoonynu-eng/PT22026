@@ -302,11 +302,6 @@ div[class*="st-key-cmp_sides"]{margin:8px 0 4px;}
 .fa-duo>.fa-card:has(.fa-bars.cmp){display:flex;flex-direction:column;}
 .fa-duo .fa-bars.cmp{flex:1;justify-content:space-evenly;gap:10px;}
 .fa-table tr.fa-strong td{border-top:1px solid rgba(96,140,220,.3);font-weight:650;color:#f2f7ff;}
-.fa-verdict{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:16px;margin:10px 0 8px;
-background:linear-gradient(135deg,rgba(37,99,235,.20),rgba(11,20,40,.55));
-border:1px solid rgba(96,140,220,.38);font-size:14.2px;line-height:1.6;color:#e2ecfb;}
-.fa-verdict b{color:#fff;}
-.fa-verdict svg{flex:none;margin-top:1px;}
 </style>
 """
 
@@ -760,13 +755,6 @@ def decomposition_html(items: list[dict], net: str) -> str:
             f'<div class="fa-bar" style="border-top:1px solid rgba(96,140,220,.18);padding-top:11px">'
             f'<span style="font-weight:650;color:#e6edf7">Net difference</span><span></span>'
             f'<em style="font-weight:700">{escape(net)}</em></div></div>')
-
-
-def verdict_html(text: str, meta: str = "") -> str:
-    """The one sentence worth quoting, plus a quiet line of method notes."""
-    extra = f'<div class="fa-note" style="margin-top:8px">{meta}</div>' if meta else ""
-    return compact(f'<div class="fa-root"><div class="fa-verdict">{icon("shield-check", "#7db8ff", 22)}'
-                   f'<div>{escape(text)}{extra}</div></div></div>')
 
 
 def pattern_table_html(rows: list[dict], left: str, right: str) -> str:

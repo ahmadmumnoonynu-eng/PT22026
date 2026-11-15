@@ -276,23 +276,6 @@ def _pattern_rows(cmp: Comparison) -> list[dict]:
     return rows
 
 
-def _meta(cmp: Comparison) -> str:
-    """The method line under the verdict: what was held constant, and how sure."""
-    if cmp.left.scenario.corpus.pair_id == cmp.right.scenario.corpus.pair_id:
-        rows = len(cmp.left.df)
-        held = (f"The same {rows:,} transactions on both sides, the same hours and the same costs"
-                f" ({len(cmp.left.df['step'].unique())} simulated hours).")
-    else:
-        held = "Two different sets of transactions: treat the difference as indicative."
-    if cmp.changed:
-        held += " Changed: " + "; ".join(cmp.changed) + "."
-    if cmp.interval is not None:
-        low, high = cmp.interval
-        held += (f" 90% range on the difference: {ui.fmt_money(low)} to {ui.fmt_money(high)} "
-                 "(bootstrap over the transactions).")
-    return held
-
-
 # --------------------------------------------------------------------------- #
 # The page
 # --------------------------------------------------------------------------- #
@@ -309,12 +292,6 @@ def render(header, tag: str, run) -> None:
 
     header.markdown(ui.header_html("compare", "Two scenarios · one engine · one set of measures",
                                   "Scenario comparison"), unsafe_allow_html=True)
-
-    st.markdown(ui.mode_head(
-        "What changes if we change one thing?",
-        "Score the same transactions twice and subtract the results: what the second scenario "
-        "catches, what it costs, and what it misses. Only one thing changes per comparison."),
-        unsafe_allow_html=True)
 
     # ---- controls: one toolbar, everything on the same baseline ------------ #
     bar = st.columns([2.4, 1.3, 1.1], vertical_alignment="bottom")
@@ -356,7 +333,6 @@ def render(header, tag: str, run) -> None:
         st.caption(note)
     if not cmp.changed:
         st.info("The two sides are identical — change one setting on either side to compare.")
-    st.markdown(ui.verdict_html(cmp.verdict, _meta(cmp)), unsafe_allow_html=True)
 
     for warning in cmp.warnings:
         st.warning(warning, icon=":material/warning:")
@@ -377,11 +353,9 @@ def render(header, tag: str, run) -> None:
         st.markdown(ui.card("Catch rate by fraud shape",
                             ui.pattern_table_html(patterns, cmp.left.name, cmp.right.name),
                             "pie"), unsafe_allow_html=True)
-        st.caption("A synthetic corpus knows which fraud shape each case belongs to. The replay "
-                   "file does not, so this table only appears when the traffic is generated.")
+    st.caption("A synthetic corpus knows which fraud shape each case belongs to. The replay "
+               "file does not, so this table only appears when the traffic is generated.")
 
-    st.caption("A backtest: the labels say what really happened in this window, which no live "
-               "system knows at decision time. Use it to choose settings, not to promise results.")
     _save_prefs()
 
 

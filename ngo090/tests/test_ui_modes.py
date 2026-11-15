@@ -67,7 +67,7 @@ def test_the_sidebar_navigates_between_modes():
     at.sidebar.button(key="nav_compare").click().run()
     assert not at.exception
     assert at.session_state["mode"] == "Scenario comparison"
-    assert "What changes if we change one thing?" in all_text(at)
+    assert "Two scenarios · one engine · one set of measures" in all_text(at)
     at.sidebar.button(key="nav_cases").click().run()
     assert not at.exception
     assert at.session_state["mode"] == "Cases"
@@ -547,7 +547,7 @@ def test_the_compare_page_shows_two_scenarios_and_the_difference():
     at = page(mode="Scenario comparison")
     assert not at.exception
     body = all_text(at)
-    assert "What changes if we change one thing?" in body
+    assert "Two scenarios · one engine · one set of measures" in body
     assert "Side by side" in body and "Where the difference comes from" in body
     assert "Fraud caught" in body and "Net benefit" in body
     assert "Balanced" in body and "Strict" in body
