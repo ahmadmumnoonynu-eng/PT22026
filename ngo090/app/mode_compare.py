@@ -23,7 +23,7 @@ from dataclasses import dataclass, replace
 import streamlit as st
 
 import ui
-from common import get_engine, popover, render_costs_popover
+from common import get_engine, render_costs_popover
 from src.decision import PRESETS, Policy
 from src.monitor import hour_label
 from src.replay import day_of_step, default_days
@@ -149,10 +149,10 @@ def _policy_editor(side: str, title: str) -> Policy:
                   daily_capacity=int(st.session_state[f"{side}_cap"]), capacity_mode="rolling")
 
 
-def _corpus_controls(spec: Pairing, day_lo: int, day_hi: int) -> tuple[Corpus, Corpus]:
-    """The traffic of both sides, from the popover that matches the pairing."""
+def _corpus_controls(spec: Pairing, slot, day_lo: int, day_hi: int) -> tuple[Corpus, Corpus]:
+    """The traffic of both sides, from the popover in the controls row (`slot`)."""
     if spec.source == SYNTHETIC:
-        with popover()("Synthetic traffic"):
+        with slot.popover("Synthetic traffic"):
             hours = st.slider("Hours of traffic", 12, 168, 48, 12, key="cmp_hours",
                               help="Generated fresh from a fixed seed, so both sides see the same rows.")
             rate = st.slider("Share of fraud (%)", 0.5, 10.0, 3.0, 0.5, key="cmp_fraud")
@@ -162,7 +162,7 @@ def _corpus_controls(spec: Pairing, day_lo: int, day_hi: int) -> tuple[Corpus, C
                     fraud_rate=float(rate) / 100.0, seed=int(seed))
         return Corpus(**base, new_pattern=False), Corpus(**base, new_pattern=spec.new_pattern_right)
 
-    with popover()("Transactions"):
+    with slot.popover("Transactions"):
         if day_lo < day_hi:
             days = st.slider("Replay days", day_lo, day_hi, default_days(day_lo, day_hi), key="cmp_days",
                              help="The window both sides are scored on.")
@@ -316,35 +316,32 @@ def render(header, tag: str, run) -> None:
         "catches, what it costs, and what it misses. Only one thing changes per comparison."),
         unsafe_allow_html=True)
 
-    # ---- controls ---------------------------------------------------------- #
-    bar = st.columns([2.4, 1.2, 1.2])
+    # ---- controls: one toolbar, everything on the same baseline ------------ #
+    bar = st.columns([2.4, 1.3, 1.1], vertical_alignment="bottom")
     pairing = bar[0].selectbox("Comparison", [*PAIRINGS, CUSTOM], key="pairing",
                                on_change=_load_pairing)
     if pairing in PAIRINGS:
-        spec, source = PAIRINGS[pairing], PAIRINGS[pairing].source
+        spec = PAIRINGS[pairing]
     else:
-        spec = Pairing("A", "B", BALANCED, STRICT_SAME_CAPACITY)
         choice = bar[1].selectbox("Traffic", ["Replay window", "Synthetic"], key="cmp_source")
         source = SYNTHETIC if choice == "Synthetic" else REPLAY
-
+        spec = Pairing("A", "B", BALANCED, STRICT_SAME_CAPACITY, source=source)
     with bar[2]:
         costs = render_costs_popover()
-    corpus_a, corpus_b = _corpus_controls(
-        Pairing(spec.left, spec.right, spec.left_policy, spec.right_policy, source=source,
-                shift_right=spec.shift_right, new_pattern_right=spec.new_pattern_right),
-        day_lo, day_hi)
+    corpus_a, corpus_b = _corpus_controls(spec, bar[1], day_lo, day_hi)
 
-    with st.expander("The two sides", expanded=False):
-        cols = st.columns(2)
-        with cols[0]:
-            policy_a = _policy_editor("a", "A")
-        with cols[1]:
-            policy_b = _policy_editor("b", "B")
-        if pairing != CUSTOM and st.button("Copy A's settings to B", key="copy_a_to_b"):
-            # Writing a widget key after its widget exists is refused by Streamlit:
-            # hand the values to the next run instead.
-            st.session_state["_copy_to_b"] = _policy_keys("b", policy_a, "Custom")
-            st.rerun()
+    with st.container(key="cmp_sides"):
+        with st.expander("The two sides", expanded=False):
+            cols = st.columns(2)
+            with cols[0]:
+                policy_a = _policy_editor("a", "A")
+            with cols[1]:
+                policy_b = _policy_editor("b", "B")
+            if pairing != CUSTOM and st.button("Copy A's settings to B", key="copy_a_to_b"):
+                # Writing a widget key after its widget exists is refused by Streamlit:
+                # hand the values to the next run instead.
+                st.session_state["_copy_to_b"] = _policy_keys("b", policy_a, "Custom")
+                st.rerun()
 
     scenario_a = Scenario(spec.left if pairing != CUSTOM else "A", policy_a, corpus_a, costs)
     scenario_b = Scenario(spec.right if pairing != CUSTOM else "B", policy_b, corpus_b, costs)

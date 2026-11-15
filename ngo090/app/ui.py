@@ -278,7 +278,7 @@ div[class*="st-key-case_head_tools"]{justify-content:flex-end;}
 div[data-testid="stPopoverBody"]{width:400px;max-width:92vw;}
 div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"]{gap:.4rem !important;}
 /* ---- scenario comparison: two scenarios, one set of measures ---- */
-.fa-cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px;}
+.fa-cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:4px 0 16px;}
 @media (max-width:1100px){.fa-cmp{grid-template-columns:minmax(0,1fr);}}
 .fa-cmpcard{border-color:rgba(96,140,220,.26);}
 .fa-cmpcard.b{border-color:rgba(125,184,255,.55);box-shadow:0 10px 34px rgba(37,99,235,.22);}
@@ -291,8 +291,20 @@ font-weight:700;margin-bottom:3px;}
 .fa-diff{font-variant-numeric:tabular-nums;font-weight:650;}
 .fa-diff.up{color:#34d399;}.fa-diff.down{color:#fb7185;}.fa-diff.flat{color:#9db0cf;}
 .fa-bars.cmp .fa-bar{grid-template-columns:minmax(120px,1.1fr) 2fr 96px;}
+/* The toolbar (Comparison + traffic + Costs) reads as one row: Streamlit
+   bottom-aligns the columns, so every control sits on the selectbox baseline. */
+div[class*="st-key-cmp_sides"]{margin:8px 0 4px;}
+/* Side by side + Where the difference comes from: the two panels in this row
+   share one height, so neither ends early next to the other. */
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp)>div[data-testid="stColumn"]{display:flex;flex-direction:column;}
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stVerticalBlock"]{flex:1;display:flex;flex-direction:column;}
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stElementContainer"],
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) [data-testid="stMarkdown"]{flex:1;display:flex;flex-direction:column;}
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-root{flex:1;display:flex;width:100%;}
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-card{flex:1;width:100%;display:flex;flex-direction:column;}
+div[data-testid="stHorizontalBlock"]:has(.fa-bars.cmp) .fa-bars.cmp{flex:1;justify-content:space-evenly;gap:10px;}
 .fa-table tr.fa-strong td{border-top:1px solid rgba(96,140,220,.3);font-weight:650;color:#f2f7ff;}
-.fa-verdict{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:16px;
+.fa-verdict{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;border-radius:16px;margin:10px 0 8px;
 background:linear-gradient(135deg,rgba(37,99,235,.20),rgba(11,20,40,.55));
 border:1px solid rgba(96,140,220,.38);font-size:14.2px;line-height:1.6;color:#e2ecfb;}
 .fa-verdict b{color:#fff;}
