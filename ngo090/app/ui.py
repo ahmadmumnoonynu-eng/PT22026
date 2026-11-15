@@ -101,11 +101,11 @@ padding:9px 10px;background:rgba(255,255,255,.035);}
 .fa-empty h3{margin:0 0 8px;font-size:22px;}
 .fa-empty p{margin:0;color:#9db0cf;font-size:15px;}
 .fa-note{color:#7f93b3;font-size:12.5px;margin:6px 2px 0;}
-.stButton>button,[data-testid="stPopover"] button{width:100% !important;border-radius:12px !important;border:1px solid rgba(96,140,220,.38) !important;
+.stButton button,[data-testid="stPopover"] button{width:100% !important;border-radius:12px !important;border:1px solid rgba(96,140,220,.38) !important;
 background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:600 !important;min-height:42px;}
 [data-testid="stPopover"]{width:100% !important;}
-.stButton>button:hover,[data-testid="stPopover"] button:hover{border-color:#3b82f6 !important;color:#fff !important;}
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#2563eb,#0ea5e9) !important;border:none !important;color:#fff !important;}
+.stButton button:hover,[data-testid="stPopover"] button:hover{border-color:#3b82f6 !important;color:#fff !important;}
+.stButton button[kind="primary"]{background:linear-gradient(135deg,#2563eb,#0ea5e9) !important;border:none !important;color:#fff !important;}
 .fa-tag.approve{background:rgba(59,130,246,.16);color:#93c5fd;border:1px solid rgba(59,130,246,.38);}
 .fa-fill.down{background:linear-gradient(90deg,#15803d,#4ade80);}
 .fa-bars.wide .fa-bar{grid-template-columns:minmax(160px,1.7fr) 1.3fr 46px;}
@@ -152,19 +152,19 @@ box-shadow:0 0 18px rgba(59,130,246,.30);}
 .fa-side-sub{font-size:10.5px;color:#8fa3c2;letter-spacing:.13em;text-transform:uppercase;margin-top:3px;}
 .fa-side-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7f93b3;font-weight:700;
 margin:4px 0 18px;padding-left:9px;}
-section[data-testid="stSidebar"] .stButton>button{justify-content:flex-start !important;text-align:left !important;
+section[data-testid="stSidebar"] .stButton button{justify-content:flex-start !important;text-align:left !important;
 gap:10px !important;padding:0 13px !important;min-height:43px !important;border-radius:12px !important;
 background:transparent !important;border:1px solid transparent !important;color:#b6c6e2 !important;
 font-weight:600 !important;box-shadow:none !important;
 transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease;}
-section[data-testid="stSidebar"] .stButton>button:hover{background:rgba(59,130,246,.13) !important;
+section[data-testid="stSidebar"] .stButton button:hover{background:rgba(59,130,246,.13) !important;
 border-color:rgba(96,140,220,.30) !important;color:#eef5ff !important;transform:translateX(2px);}
-section[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.78)) !important;
+section[data-testid="stSidebar"] .stButton button[kind="primary"]{background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.78)) !important;
 border:1px solid rgba(125,184,255,.42) !important;color:#fff !important;
 box-shadow:0 8px 22px rgba(37,99,235,.32) !important;transform:none;}
-section[data-testid="stSidebar"] .stButton>button p{font-size:14px !important;font-weight:600 !important;}
-section[data-testid="stSidebar"] .stButton>button>div{justify-content:flex-start !important;width:100%;}
-@media (prefers-reduced-motion:reduce){section[data-testid="stSidebar"] .stButton>button{transition:none !important;}}
+section[data-testid="stSidebar"] .stButton button p{font-size:14px !important;font-weight:600 !important;}
+section[data-testid="stSidebar"] .stButton button>div{justify-content:flex-start !important;width:100%;}
+@media (prefers-reduced-motion:reduce){section[data-testid="stSidebar"] .stButton button{transition:none !important;}}
 .fa-tag.open{background:rgba(59,130,246,.16);color:#93c5fd;border:1px solid rgba(59,130,246,.38);}
 .fa-tag.investigating{background:rgba(245,158,11,.16);color:#fcd34d;border:1px solid rgba(245,158,11,.4);}
 .fa-tag.confirmed_fraud{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.4);}
