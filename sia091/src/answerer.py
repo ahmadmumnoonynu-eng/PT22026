@@ -1,63 +1,300 @@
-# Find the answer to a question inside the chunks found by the retriever.
+
+# Find one or multiple answers inside retrieved document chunks.
+
+import re
+import string
 
 import torch
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+
 
 DEFAULT_QA_MODEL = "deepset/roberta-base-squad2"
 
 
 class Answerer:
-    # Extractive question answering: the answer is copied from the text
 
-    def __init__(self, model_name=DEFAULT_QA_MODEL, max_answer_tokens=15, scoring="logit", retrieval_weight=5.0):
-        # scoring "prob" compares probabilities inside each chunk
-        # scoring "logit" compares raw model scores, which is fairer across chunks
+    def __init__(
+        self,
+        model_name=DEFAULT_QA_MODEL,
+        max_answer_tokens=15,
+        scoring="logit",
+        retrieval_weight=5.0
+    ):
         if scoring not in ("prob", "logit"):
             raise ValueError("scoring must be 'prob' or 'logit'.")
+
         self.model_name = model_name
         self.max_answer_tokens = max_answer_tokens
         self.scoring = scoring
-        # retrieval_weight adds the retriever score to the logit when ranking chunks
         self.retrieval_weight = retrieval_weight
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForQuestionAnswering.from_pretrained(model_name)
         self.model.eval()
 
+        self.table_labels = [
+            "PV array nameplate",
+            "PV array type",
+            "Tilt",
+            "Losses",
+            "Inverter loading ratio",
+            "Capacity density",
+            "Capital expenditures",
+            "Fixed operational expenditures",
+            "Fixed charge rate",
+            "Turbine nameplate",
+            "Rotor-diameter",
+            "Hub-height",
+        ]
+
+        labels = sorted(self.table_labels, key=len, reverse=True)
+
+        self.table_label_pattern = re.compile(
+            r"\b(?:" + "|".join(re.escape(x) for x in labels) +
+            r")\b\s*(?:\([^)]*\))?",
+            re.IGNORECASE
+        )
+
+    def _clean_answer(self, answer):
+        answer = answer.strip()
+
+        match = self.table_label_pattern.search(answer)
+
+        if match and match.start() > 0:
+            answer = answer[:match.start()].strip()
+
+        return answer.strip(" \t\n:;,-")
+
+    def is_multi_question(self, question):
+        patterns = [
+            r"\bwhat are\b",
+            r"\blist\b",
+            r"\bname the\b",
+            r"\benumerate\b",
+            r"\badvantages\b",
+            r"\blimitations\b",
+            r"\bbenefits\b",
+            r"\bdisadvantages\b",
+            r"\bfeatures\b",
+            r"\bstages\b",
+            r"\bsteps\b",
+            r"\btypes\b",
+            r"\breasons\b",
+            r"\bcharacteristics\b",
+        ]
+
+        text = question.lower()
+        return any(re.search(pattern, text) for pattern in patterns)
+
     def answer(self, question, chunks):
-        # Try every retrieved chunk and keep the answer with the best score
+
         if not question or not question.strip():
             raise ValueError("The question is empty.")
+
         if not chunks:
             raise ValueError("There are no chunks to answer from.")
 
+        if self.is_multi_question(question):
+            return self._answer_multiple(question, chunks)
+
+        return self._answer_single(question, chunks)
+
+    def _answer_single(self, question, chunks):
+
         best = None
         best_rank = None
+
         for chunk in chunks:
+
             found = self._answer_one(question, chunk["text"])
-            if found is None:
+
+            if found is None or not found["answer"].strip():
                 continue
+
             rank = found[self.scoring]
+
             if self.scoring == "logit":
                 rank += self.retrieval_weight * chunk.get("score", 0.0)
+
             if best is None or rank > best_rank:
                 best_rank = rank
                 best = dict(found)
                 best["page"] = chunk["page"]
                 best["context"] = chunk["text"]
 
-        if best is None or not best["answer"].strip():
+        if best is None:
             return {
                 "answer": "No answer was found in the document.",
                 "score": 0.0,
                 "page": None,
                 "context": "",
             }
-        # The score shown in the app is always the probability, between 0 and 1
+
         best["score"] = best["prob"]
         return best
 
+    def _answer_multiple(self, question, chunks):
+
+        # Detect whether the question asks about Solar PV or Wind Turbine.
+        q = question.lower()
+
+        if "solar pv" in q or "pv" in q:
+            required_section = "solar pv characteristic"
+
+        elif "wind turbine" in q or "wind" in q:
+            required_section = "wind turbine characteristic"
+
+        else:
+            required_section = None
+
+        # For table questions, collect matching table rows directly.
+        if required_section:
+
+            selected = []
+            seen = set()
+
+            for chunk in chunks:
+
+                text = chunk["text"].strip()
+
+                if chunk.get("type") != "table":
+                    continue
+
+                if required_section not in text.lower():
+                    continue
+
+                # Skip heading-only chunks.
+                if "|" not in text:
+                    continue
+
+                # Remove repeated section heading.
+                row = text.split("|", 1)[1].strip()
+
+                if ":" not in row:
+                    continue
+
+                normalized = row.lower()
+                normalized = normalized.translate(
+                    str.maketrans("", "", string.punctuation)
+                )
+                normalized = " ".join(normalized.split())
+
+                if normalized in seen:
+                    continue
+
+                seen.add(normalized)
+
+                selected.append({
+                    "answer": row,
+                    "page": chunk["page"],
+                    "context": text,
+                    "rank": chunk.get("score", 0.0),
+                })
+
+            if selected:
+
+                selected.sort(
+                    key=lambda item: item["rank"],
+                    reverse=True
+                )
+
+                combined_answer = "\n".join(
+                    f"- {item['answer']}" for item in selected
+                )
+
+                pages = sorted({
+                    item["page"] for item in selected
+                })
+
+                combined_context = "\n\n".join(
+                    item["context"] for item in selected
+                )
+
+                return {
+                    "answer": combined_answer,
+                    "score": 1.0,
+                    "page": ", ".join(str(p) for p in pages),
+                    "context": combined_context,
+                }
+
+        # General multi-answer fallback using the QA model.
+        candidates = []
+
+        for chunk in chunks:
+
+            found = self._answer_one(question, chunk["text"])
+
+            if found is None or not found["answer"].strip():
+                continue
+
+            rank = found[self.scoring]
+
+            if self.scoring == "logit":
+                rank += self.retrieval_weight * chunk.get("score", 0.0)
+
+            candidates.append({
+                "answer": found["answer"].strip(),
+                "rank": rank,
+                "prob": found["prob"],
+                "page": chunk["page"],
+                "context": chunk["text"],
+            })
+
+        if not candidates:
+            return {
+                "answer": "No answer was found in the document.",
+                "score": 0.0,
+                "page": None,
+                "context": "",
+            }
+
+        candidates.sort(
+            key=lambda item: item["rank"],
+            reverse=True
+        )
+
+        selected = []
+        seen = set()
+
+        for item in candidates:
+
+            if item["rank"] < candidates[0]["rank"] - 6.0:
+                continue
+
+            normalized = item["answer"].lower()
+            normalized = normalized.translate(
+                str.maketrans("", "", string.punctuation)
+            )
+            normalized = " ".join(normalized.split())
+
+            if not normalized or normalized in seen:
+                continue
+
+            seen.add(normalized)
+            selected.append(item)
+
+            if len(selected) >= 8:
+                break
+
+        combined_answer = "\n".join(
+            f"- {item['answer']}" for item in selected
+        )
+
+        pages = sorted({
+            item["page"] for item in selected
+        })
+
+        return {
+            "answer": combined_answer,
+            "score": max(item["prob"] for item in selected),
+            "page": ", ".join(str(p) for p in pages),
+            "context": "\n\n".join(
+                item["context"] for item in selected
+            ),
+        }
+
     def _answer_one(self, question, context):
-        # Run the model on one chunk and return the best answer span
+
         inputs = self.tokenizer(
             question,
             context,
@@ -66,52 +303,86 @@ class Answerer:
             max_length=384,
             return_offsets_mapping=True,
         )
+
         offsets = inputs.pop("offset_mapping")[0]
         sequence_ids = inputs.sequence_ids(0)
 
         with torch.no_grad():
             outputs = self.model(**inputs)
 
-        # Only tokens that belong to the context can be part of an answer
-        in_context = torch.tensor([sid == 1 for sid in sequence_ids])
-        start_logits = outputs.start_logits[0].masked_fill(~in_context, -1e9)
-        end_logits = outputs.end_logits[0].masked_fill(~in_context, -1e9)
+        in_context = torch.tensor([
+            sid == 1 for sid in sequence_ids
+        ])
 
-        # A valid span ends at or after its start and is not too long
+        start_logits = outputs.start_logits[0].masked_fill(
+            ~in_context, -1e9
+        )
+
+        end_logits = outputs.end_logits[0].masked_fill(
+            ~in_context, -1e9
+        )
+
         size = start_logits.shape[0]
-        band = torch.triu(torch.tril(torch.ones(size, size), diagonal=self.max_answer_tokens - 1)).bool()
 
-        # Probability score: softmax inside this chunk only
+        band = torch.triu(
+            torch.tril(
+                torch.ones(size, size),
+                diagonal=self.max_answer_tokens - 1
+            )
+        ).bool()
+
         start_probs = torch.softmax(start_logits, dim=0)
         end_probs = torch.softmax(end_logits, dim=0)
-        prob_spans = (start_probs[:, None] * end_probs[None, :]).masked_fill(~band, 0.0)
 
-        # Logit score: raw start + end score, comparable between chunks
-        logit_spans = (start_logits[:, None] + end_logits[None, :]).masked_fill(~band, -1e18)
+        prob_spans = (
+            start_probs[:, None] * end_probs[None, :]
+        ).masked_fill(~band, 0.0)
 
-        # The best span is chosen with the scoring method set for this answerer
-        spans = logit_spans if self.scoring == "logit" else prob_spans
+        logit_spans = (
+            start_logits[:, None] + end_logits[None, :]
+        ).masked_fill(~band, -1e18)
+
+        spans = (
+            logit_spans
+            if self.scoring == "logit"
+            else prob_spans
+        )
+
         best_index = int(spans.argmax())
+
         start_token = best_index // size
         end_token = best_index % size
 
         start_char = int(offsets[start_token][0])
         end_char = int(offsets[end_token][1])
+
+        raw_answer = context[start_char:end_char].strip()
+
+        answer = self._clean_answer(raw_answer)
+
         return {
-            "answer": context[start_char:end_char].strip(),
+            "answer": answer,
             "prob": float(prob_spans[start_token, end_token]),
             "logit": float(logit_spans[start_token, end_token]),
         }
 
     def candidates(self, question, chunks):
-        # Return one answer candidate per chunk, keeping the retrieval score
-        # The evaluation script uses this to compare different ranking rules
+
         if not question or not question.strip():
             raise ValueError("The question is empty.")
+
         results = []
+
         for chunk in chunks:
+
             found = self._answer_one(question, chunk["text"])
+
+            if found is None:
+                continue
+
             found["page"] = chunk["page"]
             found["retrieval"] = chunk.get("score", 0.0)
+
             results.append(found)
+
         return results
