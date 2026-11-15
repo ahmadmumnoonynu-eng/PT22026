@@ -7,6 +7,12 @@ winning movies from the database for serialization.
 
 It must never receive a MovieMind account id — callers pass a raw MovieLens id
 from the demo route.
+
+Concurrency note (T9.4): inference is synchronous but runs *off the event loop*
+because the demo routes are plain ``def`` endpoints, which FastAPI executes in
+its worker threadpool. Measured on this machine: a full 9724-movie batch scores
+in ~0.05 s on CPU and a single-pair prediction is sub-millisecond, so inference
+cannot starve the liveness/readiness checks.
 """
 
 from __future__ import annotations

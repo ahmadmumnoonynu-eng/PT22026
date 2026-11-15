@@ -6,11 +6,13 @@ import uuid
 from typing import Annotated
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.errors import UnauthorizedApiError
+from app.core.config import get_settings
+from app.core.errors import TooManyRequestsApiError, UnauthorizedApiError
+from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import decode_access_token
 from app.db.models.user import User
 from app.db.session import get_db
@@ -58,3 +60,38 @@ def get_current_user(db: DbSession, credentials: Credentials) -> User:
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+# --- Rate limiting (T9.2) ----------------------------------------------------
+# In-process sliding-window limiters keyed by client IP. Limits are documented
+# in the Settings defaults (requests per minute).
+_settings = get_settings()
+_login_limiter = SlidingWindowRateLimiter(_settings.RATE_LIMIT_LOGIN, window_seconds=60)
+_register_limiter = SlidingWindowRateLimiter(_settings.RATE_LIMIT_REGISTER, window_seconds=60)
+_demo_limiter = SlidingWindowRateLimiter(_settings.RATE_LIMIT_DEMO, window_seconds=60)
+_ALL_LIMITERS = (_login_limiter, _register_limiter, _demo_limiter)
+
+
+def _client_key(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def rate_limit_login(request: Request) -> None:
+    if not _login_limiter.allow(f"login:{_client_key(request)}"):
+        raise TooManyRequestsApiError("Too many login attempts. Please try again later.")
+
+
+def rate_limit_register(request: Request) -> None:
+    if not _register_limiter.allow(f"register:{_client_key(request)}"):
+        raise TooManyRequestsApiError("Too many account registrations. Please try again later.")
+
+
+def rate_limit_demo(request: Request) -> None:
+    if not _demo_limiter.allow(f"demo:{_client_key(request)}"):
+        raise TooManyRequestsApiError("Demo rate limit exceeded. Please try again later.")
+
+
+def reset_rate_limiters() -> None:
+    """Clear all in-process rate-limit state (used by the test suite)."""
+    for limiter in _ALL_LIMITERS:
+        limiter.reset()

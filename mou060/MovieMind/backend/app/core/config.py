@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     # recommendations replace the popularity fallback (open decision #9).
     MIN_RATINGS_FOR_PERSONALIZATION: int = Field(default=5, ge=1)
 
+    # --- API hardening --------------------------------------------------------
+    # In-process rate limits (requests per minute, per client IP).
+    RATE_LIMIT_LOGIN: int = Field(default=10, ge=1)
+    RATE_LIMIT_REGISTER: int = Field(default=5, ge=1)
+    RATE_LIMIT_DEMO: int = Field(default=30, ge=1)
+    # Maximum request body size accepted by the API, in bytes (default 1 MiB).
+    MAX_REQUEST_BODY_BYTES: int = Field(default=1024 * 1024, ge=1024)
+    # Comma-separated allowed Host header values; empty disables the check.
+    ALLOWED_HOSTS: str = ""
+
     # --- Observability ----------------------------------------------------------
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
@@ -64,6 +74,13 @@ class Settings(BaseSettings):
         if not self.CORS_ORIGINS.strip():
             return []
         return [o.strip().rstrip("/") for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def allowed_hosts(self) -> list[str]:
+        """Parsed allowed-host list (empty = host check disabled)."""
+        if not self.ALLOWED_HOSTS.strip():
+            return []
+        return [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
 
     @field_validator("CORS_ORIGINS")
     @classmethod

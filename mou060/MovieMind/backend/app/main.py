@@ -15,6 +15,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.body_limit import RequestBodyLimitMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
@@ -57,6 +59,15 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
         max_age=600,
     )
+
+    # --- Request body size limit (413 on oversized bodies) --------------------
+    app.add_middleware(RequestBodyLimitMiddleware, max_body_size=settings.MAX_REQUEST_BODY_BYTES)
+
+    # --- Trusted hosts (empty = disabled) -------------------------------------
+    # In production behind a reverse proxy, run uvicorn with ``--proxy-headers``
+    # so ``X-Forwarded-Proto`` (HTTPS) is honored, and set ``ALLOWED_HOSTS``.
+    if settings.allowed_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
     # --- Request correlation + access log -------------------------------------
     @app.middleware("http")

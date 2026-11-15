@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.api.dependencies import DbSession
+from app.api.dependencies import DbSession, rate_limit_login, rate_limit_register
 from app.core.config import get_settings
 from app.core.errors import ConflictApiError, NotImplementedApiError, UnauthorizedApiError
 from app.core.security import create_access_token, hash_password, verify_password
@@ -23,7 +23,13 @@ def _issue_token(user_id) -> TokenResponse:
     )
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=201, summary="Create account")
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=201,
+    dependencies=[Depends(rate_limit_register)],
+    summary="Create account",
+)
 def register(payload: RegisterRequest, db: DbSession) -> RegisterResponse:
     email = payload.email.lower().strip()
 
@@ -44,14 +50,23 @@ def register(payload: RegisterRequest, db: DbSession) -> RegisterResponse:
     return RegisterResponse(**token.model_dump(), user=UserOut.model_validate(user))
 
 
-@router.post("/login", response_model=TokenResponse, summary="Authenticate and issue token")
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit_login)],
+    summary="Authenticate and issue token",
+)
 def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
     email = payload.email.lower().strip()
     user = user_repo.get_by_email(db, email)
 
     # Same generic message whether the email is unknown or the password is
     # wrong, to avoid account-enumeration leaks.
-    if user is None or not user.is_active or not verify_password(payload.password, user.password_hash):
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(payload.password, user.password_hash)
+    ):
         raise UnauthorizedApiError("Invalid email or password")
 
     return _issue_token(user.id)

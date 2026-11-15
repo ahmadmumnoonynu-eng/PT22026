@@ -13,9 +13,9 @@ strategies under ``app/ml/recommenders/``.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import CurrentUser, DbSession
+from app.api.dependencies import CurrentUser, DbSession, rate_limit_demo
 from app.core.config import get_settings
 from app.core.errors import NotFoundApiError
 from app.ml.recommenders.content_based_recommender import ContentBasedRecommender
@@ -91,6 +91,7 @@ def my_recommendations(
 @router.get(
     "/recommendations/demo/movielens/{user_id}",
     response_model=list[RecommendationOut],
+    dependencies=[Depends(rate_limit_demo)],
     summary="NCF demo recommendations for a MovieLens user",
 )
 def demo_movielens_recommendations(
@@ -113,6 +114,7 @@ def demo_movielens_recommendations(
 @router.get(
     "/predictions/demo/movielens",
     response_model=PredictionOut,
+    dependencies=[Depends(rate_limit_demo)],
     summary="NCF demo prediction for one (user, movie) pair",
 )
 def demo_movielens_prediction(

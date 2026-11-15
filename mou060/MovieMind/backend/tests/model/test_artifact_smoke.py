@@ -45,6 +45,19 @@ def test_known_inference_is_finite_in_range():
         assert 0.5 <= s <= 5.0
 
 
+def test_all_mapped_predictions_within_rating_range():
+    """The linear head is unbounded, so every prediction must be clamped to the
+    advertised [0.5, 5.0] rating scale (regression guard for the clamp)."""
+    rec = get_ncf_recommender()
+    user_id = rec.known_user_ids()[0]
+    scores = rec.score_candidates(user_id, rec.known_movie_ids())
+    values = [s for _, s in scores]
+    assert len(values) == len(rec.known_movie_ids())
+    for s in values:
+        assert math.isfinite(s)
+        assert 0.5 <= s <= 5.0
+
+
 def test_model_info_endpoint():
     r = client.get("/api/v1/model/info")
     assert r.status_code == 200

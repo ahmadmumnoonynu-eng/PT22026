@@ -110,6 +110,17 @@ class ModelUnavailableError(ApiError):
         super().__init__(detail)
 
 
+class TooManyRequestsApiError(ApiError):
+    """The client has exceeded an in-process rate limit."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    code = "rate_limited"
+    log_level = logging.INFO
+
+    def __init__(self, detail: str = "Too many requests. Please slow down.") -> None:
+        super().__init__(detail, headers={"Retry-After": "60"})
+
+
 def _error_body(detail: str, code: str) -> dict[str, Any]:
     return {"detail": detail, "code": code}
 

@@ -41,6 +41,10 @@ class NCFRecommender:
         self._user_mapping = loaded.user_mapping
         self._movie_mapping = loaded.movie_mapping
         self._device = loaded.device
+        # The model's linear head is unbounded, so clamp outputs to the trained
+        # rating scale declared in the config (defaults match the plan: 0.5-5.0).
+        self._rating_min = float(loaded.config.get("rating_min", 0.5))
+        self._rating_max = float(loaded.config.get("rating_max", 5.0))
 
     @property
     def version(self) -> str:
@@ -74,9 +78,7 @@ class NCFRecommender:
         """Predicted rating for one (raw user id, raw movie id) pair."""
         return self.predict_batch([(user_id, movie_id)])[0]
 
-    def predict_batch(
-        self, pairs: Sequence[tuple[object, object]]
-    ) -> list[float]:
+    def predict_batch(self, pairs: Sequence[tuple[object, object]]) -> list[float]:
         """Predicted ratings for multiple (raw user id, raw movie id) pairs.
 
         Raises :class:`UnknownMovieLensIdError` on the first unknown ID;
@@ -94,7 +96,8 @@ class NCFRecommender:
         with torch.inference_mode():
             scores = self._model(user_t, movie_t)
 
-        return [float(v) for v in scores.detach().cpu().tolist()]
+        raw = [float(v) for v in scores.detach().cpu().tolist()]
+        return [min(max(value, self._rating_min), self._rating_max) for value in raw]
 
     def score_candidates(
         self, user_id: object, movie_ids: Iterable[object]
