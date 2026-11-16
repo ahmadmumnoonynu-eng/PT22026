@@ -654,3 +654,31 @@ def test_the_upload_table_verdicts_every_row():
     assert "labelled replay transactions" in html
     assert "what actually happened" in html             # the footnote defines the three nouns
 
+
+CSV_ROWS = ("type,amount,oldbalanceOrg,oldbalanceDest\n"
+            "TRANSFER,250000,250000,0\n"
+            "TRANSFER,8000,120000,60000\n"
+            "PAYMENT,120,5000,0\n")
+
+
+def test_the_two_views_are_session_values_not_browser_tabs():
+    """st.tabs reset to the first tab whenever a widget inside them reran, so the views
+    are a segmented control driven by the session: asking for the upload view must land there."""
+    at = page(mode="Transaction testing", testing_view="Upload a file")
+    assert not at.exception
+    body = all_text(at)
+    assert "Score up to" in body                        # the upload view's own heading
+    assert "Risk score" not in body                     # the single-transaction card is not on this view
+
+
+def test_a_chosen_file_survives_leaving_the_page():
+    """The file is copied out of the uploader widget, so the results are rebuilt from the
+    session copy when the analyst comes back -- no re-upload."""
+    at = page(mode="Transaction testing", testing_view="Upload a file",
+              uploaded_bytes=CSV_ROWS.encode(), uploaded_name="demo.csv")
+    assert not at.exception
+    body = all_text(at)
+    # The uploader is empty here, so the table can only come from the session copy.
+    assert "Highest-risk transactions" in body or "Scored transactions" in body
+    assert "Verdict" in body
+

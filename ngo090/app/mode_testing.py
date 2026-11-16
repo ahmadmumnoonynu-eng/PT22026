@@ -18,11 +18,42 @@ EXAMPLES = {
     "normal": {"tx_type": "TRANSFER", "tx_amount": 8_000.0, "tx_sender": 120_000.0, "tx_receiver": 60_000.0, "tx_hour": 14},
     "empty": {"tx_type": "TRANSFER", "tx_amount": 250_000.0, "tx_sender": 250_000.0, "tx_receiver": 0.0, "tx_hour": 3},
 }
+VIEWS = ("Single transaction", "Upload a file")
+VIEW_KEY = "testing_view"        # which of the two views is open; kept in the session, not in the browser
+FILE_BYTES = "uploaded_bytes"    # the chosen file, copied out of the widget (see _keep_upload)
+FILE_NAME = "uploaded_name"
 
 
 def _load_example(name: str) -> None:
     for key, value in EXAMPLES[name].items():
         st.session_state[key] = value
+
+
+def _keep_upload() -> None:
+    """Copy the chosen file out of the uploader widget.
+
+    Streamlit drops a widget's value when that widget is not rendered in a run, so a
+    page switch would forget the file. A plain session key is not a widget, so the
+    bytes survive navigation and the table is rebuilt from the cache for free.
+    """
+    file = st.session_state.get("upload")
+    if file is None:
+        return
+    st.session_state[FILE_BYTES] = file.getvalue()
+    st.session_state[FILE_NAME] = file.name
+
+
+def _clear_upload() -> None:
+    st.session_state.pop("upload", None)
+    st.session_state.pop(FILE_BYTES, None)
+    st.session_state.pop(FILE_NAME, None)
+
+
+def _keep_view() -> None:
+    """A segmented control deselects when its active option is clicked again; hold the view."""
+    if st.session_state.get(VIEW_KEY) is None:
+        st.session_state[VIEW_KEY] = st.session_state.get("last_view", VIEWS[0])
+    st.session_state["last_view"] = st.session_state[VIEW_KEY]
 
 
 @st.cache_data(show_spinner="Scoring the file...")
@@ -87,14 +118,22 @@ def _render_file(tag: str, policy: Policy, costs) -> None:
         "Header names are not case sensitive and other columns are ignored.")
     st.download_button("Download a template file", data=template_csv(), file_name="transactions_template.csv",
                        mime="text/csv")
-    uploaded = st.file_uploader("CSV file", type=["csv"], key="upload", label_visibility="collapsed")
-    if uploaded is None:
+    uploaded = st.file_uploader("CSV file", type=["csv"], key="upload", label_visibility="collapsed",
+                                on_change=_keep_upload)
+    # The widget is gone after leaving the page; the copy in the session is not.
+    content = uploaded.getvalue() if uploaded is not None else st.session_state.get(FILE_BYTES)
+    name = uploaded.name if uploaded is not None else st.session_state.get(FILE_NAME)
+    if content is None:
         st.info("Choose a file to score it. Review capacity is not applied to uploaded files, "
                 "because it needs transactions spread over time.")
         return
+    if uploaded is None:
+        kept = st.columns([7, 1], vertical_alignment="center")
+        kept[0].caption(f"Showing **{name}**, the file chosen earlier on this page.")
+        kept[1].button("Clear", on_click=_clear_upload, key="clear_upload")
 
     try:
-        batch = process_upload(tag, uploaded.getvalue(), float(policy.block_threshold),
+        batch = process_upload(tag, content, float(policy.block_threshold),
                                float(policy.review_min_score), int(policy.daily_capacity))
     except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError):
         st.error("This file could not be read as a CSV. Check that it has a header row and comma separators.")
@@ -113,8 +152,8 @@ def _render_file(tag: str, policy: Policy, costs) -> None:
         out = batch.rows.rename(columns={"reason": "main_reason"}).drop(columns=["applicable"])
         out["verdict"] = [(band_for(float(r.risk), stats).label if getattr(r, "applicable", True) else "not covered")
                           for r in batch.rows.itertuples()]
-        st.download_button("Download the scored file", data=out.to_csv(index=False), file_name="scored_transactions.csv",
-                           mime="text/csv")
+        st.download_button("Download the scored file", data=out.to_csv(index=False),
+                           file_name="scored_transactions.csv", mime="text/csv", key="scored_download")
     if not batch.rejected.empty:
         with st.expander(f"{len(batch.rejected):,} rows were rejected"):
             st.dataframe(batch.rejected.head(200), hide_index=True)
@@ -131,8 +170,11 @@ def render(header, tag: str, run, engine) -> None:
     with cols[1]:
         costs = render_costs_popover()
 
-    tab_one, tab_file = st.tabs(["Single transaction", "Upload a file"])
-    with tab_one:
+    # A server-side view switch, not st.tabs: tabs keep their selection in the browser, so the
+    # rerun caused by choosing a file snapped the page back to the first tab.
+    view = st.segmented_control("View", VIEWS, default=VIEWS[0], key=VIEW_KEY,
+                                label_visibility="collapsed", on_change=_keep_view) or VIEWS[0]
+    if view == VIEWS[0]:
         _render_single(tag, engine, policy)
-    with tab_file:
+    else:
         _render_file(tag, policy, costs)

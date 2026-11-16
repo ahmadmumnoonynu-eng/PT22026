@@ -111,6 +111,12 @@ background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:60
 [data-testid="stPopover"]{width:100% !important;}
 .stButton button:hover,[data-testid="stPopover"] button:hover{border-color:#3b82f6 !important;color:#fff !important;}
 .stButton button[kind="primary"]{background:linear-gradient(135deg,#2563eb,#0ea5e9) !important;border:none !important;color:#fff !important;}
+/* The scored-file download sits right under the results card; keep it off the card edge. */
+div[class*="st-key-scored_download"]{margin-top:18px !important;}
+/* The Clear button on the upload view: small, on the right, its edge lined up with "Browse files". */
+div[class*="st-key-clear_upload"]{text-align:right !important;}
+div[class*="st-key-clear_upload"] button{width:auto !important;min-width:92px !important;min-height:34px !important;
+margin-left:auto !important;margin-right:16px !important;}
 .fa-tag.approve{background:rgba(59,130,246,.16);color:#93c5fd;border:1px solid rgba(59,130,246,.38);}
 .fa-fill.down{background:linear-gradient(90deg,#15803d,#4ade80);}
 .fa-bars.wide .fa-bar{grid-template-columns:minmax(160px,1.7fr) 1.3fr 46px;}
