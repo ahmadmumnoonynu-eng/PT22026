@@ -21,6 +21,9 @@ export const queryKeys = {
     item: (movieId: string) => ["ratings", "item", movieId] as const,
     list: (offset = 0, limit = 20) => ["ratings", "list", { limit, offset }] as const,
   },
+  preferences: {
+    mine: () => ["preferences", "mine"] as const,
+  },
   recommendations: {
     mine: (limit = 20) => ["recommendations", "mine", { limit }] as const,
   },
@@ -32,7 +35,7 @@ export const queryKeys = {
   },
 };
 
-const privateRoots = new Set(["ratings", "recommendations", "user", "watchlist"]);
+const privateRoots = new Set(["ratings", "preferences", "recommendations", "user", "watchlist"]);
 
 export function isUserSpecificQuery(queryKey: QueryKey) {
   return typeof queryKey[0] === "string" && privateRoots.has(queryKey[0]);

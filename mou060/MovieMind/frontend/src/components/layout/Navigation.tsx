@@ -1,4 +1,4 @@
-import { Bookmark, Compass, Film, Home, Settings, Star, UserRound } from "lucide-react";
+import { Bookmark, Compass, Film, Heart, Home, Settings, Star, UserRound } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 const items = [
   { icon: Home, label: "Home", to: "/" },
   { icon: Compass, label: "Discover", to: "/discover" },
+  { icon: Heart, label: "My Taste", to: "/preferences" },
   { icon: Bookmark, label: "My List", to: "/watchlist" },
   { icon: Star, label: "Ratings", to: "/ratings" },
   { icon: UserRound, label: "Profile", to: "/profile" },

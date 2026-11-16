@@ -18,7 +18,9 @@ from fastapi import APIRouter, Depends, Query
 from app.api.dependencies import CurrentUser, DbSession, rate_limit_demo
 from app.core.config import get_settings
 from app.core.errors import NotFoundApiError
+from app.ml.recommenders.collaborative_recommender import CollaborativeRecommender
 from app.ml.recommenders.content_based_recommender import ContentBasedRecommender
+from app.ml.recommenders.hybrid_recommender import HybridRecommender
 from app.ml.recommenders.ncf_demo_recommender import NCFDemoRecommender
 from app.ml.recommenders.popularity_recommender import PopularityRecommender
 from app.repositories import ratings as rating_repo
@@ -70,7 +72,25 @@ def my_recommendations(
         strategy = PopularityRecommender(db)
         is_fallback = True
     else:
-        strategy = ContentBasedRecommender(db, user.id)
+        collaborative = CollaborativeRecommender(
+            db,
+            user.id,
+            watchlisted_movie_ids=watchlisted_ids,
+        )
+        if collaborative.recommend(limit=1):
+            strategy = HybridRecommender(
+                db,
+                user.id,
+                content_weight=settings.RECOMMENDATION_CONTENT_WEIGHT,
+                collaborative_weight=settings.RECOMMENDATION_COLLABORATIVE_WEIGHT,
+                watchlisted_movie_ids=watchlisted_ids,
+            )
+        else:
+            strategy = ContentBasedRecommender(
+                db,
+                user.id,
+                watchlisted_movie_ids=watchlisted_ids,
+            )
         is_fallback = False
 
     service = RecommendationService()

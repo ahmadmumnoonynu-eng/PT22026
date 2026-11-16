@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
+
 from app.db.models.movie import Movie
 from app.services.recommendation_service import (
     CandidateFilter,
     RecommendationItem,
     RecommendationService,
     RecommendationStrategy,
+    combine_score_components,
+    normalize_score,
 )
 
 _A = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -80,3 +84,14 @@ def test_service_overfetches_so_filtering_still_fills_page():
     # can still return a full page of 3 after filtering.
     out = RecommendationService().recommend(Stub(), limit=3, rated_movie_ids={ids[0]})
     assert [i.movie.id for i in out] == ids[1:4]
+
+
+def test_normalize_score_preserves_direction():
+    assert normalize_score(4.0) == 1.0
+    assert normalize_score(-4.0) == -1.0
+    assert normalize_score(2.0, scale=4.0) == 0.5
+
+
+def test_combine_score_components_weights_inputs():
+    score = combine_score_components(1.0, 0.5, content_weight=0.7, collaborative_weight=0.3)
+    assert score == pytest.approx(0.85)

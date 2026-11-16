@@ -39,7 +39,7 @@ describe("Navigation", () => {
     mockedUseAuth.mockReturnValue(authValue(true));
     renderWithProviders(<Navigation />);
 
-    for (const label of ["My List", "Ratings", "Profile", "Settings"]) {
+    for (const label of ["My Taste", "My List", "Ratings", "Profile", "Settings"]) {
       expect(screen.getAllByRole("link", { name: label }).length).toBeGreaterThan(0);
     }
   });

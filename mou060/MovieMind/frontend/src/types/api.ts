@@ -85,3 +85,12 @@ export type Recommendations = {
   limit: number;
   source: string;
 };
+
+export type UserPreference = {
+  user_id: string;
+  favorite_genres: string[];
+  favorite_movie_ids: string[];
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};

@@ -9,6 +9,7 @@ const AuthPage = lazy(async () => ({ default: (await import("@/pages/AuthPage"))
 const DiscoverPage = lazy(async () => ({ default: (await import("@/pages/DiscoverPage")).DiscoverPage }));
 const HomePage = lazy(async () => ({ default: (await import("@/pages/HomePage")).HomePage }));
 const MovieDetailsPage = lazy(async () => ({ default: (await import("@/pages/MovieDetailsPage")).MovieDetailsPage }));
+const MoviePreferencesPage = lazy(async () => ({ default: (await import("@/pages/MoviePreferencesPage")).MoviePreferencesPage }));
 const NotFoundPage = lazy(async () => ({ default: (await import("@/pages/NotFoundPage")).NotFoundPage }));
 const PlaceholderPage = lazy(async () => ({ default: (await import("@/pages/PlaceholderPage")).PlaceholderPage }));
 const ProfilePage = lazy(async () => ({ default: (await import("@/pages/ProfilePage")).ProfilePage }));
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
       {
         path: "ratings",
         element: page(<RequireAuth><RatingsPage /></RequireAuth>),
+      },
+      {
+        path: "preferences",
+        element: page(<RequireAuth><MoviePreferencesPage /></RequireAuth>),
       },
       {
         path: "profile",

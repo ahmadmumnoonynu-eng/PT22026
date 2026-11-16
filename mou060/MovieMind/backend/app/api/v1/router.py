@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     health,
     model,
     movies,
+    preferences,
     ratings,
     recommendations,
     users,
@@ -21,4 +22,5 @@ api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(users.router, tags=["users"])
 api_router.include_router(ratings.router, tags=["ratings"])
 api_router.include_router(watchlist.router, tags=["watchlist"])
+api_router.include_router(preferences.router, tags=["preferences"])
 api_router.include_router(recommendations.router, tags=["recommendations"])

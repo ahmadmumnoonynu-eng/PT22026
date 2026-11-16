@@ -65,9 +65,18 @@ class ContentBasedRecommender(RecommendationStrategy):
 
     source = SOURCE_CONTENT_BASED
 
-    def __init__(self, db: Session, user_id: uuid.UUID) -> None:
+    def __init__(
+        self,
+        db: Session,
+        user_id: uuid.UUID,
+        *,
+        watchlisted_movie_ids: Collection[uuid.UUID] | None = None,
+        watchlist_weight: float = 0.5,
+    ) -> None:
         self._db = db
         self._user_id = user_id
+        self._watchlisted_movie_ids = set(watchlisted_movie_ids or ())
+        self._watchlist_weight = watchlist_weight
 
     def recommend(self, *, limit: int) -> list[RecommendationItem]:
         ratings = list(
@@ -81,7 +90,25 @@ class ContentBasedRecommender(RecommendationStrategy):
                 )
             ).all()
         )
-        prefs = compute_genre_preferences([(r.movie.genres, float(r.score)) for r in ratings])
+
+        watchlist_items: list[tuple[Collection[str], float]] = []
+        if self._watchlisted_movie_ids:
+            movies = {
+                m.id: m
+                for m in self._db.scalars(
+                    select(Movie)
+                    .where(Movie.id.in_(sorted(self._watchlisted_movie_ids)))
+                    .options(selectinload(Movie.genre_links).selectinload(MovieGenre.genre))
+                ).all()
+            }
+            for movie_id in sorted(self._watchlisted_movie_ids):
+                movie = movies.get(movie_id)
+                if movie is not None:
+                    watchlist_items.append((movie.genres, 3.5 * self._watchlist_weight))
+
+        prefs = compute_genre_preferences(
+            [(r.movie.genres, float(r.score)) for r in ratings] + watchlist_items
+        )
         rated_ids = {r.movie_id for r in ratings}
         if not prefs:
             return []

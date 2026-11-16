@@ -29,6 +29,39 @@ from app.db.models.movie import Movie
 SOURCE_NCF = "ncf"
 SOURCE_POPULARITY = "popularity"
 SOURCE_CONTENT_BASED = "content_based"
+SOURCE_COLLABORATIVE = "collaborative"
+SOURCE_HYBRID = "hybrid"
+
+
+def normalize_score(value: float, *, scale: float | None = None) -> float:
+    """Scale a raw score into the [-1, 1] range while preserving direction."""
+    if scale is None:
+        scale = max(abs(float(value)), 1.0)
+    if scale == 0:
+        return 0.0
+    return float(value) / scale
+
+
+def combine_score_components(
+    content_score: float | None,
+    collaborative_score: float | None,
+    *,
+    content_weight: float,
+    collaborative_weight: float,
+) -> float:
+    """Combine normalized content and collaborative components."""
+    if content_score is None and collaborative_score is None:
+        return 0.0
+    if content_score is None:
+        return float(collaborative_score or 0.0)
+    if collaborative_score is None:
+        return float(content_score)
+    total_weight = content_weight + collaborative_weight
+    if total_weight <= 0:
+        return float(content_score)
+    return (
+        (content_weight * float(content_score)) + (collaborative_weight * float(collaborative_score))
+    ) / total_weight
 
 
 @dataclass(frozen=True)

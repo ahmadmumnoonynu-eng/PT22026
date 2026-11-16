@@ -34,7 +34,7 @@ export function HomePage() {
           </form>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/discover"><Button><Compass aria-hidden="true" className="size-4" /> Start exploring</Button></Link>
-            <Link className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--mm-border)] bg-black/15 px-5 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to="/register">Create your account <ArrowRight aria-hidden="true" className="size-4" /></Link>
+            <Link className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--mm-border)] bg-black/15 px-5 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to="/preferences">My taste profile <ArrowRight aria-hidden="true" className="size-4" /></Link>
           </div>
         </div>
         <div aria-hidden="true" className="hero-reel absolute inset-y-0 right-0 w-1/2 opacity-70" />

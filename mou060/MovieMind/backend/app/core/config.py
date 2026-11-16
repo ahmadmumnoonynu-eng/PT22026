@@ -51,9 +51,13 @@ class Settings(BaseSettings):
     ENABLE_DEMO_ENDPOINTS: bool = True
 
     # --- Recommendations ------------------------------------------------------
-    # Number of ratings a user needs before personalized (content-based)
-    # recommendations replace the popularity fallback (open decision #9).
+    # Number of ratings a user needs before personalized recommendations replace
+    # the popularity fallback. Once a user has enough ratings, a hybrid strategy
+    # may use content-based and collaborative scores together when available.
     MIN_RATINGS_FOR_PERSONALIZATION: int = Field(default=5, ge=1)
+    RECOMMENDATION_CONTENT_WEIGHT: float = Field(default=0.7, ge=0.0, le=1.0)
+    RECOMMENDATION_COLLABORATIVE_WEIGHT: float = Field(default=0.3, ge=0.0, le=1.0)
+    RECOMMENDATION_MIN_SIMILARITY: float = Field(default=0.05, ge=-1.0, le=1.0)
 
     # --- API hardening --------------------------------------------------------
     # In-process rate limits (requests per minute, per client IP).
