@@ -1,12 +1,14 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { AuthPlaceholderPage } from "@/pages/AuthPlaceholderPage";
+import { RequireAuth } from "@/features/auth/RequireAuth";
+import { AuthPage } from "@/pages/AuthPage";
 import { HomePage } from "@/pages/HomePage";
 import { DiscoverPage } from "@/pages/DiscoverPage";
 import { MovieDetailsPage } from "@/pages/MovieDetailsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { SearchPage } from "@/pages/SearchPage";
 
 export const router = createBrowserRouter([
@@ -28,27 +30,27 @@ export const router = createBrowserRouter([
       },
       {
         path: "watchlist",
-        element: <PlaceholderPage title="My List" description="Your saved movies will appear here after authentication is connected." />,
+        element: <RequireAuth><PlaceholderPage title="My List" description="Your saved movies feature will be connected in the next authenticated feature phase." /></RequireAuth>,
       },
       {
         path: "ratings",
-        element: <PlaceholderPage title="My Ratings" description="Your ratings will appear here after the ratings feature is connected." />,
+        element: <RequireAuth><PlaceholderPage title="My Ratings" description="Your ratings feature will be connected in the next authenticated feature phase." /></RequireAuth>,
       },
       {
         path: "profile",
-        element: <PlaceholderPage title="My Profile" description="Profile information will be available after authentication is connected." />,
+        element: <RequireAuth><ProfilePage /></RequireAuth>,
       },
       {
         path: "settings",
-        element: <PlaceholderPage title="Settings" description="Only supported account settings will be added here." />,
+        element: <RequireAuth><PlaceholderPage title="Settings" description="Only supported account settings will be added here." /></RequireAuth>,
       },
       {
         path: "recommendations",
-        element: <PlaceholderPage title="Recommended for You" description="Personalized recommendations will be connected after ratings and authentication are ready." />,
+        element: <RequireAuth><PlaceholderPage title="Recommended for You" description="Personalized recommendations will be connected after ratings and authentication are ready." /></RequireAuth>,
       },
     ],
   },
-  { path: "login", element: <AuthPlaceholderPage mode="login" /> },
-  { path: "register", element: <AuthPlaceholderPage mode="register" /> },
+  { path: "login", element: <AuthPage mode="login" /> },
+  { path: "register", element: <AuthPage mode="register" /> },
   { path: "*", element: <NotFoundPage /> },
 ]);

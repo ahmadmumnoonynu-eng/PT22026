@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, type PropsWithChildren } from "react";
 
 import { App } from "@/app/App";
+import { AuthProvider } from "@/features/auth/AuthProvider";
 import { authSession } from "@/lib/auth/session";
 import { isUserSpecificQuery } from "@/lib/query/keys";
 
@@ -36,7 +37,9 @@ function QueryProvider({ children }: PropsWithChildren) {
 export function AppProviders() {
   return (
     <QueryProvider>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </QueryProvider>
   );
 }

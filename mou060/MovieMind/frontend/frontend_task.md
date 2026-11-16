@@ -146,34 +146,34 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Auth foundation
 
-- [ ] Add the form dependencies: React Hook Form and Zod.
-- [ ] Create the auth feature module with actual request/response types and validation schemas that mirror—but never replace—backend validation.
-- [ ] Implement an authentication provider/context suitable for the discovered cookie or token model.
-- [ ] Restore session/current-user state only through backend-supported behavior.
-- [ ] Add login/logout-driven navigation and cache clearing.
-- [ ] Ensure password values and access tokens are never logged, rendered in errors, or committed to files.
+- [ ] Add React Hook Form and Zod. Blocked by the local npm TLS certificate verification failure; native controlled forms are used temporarily without weakening TLS verification.
+- [x] Create the auth feature module with actual request/response types and client-side checks that mirror—but never replace—backend validation.
+- [x] Implement an authentication provider/context for the confirmed bearer-token model.
+- [x] Restore the current-user state only through the backend-supported `/users/me` request after authentication; no token is persisted across refresh.
+- [x] Add login/logout-driven navigation and cache clearing.
+- [x] Ensure password values and access tokens are never logged, rendered in errors, stored in browser persistence, or committed to files.
 
 ### Login — `/login`
 
-- [ ] Build labeled login fields exactly matching the backend schema.
-- [ ] Add required/basic format validation and clear inline errors.
-- [ ] Disable duplicate submission during the request.
-- [ ] Connect to the real login endpoint and show safe authentication errors.
-- [ ] Navigate after successful login according to the expected product flow.
+- [x] Build labeled email and password login fields exactly matching the backend schema.
+- [x] Add required/basic format validation and clear inline errors.
+- [x] Disable duplicate submission during the request.
+- [x] Connect to the real login endpoint and show safe authentication errors.
+- [x] Return the user to their requested protected route, or Home, after successful login.
 
 ### Registration — `/register`
 
-- [ ] Build only fields accepted by the real registration endpoint.
-- [ ] Validate inputs client-side where practical and preserve input on recoverable errors.
-- [ ] Connect to the real registration endpoint.
-- [ ] Show the backend-supported success/next-step result; do not assume automatic login or email verification.
+- [x] Build only backend-accepted registration fields: email, password, optional username, and optional display name.
+- [x] Validate inputs client-side where practical and preserve input on recoverable errors.
+- [x] Connect to the real registration endpoint.
+- [x] Use the returned access token/user to establish the supported immediate signed-in state; do not assume email verification.
 
 ### Authenticated UI behavior
 
-- [ ] Change header actions to signed-in account/navigation actions when authenticated.
-- [ ] Restrict `/watchlist` and `/recommendations` at the UI level as required by the API.
-- [ ] Provide a clear sign-in/re-authentication path after 401 responses.
-- [ ] Verify the UI does not treat hidden controls as authorization.
+- [x] Change header and navigation actions when authenticated.
+- [x] Restrict personal routes at the UI level; the backend remains the authorization authority.
+- [x] Clear session/cache after a 401 and redirect protected-route visitors to sign in.
+- [x] Keep UI route guards separate from backend authorization.
 
 ## Phase 5 — Ratings and saved movies
 

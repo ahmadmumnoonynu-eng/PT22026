@@ -5,10 +5,12 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/layout/Navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 export function AppShell() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { isAuthenticated, signOut, user } = useAuth();
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,8 +33,7 @@ export function AppShell() {
           </form>
           <Link className="font-bold tracking-tight text-[var(--mm-text)] md:hidden" to="/">Movie<span className="text-[var(--mm-accent)]">Mind</span></Link>
           <nav aria-label="Account" className="ml-auto flex items-center gap-2">
-            <Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link>
-            <Link to="/register"><Button className="min-h-10 rounded-xl px-4">Create account</Button></Link>
+            {isAuthenticated && user ? <><Link aria-label="Open profile" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:flex" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span>{user.display_name ?? user.username ?? "Account"}</Link><Button className="min-h-10 rounded-xl px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-4">Create account</Button></Link></>}
           </nav>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-10 lg:pb-10"><Outlet /></main>
