@@ -45,6 +45,18 @@ def get_run(tag: str):
     return load_run(ROOT, tag)
 
 
+@st.cache_resource(show_spinner=False)
+def get_band_stats(tag: str):
+    """How often each score band was fraud on the labelled replay window (src.verdict).
+
+    Scored once per engine and shared by every session: it is a property of the run,
+    not of the transaction being looked at.
+    """
+    from src.verdict import band_stats
+
+    return band_stats(get_engine(tag), get_run(tag).replay)
+
+
 def cases_path() -> Path:
     """Where investigation cases live: data/cases.db unless the environment says otherwise."""
     override = os.environ.get(CASES_DB)

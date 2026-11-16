@@ -116,6 +116,13 @@ background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:60
 .fa-bars.wide .fa-bar{grid-template-columns:minmax(160px,1.7fr) 1.3fr 46px;}
 .fa-pred{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);gap:30px;align-items:start;}
 @media (max-width:900px){.fa-pred{grid-template-columns:minmax(0,1fr);}}
+.fa-vrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 4px;}
+.fa-vchip{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:4px 12px;border-radius:999px;}
+.fa-vchip.fraud{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.45);}
+.fa-vchip.suspicious{background:rgba(245,158,11,.16);color:#fcd34d;border:1px solid rgba(245,158,11,.42);}
+.fa-vchip.clean{background:rgba(34,197,94,.16);color:#86efac;border:1px solid rgba(34,197,94,.4);}
+.fa-vtext{font-size:13.5px;color:#cfdcf2;}
+.fa-vsub{font-size:12px;color:#7f93b3;margin:0 0 16px;}
 .fa-risk-big{font-size:58px;font-weight:700;letter-spacing:-1.5px;line-height:1.05;margin:6px 0 10px;}
 .fa-risk-big small{font-size:20px;color:#8fa3c2;font-weight:500;letter-spacing:0;}
 .fa-riskbar{position:relative;height:12px;border-radius:7px;margin:18px 0 8px;background:linear-gradient(90deg,#16a34a,#f59e0b 70%,#f43f5e);}
@@ -907,7 +914,30 @@ def _reason_rows(reasons, up: bool) -> str:
     return f'<div class="fa-bars wide">{rows}</div>'
 
 
-def prediction_html(pred, policy) -> str:
+def verdict_html(band, n_total: int) -> str:
+    """The plain-language label above the score: how often this score band was fraud.
+
+    `band` is a src.verdict.BandStat measured on the labelled replay window.
+    """
+    from src.verdict import rate_text
+
+    if band is None:
+        return ""
+    if band.rate <= 0:
+        text = "No fraud was seen at this score on the replay window"
+    elif band.rate >= 0.995:
+        text = "Almost every transaction at this score was fraud"
+    else:
+        text = f"{rate_text(band.rate)} transactions at this score were fraud"
+    return compact(
+        '<div class="fa-vrow">'
+        f'<span class="fa-vchip {band.tone}">Predicted: {escape(band.label.lower())}</span>'
+        f'<span class="fa-vtext">{text}</span></div>'
+        f'<div class="fa-vsub">{band.frauds:,} of {band.total:,} in the {band.span} band &middot; '
+        f'measured on {n_total:,} labelled replay transactions</div>')
+
+
+def prediction_html(pred, policy, band=None, n_total: int = 0) -> str:
     """Result card for one transaction (see predict.Prediction)."""
     label, color = DECISION_TEXT[pred.decision]
     notes = "".join(f'<div class="fa-note">{escape(n)}</div>' for n in pred.notes)
@@ -921,7 +951,8 @@ def prediction_html(pred, policy) -> str:
             marks += f'<i class="mk" style="left:{policy.review_min_score:.1f}%" title="Review from {policy.review_min_score:g}"></i>'
         if policy.block_threshold <= 100:
             marks += f'<i class="mk" style="left:{policy.block_threshold:.1f}%" title="Block from {policy.block_threshold:g}"></i>'
-        left = (f'<div class="fa-klabel">Risk score</div>'
+        left = (f'{verdict_html(band, n_total)}'
+                f'<div class="fa-klabel">Risk score</div>'
                 f'<div class="fa-risk-big" style="color:{color}">{pred.risk:.1f}<small> / 100</small></div>'
                 f'<span class="fa-tag {pred.decision}" style="font-size:14px;padding:5px 16px">{label}</span>'
                 f'<div class="fa-riskbar">{marks}<span class="pt" style="left:{min(pred.risk, 100):.1f}%"></span></div>'

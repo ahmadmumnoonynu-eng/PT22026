@@ -7,10 +7,11 @@ import pandas as pd
 import streamlit as st
 
 import ui
-from common import render_costs_popover, render_policy_popover
+from common import get_band_stats, render_costs_popover, render_policy_popover
 from src.decision import Policy
 from src.processing import MAX_ROWS, ProcessedBatch, process_frame, summarize_batch, template_csv
 from src.tools import Toolkit
+from src.verdict import band_for
 
 TYPES = ["TRANSFER", "CASH_OUT", "PAYMENT", "CASH_IN", "DEBIT"]
 EXAMPLES = {
@@ -33,7 +34,7 @@ def process_upload(tag: str, content: bytes, block: float, review_min: float, ca
     return process_frame(get_engine(tag), df, policy)
 
 
-def _render_single(engine, policy: Policy) -> None:
+def _render_single(tag: str, engine, policy: Policy) -> None:
     st.markdown(ui.mode_head("Single transaction", "Type in a transaction and see its risk, the decision and the reasons."),
                 unsafe_allow_html=True)
     st.session_state.setdefault("tx_type", "TRANSFER")
@@ -70,7 +71,11 @@ def _render_single(engine, policy: Policy) -> None:
     except ValueError as exc:
         st.error(str(exc))
         return
-    st.markdown(ui.prediction_html(prediction, policy), unsafe_allow_html=True)
+    # The score is a percentile; the band says how often that percentile was fraud.
+    stats = get_band_stats(tag) if prediction.applicable else []
+    band = band_for(prediction.risk, stats) if stats else None
+    st.markdown(ui.prediction_html(prediction, policy, band, sum(s.total for s in stats)),
+                unsafe_allow_html=True)
 
 
 def _render_file(tag: str, policy: Policy, costs) -> None:
@@ -124,6 +129,6 @@ def render(header, tag: str, run, engine) -> None:
 
     tab_one, tab_file = st.tabs(["Single transaction", "Upload a file"])
     with tab_one:
-        _render_single(engine, policy)
+        _render_single(tag, engine, policy)
     with tab_file:
         _render_file(tag, policy, costs)
