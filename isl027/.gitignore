@@ -13,4 +13,6 @@ hf_cache/
 Lib
 
 backup_before_update/
-evaluation_results.csv
+
+
+report_figures/
