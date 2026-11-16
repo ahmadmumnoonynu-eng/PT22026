@@ -586,3 +586,29 @@ def test_the_compare_page_switches_to_the_new_pattern_pairing():
     assert "Catch rate by fraud shape" in body
     assert "Small transfers" in body
     assert "Known pattern" in body and "New pattern" in body
+
+
+def test_an_unfunded_transaction_is_flagged_but_still_scored():
+    """Amount above the sender balance cannot happen in a bank; the form says so and scores anyway."""
+    at = page(mode="Transaction testing", tx_type="TRANSFER", tx_amount=250_000.0, tx_sender=0.0,
+              tx_receiver=10_000.0, tx_hour=23)
+    assert not at.exception
+    body = all_text(at)
+    assert "The sender cannot cover this amount" in body
+    assert "250,000.00" in body
+    assert "Risk score" in body          # the hint never replaces the result
+
+
+def test_a_funded_transaction_carries_no_warning():
+    at = page(mode="Transaction testing", tx_type="TRANSFER", tx_amount=8_000.0, tx_sender=120_000.0,
+              tx_receiver=60_000.0, tx_hour=14)
+    assert not at.exception
+    assert "The sender cannot cover this amount" not in all_text(at)
+
+
+def test_a_cash_deposit_from_an_empty_account_is_not_flagged():
+    """CASH_IN brings money in, so a balance below the amount is ordinary, not impossible."""
+    at = page(mode="Transaction testing", tx_type="CASH_IN", tx_amount=250_000.0, tx_sender=0.0,
+              tx_receiver=10_000.0, tx_hour=10)
+    assert not at.exception
+    assert "The sender cannot cover this amount" not in all_text(at)

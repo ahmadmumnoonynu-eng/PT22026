@@ -52,6 +52,11 @@ def _render_single(engine, policy: Policy) -> None:
     b = st.columns([1, 1.6, 3.4])
     b[0].button("Example: normal transfer", on_click=_load_example, args=("normal",))
     b[1].button("Example: large transfer to an empty account", on_click=_load_example, args=("empty",))
+    # Money leaving an account that cannot cover it. Not CASH_IN: there the money comes in, so a low
+    # balance is normal. This is a hint only, never a validation: the engine scores what is typed.
+    if st.session_state.tx_type != "CASH_IN" and st.session_state.tx_amount > st.session_state.tx_sender:
+        st.markdown(ui.unfunded_tx_hint_html(st.session_state.tx_amount, st.session_state.tx_sender),
+                    unsafe_allow_html=True)
     if "oldbalanceOrg" in engine.drop:
         st.caption("This engine does not use the sender balance (it is removed in the recommended setting), "
                    "so changing it has no effect on the score.")

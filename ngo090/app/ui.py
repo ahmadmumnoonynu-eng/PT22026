@@ -100,6 +100,12 @@ padding:9px 10px;background:rgba(255,255,255,.035);}
 .fa-empty h3{margin:0 0 8px;font-size:22px;}
 .fa-empty p{margin:0;color:#9db0cf;font-size:15px;}
 .fa-note{color:#7f93b3;font-size:12.5px;margin:6px 2px 0;}
+.fa-hint{display:flex;gap:10px;align-items:flex-start;margin:8px 2px 0;padding:9px 13px;border-radius:11px;
+font-size:12.5px;line-height:1.5;color:#a9bddb;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.26);}
+.fa-hint b{color:#fcd34d;font-weight:650;}
+.fa-hint i{flex:none;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+font-style:normal;font-size:11px;font-weight:700;color:#fcd34d;background:rgba(245,158,11,.16);
+border:1px solid rgba(245,158,11,.45);margin-top:1px;}
 .stButton button,[data-testid="stPopover"] button{width:100% !important;border-radius:12px !important;border:1px solid rgba(96,140,220,.38) !important;
 background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:600 !important;min-height:42px;}
 [data-testid="stPopover"]{width:100% !important;}
@@ -878,6 +884,15 @@ DECISION_TEXT = {"approve": ("Approve", GREEN), "review": ("Send to review", AMB
 
 def mode_head(title: str, text: str) -> str:
     return compact(f'<div class="fa-root fa-modehead"><h2>{escape(title)}</h2><p>{escape(text)}</p></div>')
+
+
+def unfunded_tx_hint_html(amount: float, sender: float) -> str:
+    """Shown when money leaves an account that cannot cover it: possible in the data, impossible in a bank."""
+    return compact(
+        '<div class="fa-root"><div class="fa-hint"><i>!</i><div>'
+        f'<b>The sender cannot cover this amount.</b> A balance of {sender:,.2f} against {amount:,.2f} '
+        'going out: a bank would reject it before any model sees it. This dataset is synthetic and does '
+        'contain such rows, so the engine scores the transaction exactly as typed.</div></div></div>')
 
 
 def _reason_rows(reasons, up: bool) -> str:
