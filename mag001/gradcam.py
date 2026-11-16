@@ -1,3 +1,9 @@
+"""Generate Grad-CAM heatmaps for the hybrid Food-101 classifier.
+
+This script scans the Food-101 validation dataset to find examples where the 
+model is correct and incorrect. It then generates Grad-CAM visual heatmaps 
+to show where the model is focusing its attention, saving the results to eval_outputs/.
+"""
 from __future__ import annotations
 
 import argparse
@@ -8,7 +14,7 @@ from typing import Dict, List, Sequence, Tuple
 
 import matplotlib
 
-matplotlib.use("Agg")  # must be set before importing pyplot
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,10 +32,7 @@ LOGGER = logging.getLogger("food_classifier.gradcam")
 DATASET_ID = "ethz/food101"
 IMAGE_SIZE = 224
 
-
-# ---------------------------------------------------------------------------
 # Model helpers
-# ---------------------------------------------------------------------------
 class LogitsWrapper(nn.Module):
     """Expose only the logits tensor expected by pytorch-grad-cam.
 
@@ -65,12 +68,10 @@ def print_named_modules(model: nn.Module, reason: str) -> None:
 
 
 def find_target_layer(model: nn.Module) -> Tuple[List[nn.Module], str]:
-    """Return the last Conv2d in the ResNet50 branch as the Grad-CAM target.
-
-    For the checkpoint used here the selected layer is normally
-    ``cnn_branch.backbone.7.2.conv3`` (the final convolution of
-    ``layer4``), whose output is a 7x7 spatial feature map.
-    """
+    # Find the last Conv2d layer in the ResNet50 backbone to use as the Grad-CAM target.
+    # This is typically cnn_branch.backbone.7.2.conv3 (the final conv in layer4).
+    # We use this layer because its output is a 7x7 spatial feature map, 
+    # which Grad-CAM needs to generate a meaningful heatmap.
     cnn_branch = getattr(model, "cnn_branch", None)
     backbone = getattr(cnn_branch, "backbone", None)
 
@@ -84,7 +85,8 @@ def find_target_layer(model: nn.Module) -> Tuple[List[nn.Module], str]:
 
     last_conv: nn.Conv2d | None = None
     last_conv_name = ""
-
+    # We need the final convolutional layer because it still contains spatial 
+    # information (7x7 grid) which Grad-CAM needs to generate a heatmap.
     for name, module in backbone.named_modules():
         if isinstance(module, nn.Conv2d):
             last_conv = module
@@ -103,7 +105,7 @@ def find_target_layer(model: nn.Module) -> Tuple[List[nn.Module], str]:
 
 
 def extract_logits(output) -> torch.Tensor:
-    """Extract a logits tensor from the model's dict/tuple/tensor output."""
+    # Extract a logits tensor from the model's dict/tuple/tensor output.
     if isinstance(output, dict):
         logits = output.get("logits")
     elif isinstance(output, (tuple, list)):
@@ -147,8 +149,9 @@ def generate_cam(
     predicted_index: int,
 ) -> np.ndarray:
     """Run Grad-CAM for one image and return a 224x224 heatmap."""
-    # load_model() disables parameter gradients for inference.  Grad-CAM
-    # needs gradients through the target layer, so enable them temporarily.
+    # The model was loaded in eval mode with gradients disabled. 
+    # Grad-CAM needs gradients to calculate the importance of each pixel, 
+    # so we temporarily enable them.
     cam_input = input_tensor.clone().detach().requires_grad_(True)
     targets = [ClassifierOutputTarget(predicted_index)]
 
@@ -163,12 +166,9 @@ def generate_cam(
 
     return grayscale_cam
 
-
-# ---------------------------------------------------------------------------
 # Dataset helpers
-# ---------------------------------------------------------------------------
 def load_validation_split():
-    """Load the Food-101 validation split (the official test set)."""
+    # Load the Food-101 validation split (the official test set).
     last_error: Exception | None = None
     for split in ("validation", "test"):
         try:
@@ -191,7 +191,7 @@ def load_validation_split():
 
 
 def get_dataset_label_names(dataset) -> List[str] | None:
-    """Return the dataset's ordered class names, if available."""
+    # Return the dataset's ordered class names, if available.
     try:
         names = list(dataset.features["label"].names)
         return names or None
@@ -228,7 +228,8 @@ def build_label_mapping(
             "skipped: %s",
             missing,
         )
-
+    # The dataset and the model sometimes have slightly different index orders 
+    # (e.g., cheesecake and cheese_plate). Mapping by class name prevents errors.
     differences = [
         (index, dataset_names[index], idx_to_label.get(index))
         for index in range(min(len(dataset_names), len(idx_to_label)))
@@ -245,9 +246,7 @@ def build_label_mapping(
     return mapping
 
 
-# ---------------------------------------------------------------------------
 # Visualisation
-# ---------------------------------------------------------------------------
 def save_overlay(
     image: Image.Image,
     grayscale_cam: np.ndarray,
@@ -276,10 +275,7 @@ def save_overlay(
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-
-# ---------------------------------------------------------------------------
 # Main
-# ---------------------------------------------------------------------------
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate Grad-CAM heatmaps for the Food-101 classifier."
@@ -320,7 +316,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Model -------------------------------------------------------------
+    # 1. Model
     try:
         model, transform, idx_to_label = load_model(device=args.device)
     except Exception as exc:  # noqa: BLE001 - friendly console error
@@ -339,7 +335,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"{name or '<root>'}: {type(module).__name__}")
         return 0
 
-    # 2. Grad-CAM target layer --------------------------------------------
+    # 2. Grad-CAM target layer
     try:
         target_layers, target_name = find_target_layer(model)
     except Exception as exc:  # noqa: BLE001
@@ -351,7 +347,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     wrapped_model = LogitsWrapper(model)
     cam = GradCAM(model=wrapped_model, target_layers=target_layers)
 
-    # 3. Dataset -----------------------------------------------------------
+    # 3. Dataset
     try:
         dataset, split_used = load_validation_split()
     except Exception as exc:  # noqa: BLE001
@@ -362,7 +358,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     dataset_names = get_dataset_label_names(dataset)
     dataset_to_model = build_label_mapping(dataset_names, idx_to_label)
 
-    # 4. Scan for 1 correct + 2 incorrect predictions ---------------------
+    # 4. Scan for 1 correct + 2 incorrect predictions
     found_correct = 0
     found_wrong = 0
     scanned = 0
@@ -372,7 +368,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"Scanning up to {max_scan} images from '{split_used}' "
         f"for 1 correct and 2 incorrect predictions...\n"
     )
-
+    # We want to find 1 correct prediction to show the model working, 
+    # and 2 incorrect predictions to analyze its mistakes.
     for dataset_index in range(max_scan):
         if found_correct >= 1 and found_wrong >= 2:
             break
@@ -400,7 +397,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 continue
             if not is_correct and found_wrong >= 2:
                 continue
-
+            # Generate the heatmap for this specific image
             grayscale_cam = generate_cam(
                 cam=cam,
                 model=model,
@@ -437,6 +434,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         except Exception as exc:  # noqa: BLE001 - skip bad samples
             LOGGER.warning("Skipping dataset index %s: %s", dataset_index, exc)
+            # Skip corrupt or unreadable images so the script doesn't crash
             continue
 
         if scanned % 25 == 0:
@@ -447,7 +445,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 flush=True,
             )
 
-    # 5. Summary -----------------------------------------------------------
+    # 5. Summary
     print("\n" + "=" * 60)
     print(f"Scanned images : {scanned}")
     print(f"Correct found  : {found_correct}/1")

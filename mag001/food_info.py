@@ -1,15 +1,17 @@
+# Each entry maps a Food-101 class name (the same names used in the model's real_class_mapping.json)  
+# Categories not present here are handled by the application ("Nutrition information not available").
 
 from __future__ import annotations
 
 from typing import Dict, List, TypedDict
 
 
-class FoodInfoEntry(TypedDict):
+class FoodInfoEntry(TypedDict): # what every dictonary will have
     calories_per_100g: int
     ingredients: List[str]
     description: str
 
-
+# the dictoraries
 FOOD_INFO: Dict[str, FoodInfoEntry] = {
     "apple_pie": {
         "calories_per_100g": 237,
@@ -1477,10 +1479,10 @@ FOOD_INFO: Dict[str, FoodInfoEntry] = {
     },
 }
 
-
+# Safely look up a food category. Returns None if the category is missing.
 def get_food_info(category: str) -> FoodInfoEntry | None:
     """Return nutrition information for a category, or ``None`` if unknown."""
     return FOOD_INFO.get(category)
 
 
-__all__ = ["FOOD_INFO", "FoodInfoEntry", "get_food_info"]
+__all__ = ["FOOD_INFO", "FoodInfoEntry", "get_food_info"] # Specify which objects can be imported from this file.

@@ -1,4 +1,10 @@
-
+"""
+AI Food Analyzer - Gradio Application
+This app uses a pre-trained hybrid ResNet50 + DeiT-Base model to classify images
+into one of 101 Food-101 categories and displays nutrition information.
+Run with:
+       python app.py
+"""
 from __future__ import annotations
 
 import html
@@ -38,7 +44,7 @@ _EMPTY_NUTRITION = (
     "### 📖 Description\n\n—"
 )
 
-# Minimal styling only: keep the Label compact without overriding theme colours.
+# Label compact 
 CUSTOM_CSS = """
 .compact-label,
 .compact-label .label-container {
@@ -52,7 +58,10 @@ CUSTOM_CSS = """
 
 
 def _get_model():
-    """Load the model once and return ``(model, transform, idx_to_label)``."""
+    """Load the model, transform, and class mapping only once and cache them.
+    Uses a threading lock to ensure that if multiple users click "Analyze"
+    at the same time, the heavy 1.2GB model is only loaded into memory once.
+    """
     global _MODEL, _TRANSFORM, _IDX_TO_LABEL, _LOAD_ERROR
 
     if _MODEL is not None:
@@ -67,7 +76,7 @@ def _get_model():
             requested_device = os.getenv("FOOD_CLASSIFIER_DEVICE") or None
             _MODEL, _TRANSFORM, _IDX_TO_LABEL = load_model(device=requested_device)
             _LOAD_ERROR = None
-        except Exception as exc:  # noqa: BLE001 - show a friendly UI error
+        except Exception as exc:
             _LOAD_ERROR = str(exc)
             LOGGER.exception("Model loading failed")
             raise RuntimeError(
@@ -79,7 +88,7 @@ def _get_model():
 
 
 def _pretty(name: str) -> str:
-    """Turn ``fish_and_chips`` into ``Fish And Chips``."""
+    """Turn fish_and_chips into Fish And Chips."""
     return name.replace("_", " ").title()
 
 
@@ -122,7 +131,7 @@ def _format_nutrition(info: Dict | None) -> str:
         if calories is None
         else _calorie_badge(calories)
     )
-
+    # If the food dictionary ever contains HTML tags, this ensures they are rendered as text, not code.
     ingredients = info.get("ingredients") or []
     ingredients_text = (
         ", ".join(html.escape(str(item)) for item in ingredients)
@@ -162,9 +171,7 @@ def predict(
     image: Image.Image | None,
 ) -> Tuple[Dict[str, float], str, str]:
     """Classify an image and return the three UI output values.
-
     Returns
-    -------
     top3
         Mapping of pretty food names to probabilities for ``gr.Label``.
     predicted
@@ -208,13 +215,12 @@ def predict(
 
     try:
         device = getattr(model, "device", torch.device("cpu"))
+        # 1. Preprocessing: Convert image to RGB, resize to 224x224, and normalize.
+        # 2. Unsqueeze(0): The model expects a batch, so we add a dimension (Batch, Channel, Height, Width).
         tensor = transform(rgb_image).unsqueeze(0).to(device)
-
+        # inference_mode() turns off gradient tracking to save memory and speed up inference.
         with torch.inference_mode():
             output = model(tensor)
-
-        # The model normally returns a dict, but accept a raw tensor or a
-        # tuple as well so an unexpected API change does not crash the app.
         if isinstance(output, dict):
             logits = output.get("logits")
         elif isinstance(output, (tuple, list)):
@@ -244,7 +250,9 @@ def predict(
                 f"Model returned {logits.shape[1]} classes but the class "
                 f"mapping contains {len(idx_to_label)}."
             )
-
+        
+        # The model returns logits (raw scores). We apply Softmax to convert 
+        # these into probabilities that sum to 1.0.
         probabilities = torch.softmax(logits.float(), dim=1)[0]
         k = min(3, probabilities.numel())
         top_probs, top_indices = torch.topk(probabilities, k=k)
@@ -277,9 +285,8 @@ def predict(
             "Hugging Face cache and restart the app."
         )
 
-
+#  Reset the image and all result panels.
 def _clear_outputs():
-    """Reset the image and all result panels."""
     return (
         None,
         {},
@@ -287,21 +294,22 @@ def _clear_outputs():
         _EMPTY_NUTRITION,
     )
 
-
+# Create the Gradio Blocks interface.
 def build_interface() -> gr.Blocks:
-    """Create the Gradio Blocks interface."""
     with gr.Blocks(
         title="AI Food Analyzer",
-        theme=gr.themes.Default(),
+        theme=gr.themes.Default(), #theme=gr.themes.Soft() theme=gr.themes.Monochrome() theme=gr.themes.Glass()
+        # theme=gr.themes.Default(primary_hue="indigo", secondary_hue="slate")
+        #theme=gr.themes.Default(font=["Arial", "sans-serif"]),
         css=CUSTOM_CSS,
     ) as demo:
         gr.Markdown(
-            "# 🥗 AI Food Analyzer\n"
+            "# AI Food Analyzer\n"
             "Upload a photo to instantly identify the food, estimate calories, and see the ingredients."
         )
 
         with gr.Row():
-            with gr.Column(scale=1, min_width=300):
+            with gr.Column(scale=1, min_width=300): #This is the column 1 (Image Upload)
                 image_input = gr.Image(
                     type="pil",
                     sources=["upload", "webcam"],
@@ -313,7 +321,7 @@ def build_interface() -> gr.Blocks:
                         "🔍 Analyze Food", variant="primary", scale=2
                     )
                     clear_button = gr.Button(
-                        "🗑️ Clear", variant="secondary", scale=1
+                        "Clear", variant="secondary", scale=1
                     )
 
                 gr.Markdown(
@@ -327,7 +335,7 @@ def build_interface() -> gr.Blocks:
                     label="Try an example:",
                 )
 
-            with gr.Column(scale=1, min_width=300):
+            with gr.Column(scale=1, min_width=300):  #This is the column 2
                 gr.Markdown("### 🎯 Top-3 Predictions")
                 top3_output = gr.Label(
                     num_top_classes=3,
@@ -336,7 +344,7 @@ def build_interface() -> gr.Blocks:
                 )
                 predicted_output = gr.Markdown(_READY_PREDICTED)
 
-            with gr.Column(scale=1, min_width=300):
+            with gr.Column(scale=1, min_width=300): #This is the column 3
                 gr.Markdown("### 🥗 Nutrition")
                 nutrition_output = gr.Markdown(_EMPTY_NUTRITION)
 

@@ -1,3 +1,18 @@
+"""Model loading utilities for the hybrid Food-101 classifier.
+
+This module loads a custom PyTorch checkpoint (best_model.pth) and 
+real_class_mapping.json from Hugging Face.
+
+The model is a hybrid ResNet50 + DeiT-Base network with cross-attention fusion.
+This script:
+1. Downloads the weights and class mapping.
+2. Rebuilds the exact hybrid architecture.
+3. Loads the state dict, handling key name differences between transformers 4.x and 5.x.
+4. Returns (model, transform, idx_to_label) for use in the Gradio app and evaluation script.
+"""
+
+# Constants for the model on Hugging Face Hub
+# IMAGE_SIZE = 224 is the standard input size for both ResNet50 and DeiT
 from __future__ import annotations
 import json
 import logging
@@ -26,11 +41,8 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
-# ---------------------------------------------------------------------------
-# Network definition (mirrors the author's implementation)
-# ---------------------------------------------------------------------------
+# Network definition
 class CNNBranch(nn.Module):
-    """ResNet50 branch producing 7x7 spatial features and a global vector."""
 
     def __init__(
         self,
@@ -46,13 +58,12 @@ class CNNBranch(nn.Module):
         if backbone != "resnet50":
             raise ValueError(f"Unsupported backbone: {backbone}")
 
-        # ``weights=None`` is the modern equivalent of ``pretrained=False``.
         try:
             resnet = tv_models.resnet50(weights="IMAGENET1K_V1" if pretrained else None)
         except TypeError:  # very old torchvision
             resnet = tv_models.resnet50(pretrained=pretrained)
 
-        # Drop the final average-pool and fully-connected layers.
+     # I removed the last two layers (avgpool and fc) to get the raw 7x7 feature map.
         self.backbone = nn.Sequential(*list(resnet.children())[:-2])
 
         if freeze_early_layers:
@@ -72,8 +83,8 @@ class CNNBranch(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
         )
-
-    def _freeze_early_layers(self) -> None:
+# Freeze the first 6 layers so they don't get retrained (saves memory)
+    def _freeze_early_layers(self) -> None: 
         for index, child in enumerate(self.backbone.children()):
             if index < 6:
                 for parameter in child.parameters():
@@ -87,9 +98,7 @@ class CNNBranch(nn.Module):
         global_features = self.feature_head(global_features)
         return spatial_features, global_features
 
-
 class ViTBranch(nn.Module):
-    """DeiT-Base branch producing patch tokens and a CLS-token vector."""
 
     def __init__(
         self,
@@ -103,14 +112,8 @@ class ViTBranch(nn.Module):
         self.feature_dim = feature_dim
         self.model_name = model_name
 
-        # The author's Space instantiates DeiTConfig.from_pretrained(...)
-        # even when pretrained=False.  The defaults of DeiTConfig match
-        # facebook/deit-base-distilled-patch16-224 exactly, so use them to
-        # avoid an extra network request.  If you ever change the backbone,
-        # update this config (see TODO below).
-        #
-        # TODO: if a different DeiT variant is used, replace this with
-        # ``DeiTConfig.from_pretrained(model_name)``.
+        # The ViT branch uses DeiT-Base, a distilled Vision Transformer.
+        # DeiT splits the image into 16x16 patches and attends to them globally.
         config = DeiTConfig(
             hidden_size=768,
             num_hidden_layers=12,
@@ -167,10 +170,9 @@ class ViTBranch(nn.Module):
         if last_hidden_states is None:
             last_hidden_states = outputs[0]
 
-        # Keep the author's indexing: index 0 is the CLS token and the
-        # remaining tokens (distillation token + patches) form the spatial
-        # sequence.  This matches the checkpoint's training-time behaviour.
+        # The CLS token (index 0) captures the global image representation
         cls_token = last_hidden_states[:, 0]
+        # The remaining tokens are the spatial patch features
         patch_tokens = last_hidden_states[:, 1:]
 
         global_features = self.feature_proj(cls_token)
@@ -178,9 +180,8 @@ class ViTBranch(nn.Module):
         global_features = self.feature_head(global_features)
         return spatial_features, global_features
 
-
 class AdaptiveFusionModule(nn.Module):
-    """Cross-attention fusion of CNN and ViT features."""
+    # Cross-attention fusion of CNN and ViT features.
 
     def __init__(
         self,
@@ -260,7 +261,8 @@ class AdaptiveFusionModule(nn.Module):
         cnn_spatial_seq = cnn_spatial.flatten(2).transpose(1, 2)
         cnn_spatial_proj = self.cnn_spatial_proj(cnn_spatial_seq)
         vit_spatial_proj = self.vit_spatial_proj(vit_spatial)
-
+        # Cross-attention: CNN features query the ViT features
+        # This lets the CNN learn which spatial regions the ViT thinks are important
         cnn_attended, _ = self.cnn_to_vit_attention(
             query=cnn_spatial_proj, key=vit_spatial_proj, value=vit_spatial_proj
         )
@@ -278,6 +280,8 @@ class AdaptiveFusionModule(nn.Module):
         global_concat = torch.cat([cnn_global, vit_global], dim=-1)
         fused_global_base = self.global_fusion(global_concat)
 
+        # The adaptive weighting learns how much to trust CNN vs ViT
+        # weights shape: (batch, 2) -> [cnn_weight, vit_weight]
         weights = self.adaptive_weight(global_concat)
         cnn_weight = weights[:, 0:1]
         vit_weight = weights[:, 1:2]
@@ -287,9 +291,12 @@ class AdaptiveFusionModule(nn.Module):
         fused_global = self.final_proj(fused_global)
         return fused_spatial, fused_global
 
-
+        # The full hybrid model:
+        # 1. CNNBranch -> spatial + global features
+        # 2. ViTBranch -> spatial + global features
+        # 3. AdaptiveFusionModule -> fused features
+        # 4. Classifier (2-layer MLP) -> 101 class logits
 class HybridFoodClassifier(nn.Module):
-    """Hybrid CNN + ViT Food-101 classifier."""
 
     def __init__(
         self,
@@ -378,9 +385,9 @@ class HybridFoodClassifier(nn.Module):
                 }
             )
         return output
-# ---------------------------------------------------------------------------
-# Checkpoint helpers
-# ---------------------------------------------------------------------------
+
+# The checkpoint may have been saved with different wrapper prefixes (module.)
+# or different transformers versions (4.x vs 5.x), so we convert the keys here.
 def _torch_load(path: str | Path):
     """Load a checkpoint on CPU, supporting old and new PyTorch versions."""
     try:
@@ -437,6 +444,7 @@ def _convert_state_dict_keys(
         vit_branch.vit.layers.0.mlp.fc1.weight
         vit_branch.vit.layers.0.mlp.fc2.weight
     """
+        # Check if the installed transformers version uses the new (5.x) or old (4.x) naming
     model_uses_layers = any(key.startswith("vit_branch.vit.layers.") for key in model_keys)
     model_uses_qkv_proj = any(".attention.q_proj." in key for key in model_keys)
 
@@ -621,7 +629,7 @@ def load_model(
     model.eval()
     for parameter in model.parameters():
         parameter.requires_grad = False
-
+    # Define the preprocessing pipeline: resize to 224x224, convert to tensor, and normalize
     transform = transforms.Compose(
         [
             transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
@@ -638,8 +646,8 @@ def load_model(
     LOGGER.info("Model ready on %s.", device)
     return model, transform, idx_to_label
 
-
-__all__ = [
+# tells Python exactly what to expose when another file does `from model_loader import *`.
+__all__ = [ 
     "REPO_ID",
     "CHECKPOINT_FILENAME",
     "CLASS_MAPPING_FILENAME",
