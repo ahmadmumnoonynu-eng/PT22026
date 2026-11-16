@@ -3,6 +3,7 @@ import re
 import threading
 import webbrowser
 from typing import List
+import pandas as pd
 
 import gradio as gr
 
@@ -14,7 +15,8 @@ from model_utils import analyze_match, extract_text_from_pdf, load_model
 from nlp_features import (
     check_ats_compatibility, extract_top_keywords, generate_cover_letter,
     generate_feedback, get_learning_recommendations, create_keyword_chart,
-    generate_interview_questions, detect_fake_job, create_skill_gap_chart
+    generate_interview_questions, detect_fake_job, create_skill_gap_chart,
+    create_comparison_chart
 )
 
 print("Loading NLP models from local cache, please wait...")
@@ -40,7 +42,8 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
             cv_text = (cv_text or "") + "\n" + pdf_text
 
         if not cv_text or not jd_text:
-            return "Please provide both a CV and a Job Description.", "", "", "", "", "", "", "", "", "", "", ""
+            # Fixed: Return None for plot components instead of empty strings
+            return "Please provide both a CV and a Job Description.", "", "", None, "", "", "", None, "", "", "", ""
 
         result = analyze_match(cv_text, jd_text)
         
@@ -80,13 +83,43 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
     except Exception as e:
         return f"Error: {str(e)}", "", "", None, "", "", "", None, "", "", "", ""
 
+def run_batch_analysis(jd_text: str, files: list):
+    if not jd_text or not files:
+        return None, pd.DataFrame([["Error", "Please provide JD and at least one CV", ""]], columns=["Candidate", "Score", "Details"])
+    
+    results = []
+    names = []
+    scores = []
+    
+    for file in files:
+        try:
+            pdf_text = extract_text_from_pdf(file.name)
+            result = analyze_match(pdf_text, jd_text)
+            
+            candidate_name = os.path.basename(file.name).replace(".pdf", "")
+            names.append(candidate_name)
+            scores.append(result['score'])
+            
+            matched_str = ", ".join(result['matched']) if result['matched'] else "None"
+            results.append([candidate_name, result['score'], matched_str, result['level']])
+        except Exception as e:
+            results.append([os.path.basename(file.name), 0.0, "Error reading file", "Error"])
+            
+    results.sort(key=lambda x: x[1], reverse=True)
+    df = pd.DataFrame(results, columns=["Candidate Name", "Match Score (%)", "Matched Skills", "Level"])
+    chart_fig = create_comparison_chart(names, scores)
+    
+    return chart_fig, df
+
 theme = gr.themes.Soft(primary_hue="blue", secondary_hue="slate")
 
-with gr.Blocks(title="Resume Optimization System", theme=theme) as demo:
+# Moved theme to launch() to fix the warning
+with gr.Blocks(title="Resume Optimization System") as demo:
     
     gr.Markdown("# Resume Optimization System\n**Advanced NLP Analysis for Job Seekers and Professionals**")
     
     with gr.Tabs():
+        # TAB 1: Resume Analyzer
         with gr.TabItem("Resume Analyzer"):
             with gr.Row():
                 with gr.Column(scale=1):
@@ -106,7 +139,6 @@ with gr.Blocks(title="Resume Optimization System", theme=theme) as demo:
                         with gr.Row():
                             out_matched = gr.Markdown()
                             out_missing = gr.Markdown()
-                        # Pie Chart added here
                         out_gap_chart = gr.Plot(show_label=False)
                     
                     with gr.Group():
@@ -137,8 +169,10 @@ with gr.Blocks(title="Resume Optimization System", theme=theme) as demo:
                 inputs=[cv_text, jd_text, cv_file], 
                 outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight]
             )
+            # Fixed: Return None for plots on Clear
             stop1.click(fn=lambda: ("", "", "", None, "", "", "", None, "", "", "", ""), inputs=None, outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight])
 
+        # TAB 2: Cover Letter Generator
         with gr.TabItem("Cover Letter Generator"):
             with gr.Row():
                 with gr.Column(scale=1):
@@ -163,9 +197,37 @@ with gr.Blocks(title="Resume Optimization System", theme=theme) as demo:
             )
             stop2.click(fn=lambda: ("",), inputs=None, outputs=[cl_output])
 
+        # TAB 3: Recruiter Mode (Batch Compare)
+        with gr.TabItem("Recruiter Mode"):
+            gr.Markdown("### Batch Candidate Analysis\nUpload multiple PDF resumes against a single Job Description to instantly rank candidates and visualize their match scores.")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    batch_jd = gr.Textbox(label="Job Description", lines=8, placeholder="Paste the JD here...")
+                    batch_files = gr.File(label="Upload Multiple Resumes (PDF)", file_count="multiple", file_types=[".pdf"])
+                    with gr.Row():
+                        batch_btn = gr.Button("Compare Candidates", variant="primary", size="lg")
+                        stop3 = gr.Button("Clear", variant="secondary", size="lg")
+                
+                with gr.Column(scale=2):
+                    with gr.Group():
+                        gr.Markdown("### Comparison Chart")
+                        batch_chart = gr.Plot(show_label=False)
+                    
+                    with gr.Group():
+                        gr.Markdown("### Candidate Ranking Table")
+                        batch_table = gr.Dataframe(
+                            headers=["Candidate Name", "Match Score (%)", "Matched Skills", "Level"],
+                            datatype=["str", "number", "str", "str"],
+                            label=""
+                        )
+
+            batch_btn.click(fn=run_batch_analysis, inputs=[batch_jd, batch_files], outputs=[batch_chart, batch_table])
+            stop3.click(fn=lambda: (None, pd.DataFrame()), inputs=None, outputs=[batch_chart, batch_table])
+
 if __name__ == "__main__":
     def open_browser():
         webbrowser.open_new("http://127.0.0.1:7860")
     
     threading.Timer(2, open_browser).start()
-    demo.launch(server_name="127.0.0.1", server_port=7860)
+    # Fixed: Pass theme to launch() for Gradio 6.0 compatibility
+    demo.launch(theme=theme, server_name="127.0.0.1", server_port=7860)
