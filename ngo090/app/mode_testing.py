@@ -35,7 +35,7 @@ def process_upload(tag: str, content: bytes, block: float, review_min: float, ca
 
 
 def _render_single(tag: str, engine, policy: Policy) -> None:
-    st.markdown(ui.mode_head("Single transaction", "Type in a transaction and see its risk, the decision and the reasons."),
+    st.markdown(ui.mode_head("Single transaction", "Type in a transaction and see its risk, the verdict, the decision and the reasons."),
                 unsafe_allow_html=True)
     st.session_state.setdefault("tx_type", "TRANSFER")
     st.session_state.setdefault("tx_amount", 250_000.0)
@@ -83,7 +83,7 @@ def _render_file(tag: str, policy: Policy, costs) -> None:
                 unsafe_allow_html=True)
     st.markdown(
         "Required columns: `type`, `amount`, `oldbalanceOrg`, `oldbalanceDest`. Optional: `hour` (0-23) or `step`, "
-        "and `isFraud` (0 or 1) if you know the true labels, which adds detection results and the money impact. "
+        "and `isFraud` (0 or 1) if you know the outcomes, which adds detection results and the money impact. "
         "Header names are not case sensitive and other columns are ignored.")
     st.download_button("Download a template file", data=template_csv(), file_name="transactions_template.csv",
                        mime="text/csv")

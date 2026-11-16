@@ -619,13 +619,13 @@ def test_the_card_says_is_this_fraud_not_only_how_risky():
     low = page(mode="Transaction testing", tx_type="TRANSFER", tx_amount=250_000.0, tx_sender=0.0,
                tx_receiver=10_000.0, tx_hour=23)
     body = all_text(low)
-    assert "Predicted: not fraud" in body
+    assert "Verdict: Not fraud" in body
     assert "measured on" in body and "labelled replay transactions" in body
 
     high = page(mode="Transaction testing", tx_type="CASH_OUT", tx_amount=3_687_985.0,
                 tx_sender=3_687_985.0, tx_receiver=0.0, tx_hour=16)
     body = all_text(high)
-    assert "Predicted: fraud" in body
+    assert "Verdict: Fraud" in body
     assert "99.5-100 band" in body
 
 
@@ -651,5 +651,6 @@ def test_the_upload_table_verdicts_every_row():
     assert "Verdict" in html
     assert "Not covered" in html                       # PAYMENT has no fraud examples to learn from
     assert "Fraud" in html and "Not fraud" in html     # both verdicts appear, next to the decisions
-    assert "measured on" in html and "labelled replay transactions" in html
+    assert "labelled replay transactions" in html
+    assert "what actually happened" in html             # the footnote defines the three nouns
 

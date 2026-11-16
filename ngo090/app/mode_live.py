@@ -163,8 +163,8 @@ def render_simulator_popover() -> tuple[LiveSettings, bool]:
         shift = st.toggle("Simulate a market shift", value=False, key="sim_shift",
                           help="Amounts become 10x larger and receivers are new accounts. The drift monitor compares "
                                "the last 3 simulated hours with the start of the session and should react.")
-        show_truth = st.toggle("Show the true label", value=True, key="sim_show_truth",
-                               help="Adds a true-label column to the live feed. In real life the label is not "
+        show_truth = st.toggle("Show the outcome", value=True, key="sim_show_truth",
+                               help="Adds the outcome column to the live feed. In real life the outcome is not "
                                     "known when a transaction arrives - it is only available here because the "
                                     "traffic is simulated.")
     return LiveSettings(int(volume), fraud / 100.0, bool(new_pattern), float(speed), bool(shift)), bool(show_truth)

@@ -2,7 +2,7 @@
 
 Everything on this page is read from the files train/train.py wrote
 (results/<tag>/results.csv, meta.json, baseline_scores.npz) or computed live
-from the replay sample against its true labels -- nothing is typed by hand,
+from the replay sample against the recorded outcomes -- nothing is typed by hand,
 so the page cannot drift away from what the models actually do.
 """
 from __future__ import annotations
@@ -62,7 +62,7 @@ def _results(tag: str) -> pd.DataFrame:
 
 @st.cache_data(show_spinner="Scoring the replay sample...")
 def _scored_replay(tag: str) -> tuple[np.ndarray, np.ndarray]:
-    """Engine risk for every replay transaction, with the true labels beside it."""
+    """Engine risk for every replay transaction, with the outcomes beside it."""
     engine = get_engine(tag)
     df = get_run(tag).replay
     return engine.score(df).risk, df["isFraud"].to_numpy()
@@ -172,7 +172,7 @@ def render(header, tag: str, run) -> None:
         f'<span><i style="background:{BLOCK_COLOR}"></i>auto-block (risk 99.5)</span>'
         '<span><i class="dash"></i>approve-everything line</span></div>'
         f'<div class="fa-note">Computed live from the replay sample ({len(risk):,} transactions) '
-        "scored by the loaded engine and judged against its true labels.</div>", "pulse")
+        "scored by the loaded engine and judged against the recorded outcomes.</div>", "pulse")
     limits = ui.card("What it cannot do", ui.limits_html(LIMITS), "alert")
     st.markdown(ui.two_cards(curve, limits), unsafe_allow_html=True)
 

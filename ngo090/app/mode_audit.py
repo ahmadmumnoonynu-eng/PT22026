@@ -106,7 +106,7 @@ def open_record(record, log, store) -> None:
                                 unsafe_allow_html=True)
             else:
                 st.markdown('<div class="fa-root"><div class="fa-note">No investigation case was opened '
-                            'for this transaction, so there is no analyst outcome to report.</div></div>',
+                            'for this transaction, so there is no follow-up to report.</div></div>',
                             unsafe_allow_html=True)
 
     _show()

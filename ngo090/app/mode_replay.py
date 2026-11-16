@@ -236,7 +236,7 @@ def render_advisor(replay, risk, steps, cfg) -> None:
 
 HELP_TEXT = """
 **What you are looking at.** A past period of transactions is replayed hour by hour. For each transaction the risk
-engine gives a risk score from 0 to 100, your decision rules turn it into an action (approve, send to review, or
+engine gives a risk score from 0 to 100, your decision rules turn it into an action (approve, review, or
 block), and the dashboard compares those actions with what really happened.
 
 **Numbers with letters.** K means thousand, M million and B billion, in the currency units of the dataset.
@@ -262,9 +262,8 @@ most (for example an unusually large amount or an empty receiving account). The 
 was the main one. Reasons describe what the engine reacted to; they are not proof of fraud.
 
 **Latest alerts.** Risk is the 0 to 100 score (99.3 means riskier than 99.3% of normal traffic). Main reason is the fact that raised
-the score most. Decision is what
-the system did. Outcome says whether the alert was real fraud or a false alarm; this is known only because the
-replay has the true labels. In real life that answer arrives days later.
+the score most. Decision is what the system did about it. Outcome is what actually happened &mdash; fraud or
+legitimate &mdash; which is known only because the replay carries the outcomes. In real life that answer arrives days later.
 
 **System status.** The drift monitor compares the last 24 hours of risk scores with normal traffic: a shift index
 below 0.10 is stable, 0.10 to 0.25 means watch, above 0.25 means the traffic has changed and the model may be less

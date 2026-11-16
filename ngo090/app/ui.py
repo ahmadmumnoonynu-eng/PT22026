@@ -564,11 +564,12 @@ def alerts_table(rows: list[dict]) -> str:
         return '<div class="fa-note">No alerts yet.</div>'
     body = "".join(
         f'<tr><td>{escape(r["hour"])}</td><td>{escape(r["type"].replace("_", " ").title())}</td>'
-        f'<td>{r["amount"]:,.0f}</td><td>{r["risk"]:.1f}</td><td>{escape(r["reason"] or "-")}</td>'
-        f'<td><span class="fa-tag {r["action"]}">{"Blocked" if r["action"] == "block" else "Review"}</span></td>'
-        f'<td><span class="fa-tag {"yes" if r["fraud"] else "no"}">{"Fraud" if r["fraud"] else "False alarm"}</span></td></tr>'
+        f'<td>{r["amount"]:,.0f}</td><td>{r["risk"]:.1f}</td>'
+        f'<td><span class="fa-tag {r["action"]}">{DECISION_TEXT[r["action"]][0]}</span></td>'
+        f'<td><span class="fa-tag {"yes" if r["fraud"] else "no"}">{"Fraud" if r["fraud"] else "Legitimate"}</span></td>'
+        f'<td>{escape(r["reason"] or "-")}</td></tr>'
         for r in rows)
-    head = "".join(f"<th>{h}</th>" for h in ("Time", "Type", "Amount", "Risk", "Main reason", "Decision", "Outcome"))
+    head = "".join(f"<th>{h}</th>" for h in ("Time", "Type", "Amount", "Risk", "Decision", "Outcome", "Main reason"))
     return f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
@@ -727,8 +728,9 @@ def advisor_html(rec, current_block: float, current_capacity: int) -> str:
         f'<b>Recommended:</b> auto-block at risk {block_label(rec.best_block)} and {rec.best_capacity} reviews per day '
         f'(net benefit {fmt_money(rec.best_net)}). <b>Yours:</b> auto-block {block_label(current_block)}, '
         f'{current_capacity} reviews per day ({fmt_money(rec.current_net)}). {verdict}</div>')
-    foot = ('<div class="fa-note">A backtest on the replayed transactions with your costs: it uses the true labels, '
-            'so treat it as guidance, not a forecast. Each curve changes one setting and keeps the other as shown.</div>')
+    foot = ('<div class="fa-note">A backtest on the replayed transactions with your costs: it uses the recorded '
+            'outcomes, so treat it as guidance, not a forecast. Each curve changes one setting and keeps the other '
+            'as shown.</div>')
     body = (summary + '<div class="fa-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:0">'
             f'<div><div class="fa-klabel" style="margin-bottom:6px">Net benefit by auto-block risk score</div>{blocks}</div>'
             f'<div><div class="fa-klabel" style="margin-bottom:6px">Net benefit by daily review capacity</div>{caps}</div></div>' + foot)
@@ -886,7 +888,11 @@ def pr_curve_html(curve: list[tuple[float, float]], points: list[tuple[float, fl
 # --------------------------------------------------------------------------- #
 # Transaction testing (mode 3)
 # --------------------------------------------------------------------------- #
-DECISION_TEXT = {"approve": ("Approve", GREEN), "review": ("Send to review", AMBER), "block": ("Block", RED)}
+# Three nouns, one meaning each, everywhere in the app:
+#   Verdict  -- what the model says (fraud / suspicious / not fraud)
+#   Decision -- what the policy does about it (approve / review / block)
+#   Outcome  -- what actually happened (the simulator's label)
+DECISION_TEXT = {"approve": ("Approve", GREEN), "review": ("Review", AMBER), "block": ("Block", RED)}
 
 
 def mode_head(title: str, text: str) -> str:
@@ -931,7 +937,7 @@ def verdict_html(band, n_total: int) -> str:
         text = f"{rate_text(band.rate)} transactions at this score were fraud"
     return compact(
         '<div class="fa-vrow">'
-        f'<span class="fa-vchip {band.tone}">Predicted: {escape(band.label.lower())}</span>'
+        f'<span class="fa-vchip {band.tone}">Verdict: {escape(band.label)}</span>'
         f'<span class="fa-vtext">{text}</span></div>'
         f'<div class="fa-vsub">{band.frauds:,} of {band.total:,} in the {band.span} band &middot; '
         f'measured on {n_total:,} labelled replay transactions</div>')
@@ -1001,8 +1007,8 @@ def scored_table_html(rows, limit: int = 25, bands=None, n_total: int = 0) -> st
     top = rows.sort_values("risk", ascending=False).head(limit)
     labelled = "isFraud" in rows.columns and rows["isFraud"].notna().any()
     applicable = "applicable" in rows.columns
-    head = (["Row", "Type", "Amount", "Risk", "Main reason", "Decision", "Verdict"]
-            + (["Outcome"] if labelled else []))
+    head = (["Row", "Type", "Amount", "Risk", "Verdict", "Decision"]
+            + (["Outcome"] if labelled else []) + ["Main reason"])
     body = []
     for r in top.itertuples():
         label, _ = DECISION_TEXT[r.decision]
@@ -1011,17 +1017,20 @@ def scored_table_html(rows, limit: int = 25, bands=None, n_total: int = 0) -> st
         verdict = (f'<span class="fa-vchip {band.tone}">{escape(band.label)}</span>' if band else
                    '<span class="fa-vchip clean" style="opacity:.55">Not covered</span>')
         cells = (f'<td>{r.row}</td><td>{escape(r.type.replace("_", " ").title())}</td><td>{r.amount:,.0f}</td>'
-                 f'<td>{r.risk:.1f}</td><td>{escape(r.reason or "-")}</td>'
-                 f'<td><span class="fa-tag {r.decision}">{label}</span></td><td>{verdict}</td>')
+                 f'<td>{r.risk:.1f}</td><td>{verdict}</td>'
+                 f'<td><span class="fa-tag {r.decision}">{label}</span></td>')
         if labelled:
             actual = getattr(r, "isFraud")
             cells += ('<td>-</td>' if actual != actual else
                       f'<td><span class="fa-tag {"yes" if actual == 1 else "no"}">{"Fraud" if actual == 1 else "Legitimate"}</span></td>')
+        cells += f'<td>{escape(r.reason or "-")}</td>'
         body.append(f"<tr>{cells}</tr>")
     foot = ""
     if bands:
-        foot = ('<div class="fa-note" style="margin-top:12px">Verdict: how often transactions with this score were '
-                f'fraud, measured on {n_total:,} labelled replay transactions.</div>')
+        foot = ('<div class="fa-note" style="margin-top:12px"><b>Verdict</b>: what the engine says, read from how '
+                'often this score band was fraud on '
+                f'{n_total:,} labelled replay transactions. <b>Decision</b>: what the policy does about it. '
+                '<b>Outcome</b>: what actually happened &mdash; known only because the file carries labels.</div>')
     table = (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
              f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>{foot}')
     title = (f"Highest-risk transactions (top {len(top)} of {len(rows)})"
@@ -1065,7 +1074,7 @@ def feed_html(rows, show_truth: bool) -> str:
     from src.live import minute_label
     if len(rows) == 0:
         return compact(f'<div class="fa-root">{card("Live transactions", "<div class=fa-note>Waiting for the first transactions...</div>", "list")}</div>')
-    head = ["Time", "Type", "Amount", "Risk", "Decision"] + (["True label"] if show_truth else [])
+    head = ["Time", "Type", "Amount", "Risk", "Decision"] + (["Outcome"] if show_truth else [])
     body = []
     for r in rows.itertuples():
         label, _ = DECISION_TEXT[r.decision]
@@ -1110,7 +1119,7 @@ def alert_detail_html(row, prediction, policy, show_truth: bool, in_dialog: bool
     if show_truth:
         tag = '<span class="fa-tag fraud">Fraud</span>' if row.isFraud == 1 else '<span class="fa-tag legit">Legitimate</span>'
         extra = f" &middot; {escape(row.pattern)}" if row.isFraud == 1 and row.pattern else ""
-        truth = (f'<div class="fa-sub2">True label (simulator only)</div>{tag}{extra}'
+        truth = (f'<div class="fa-sub2">Outcome (simulator only)</div>{tag}{extra}'
                  '<div class="fa-note">Known only to the simulator. The engine never sees it, and in real life it '
                  'arrives days later.</div>')
     pill = f'<span class="fa-tag {row.decision}" style="font-size:14px;padding:5px 16px">{label}</span>'
