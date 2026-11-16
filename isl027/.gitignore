@@ -11,3 +11,6 @@ models/
 hf_cache/
 .DS_Store
 Lib
+
+backup_before_update/
+evaluation_results.csv
