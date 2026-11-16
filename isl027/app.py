@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 import threading
 import webbrowser
@@ -111,6 +111,35 @@ def run_batch_analysis(jd_text: str, files: list):
     
     return chart_fig, df
 
+def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
+    """Generate a cover letter using skills matched from the supplied CV and JD."""
+    if not cv_text or not cv_text.strip():
+        return "Please provide your resume text."
+
+    if not jd_text or not jd_text.strip():
+        return "Please provide the job description."
+
+    try:
+        match_result = analyze_match(cv_text, jd_text)
+
+        # Use skills matched by the CV-JD analysis first.
+        selected_skills = list(match_result["matched"])
+
+        # Also allow the user to add extra skills manually.
+        manual_skills = [
+            skill.strip()
+            for skill in (skills_text or "").split(",")
+            if skill.strip()
+        ]
+
+        # Remove duplicates while keeping the original order.
+        selected_skills = list(dict.fromkeys(selected_skills + manual_skills))
+
+        return generate_cover_letter(selected_skills)
+
+    except Exception as error:
+        return f"Could not generate the cover letter: {error}"
+
 theme = gr.themes.Soft(primary_hue="blue", secondary_hue="slate")
 
 # Moved theme to launch() to fix the warning
@@ -191,7 +220,7 @@ with gr.Blocks(title="Resume Optimization System") as demo:
                         cl_output = gr.Textbox(label="Generated Cover Letter Draft", lines=16)
             
             event2 = cl_btn.click(
-                fn=lambda cv, jd, skills: generate_cover_letter([s.strip() for s in skills.split(",") if s.strip()]), 
+                fn=run_cover_letter, 
                 inputs=[cl_cv, cl_jd, cl_skills], 
                 outputs=[cl_output]
             )
