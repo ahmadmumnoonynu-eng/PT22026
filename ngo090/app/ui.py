@@ -31,8 +31,7 @@ radial-gradient(900px 480px at -5% 105%,rgba(14,165,233,.14),transparent 60%),li
 .fa-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:4px 0 18px;flex-wrap:wrap;}
 .fa-brand{display:flex;align-items:center;gap:16px;}
 .fa-logo{width:54px;height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(145deg,rgba(59,130,246,.35),rgba(14,165,233,.12));border:1px solid rgba(96,165,250,.45);
-box-shadow:0 0 28px rgba(59,130,246,.35);}
+background:linear-gradient(145deg,rgba(59,130,246,.35),rgba(14,165,233,.12));border:1px solid rgba(96,165,250,.45);}
 .fa-title{font-size:30px;font-weight:700;letter-spacing:-.4px;line-height:1.1;}
 .fa-title span{color:#4f9dff;}
 .fa-sub{color:#9db0cf;font-size:14px;margin-top:4px;}
@@ -115,7 +114,7 @@ background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:60
 .fa-risk-big small{font-size:20px;color:#8fa3c2;font-weight:500;letter-spacing:0;}
 .fa-riskbar{position:relative;height:12px;border-radius:7px;margin:18px 0 8px;background:linear-gradient(90deg,#16a34a,#f59e0b 70%,#f43f5e);}
 .fa-riskbar .mk{position:absolute;top:-5px;width:2px;height:22px;background:rgba(255,255,255,.55);}
-.fa-riskbar .pt{position:absolute;top:-6px;width:16px;height:24px;margin-left:-8px;border-radius:5px;background:#fff;border:3px solid #0b1428;box-shadow:0 0 12px rgba(255,255,255,.6);}
+.fa-riskbar .pt{position:absolute;top:-6px;width:16px;height:24px;margin-left:-8px;border-radius:5px;background:#fff;border:3px solid #0b1428;}
 .fa-sub2{font-size:13px;color:#9db0cf;margin:14px 0 8px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
 .fa-modehead h2{margin:0 0 4px;font-size:22px;}
 .fa-modehead p{margin:0 0 14px;color:#9db0cf;font-size:14px;}
@@ -146,8 +145,7 @@ section[data-testid="stSidebar"]>div{background:transparent !important;}
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.32rem !important;}
 .fa-side-brand{display:flex;align-items:center;gap:11px;padding:2px 6px 22px;}
 .fa-side-logo{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(145deg,rgba(59,130,246,.38),rgba(14,165,233,.10));border:1px solid rgba(96,165,250,.45);
-box-shadow:0 0 18px rgba(59,130,246,.30);}
+background:linear-gradient(145deg,rgba(59,130,246,.38),rgba(14,165,233,.10));border:1px solid rgba(96,165,250,.45);}
 .fa-side-name{font-size:14.5px;font-weight:700;letter-spacing:.06em;line-height:1.15;}
 .fa-side-sub{font-size:10.5px;color:#8fa3c2;letter-spacing:.13em;text-transform:uppercase;margin-top:3px;}
 .fa-side-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7f93b3;font-weight:700;
@@ -160,8 +158,7 @@ transition:background .18s ease,border-color .18s ease,color .18s ease,transform
 section[data-testid="stSidebar"] .stButton button:hover{background:rgba(59,130,246,.13) !important;
 border-color:rgba(96,140,220,.30) !important;color:#eef5ff !important;transform:translateX(2px);}
 section[data-testid="stSidebar"] .stButton button[kind="primary"]{background:linear-gradient(135deg,rgba(37,99,235,.96),rgba(14,165,233,.78)) !important;
-border:1px solid rgba(125,184,255,.42) !important;color:#fff !important;
-box-shadow:0 8px 22px rgba(37,99,235,.32) !important;transform:none;}
+border:1px solid rgba(125,184,255,.42) !important;color:#fff !important;transform:none;}
 section[data-testid="stSidebar"] .stButton button p{font-size:14px !important;font-weight:600 !important;}
 section[data-testid="stSidebar"] .stButton button>div{justify-content:flex-start !important;width:100%;}
 @media (prefers-reduced-motion:reduce){section[data-testid="stSidebar"] .stButton button{transition:none !important;}}

@@ -95,10 +95,6 @@ def render_sidebar(store) -> str:
                   type="primary" if st.session_state.mode in (CASES, CASE) else "secondary",
                   on_click=_switch_to, args=(CASES,),
                   help="Alerts an analyst kept, stored in a local SQLite database.")
-        st.button(AUDIT, key=f"nav_{SLUG[AUDIT]}", icon=ICON[AUDIT], width="stretch",
-                  type="primary" if st.session_state.mode == AUDIT else "secondary",
-                  on_click=_switch_to, args=(AUDIT,),
-                  help="Every decision ever made, with the model and policy version behind it.")
         waiting = common.proposals().counts()["pending"]
         st.button(f"{APPROVALS} · {waiting}" if waiting else APPROVALS,
                   key=f"nav_{SLUG[APPROVALS]}", icon=ICON[APPROVALS], width="stretch",
@@ -106,6 +102,10 @@ def render_sidebar(store) -> str:
                   on_click=_switch_to, args=(APPROVALS,),
                   help="What the investigation assistant recommends. Nothing changes until a "
                        "person approves it.")
+        st.button(AUDIT, key=f"nav_{SLUG[AUDIT]}", icon=ICON[AUDIT], width="stretch",
+                  type="primary" if st.session_state.mode == AUDIT else "secondary",
+                  on_click=_switch_to, args=(AUDIT,),
+                  help="Every decision ever made, with the model and policy version behind it.")
 
         # The reference page goes last, under its own label: it explains the
         # system instead of doing work, so it is not one of the analyst's modes.
