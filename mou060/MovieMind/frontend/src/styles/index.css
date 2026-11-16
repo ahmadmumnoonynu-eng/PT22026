@@ -24,9 +24,10 @@
 
 * { box-sizing: border-box; }
 html { background: var(--mm-bg); }
-body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--mm-bg); }
+body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: clip; background: var(--mm-bg); }
 button, input { font: inherit; }
 a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--mm-accent); outline-offset: 3px; }
 
 .text-gradient { background: linear-gradient(110deg, var(--mm-accent), #8e45ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero-orbit { background: radial-gradient(circle at 73% 34%, rgb(146 60 255 / 34%), transparent 19rem), radial-gradient(circle at 100% 100%, rgb(36 105 214 / 25%), transparent 25rem), linear-gradient(112deg, rgb(18 14 43 / 96%), rgb(18 24 64 / 84%)); }

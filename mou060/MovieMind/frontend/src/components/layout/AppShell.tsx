@@ -22,6 +22,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-[var(--mm-bg)] text-[var(--mm-text)] lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+      <a className="sr-only fixed left-4 top-4 z-50 rounded-xl bg-[var(--mm-primary)] px-4 py-3 font-semibold text-white focus:not-sr-only focus:outline-2 focus:outline-offset-2 focus:outline-[var(--mm-accent)]" href="#main-content">Skip to main content</a>
       <Navigation />
       <div className="min-w-0">
         <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-[var(--mm-border)] bg-[color:rgb(8_11_27_/_0.88)] px-4 backdrop-blur-xl sm:px-6 lg:px-10">
@@ -33,10 +34,10 @@ export function AppShell() {
           </form>
           <Link className="font-bold tracking-tight text-[var(--mm-text)] md:hidden" to="/">Movie<span className="text-[var(--mm-accent)]">Mind</span></Link>
           <nav aria-label="Account" className="ml-auto flex items-center gap-2">
-            {isAuthenticated && user ? <><Link aria-label="Open profile" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:flex" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span>{user.display_name ?? user.username ?? "Account"}</Link><Button className="min-h-10 rounded-xl px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-4">Create account</Button></Link></>}
+            {isAuthenticated && user ? <><Link aria-label="Open profile" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:flex" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span>{user.display_name ?? user.username ?? "Account"}</Link><Button className="min-h-10 rounded-xl px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
           </nav>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-10 lg:pb-10"><Outlet /></main>
+        <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-10 lg:pb-10" id="main-content" tabIndex={-1}><Outlet /></main>
       </div>
     </div>
   );

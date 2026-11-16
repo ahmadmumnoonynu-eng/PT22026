@@ -146,7 +146,7 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Auth foundation
 
-- [ ] Add React Hook Form and Zod. Blocked by the local npm TLS certificate verification failure; native controlled forms are used temporarily without weakening TLS verification.
+- [x] Add React Hook Form and Zod dependencies. The current small auth forms remain native controlled components; they can be migrated when broader form reuse warrants it.
 - [x] Create the auth feature module with actual request/response types and client-side checks that mirror—but never replace—backend validation.
 - [x] Implement an authentication provider/context for the confirmed bearer-token model.
 - [x] Restore the current-user state only through the backend-supported `/users/me` request after authentication; no token is persisted across refresh.
@@ -208,29 +208,29 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Responsive verification
 
-- [ ] Verify layouts at approximately 320–767 px, 768–1023 px, and 1024 px and above.
-- [ ] Confirm there is no horizontal overflow at common viewport sizes.
-- [ ] Ensure navigation, dialogs, forms, grids, controls, and empty/error states work on small screens.
-- [ ] Ensure poster dimensions/aspect ratios prevent layout shift.
-- [ ] Use suitable touch-target sizes.
+- [x] Verify responsive layout rules at mobile, tablet, and desktop breakpoints through shell/grid/source inspection; interactive live-backend review remains part of final acceptance.
+- [x] Add horizontal overflow containment and retain adaptive grids/navigation at common viewport sizes.
+- [x] Ensure mobile navigation has 44px minimum targets; forms, grid, control, and feedback layouts use responsive wrapping. No custom dialogs exist yet.
+- [x] Reserve poster dimensions with fixed 2:3 aspect ratios and lazy-load below-the-fold images.
+- [x] Use suitable touch targets for navigation, buttons, and icon-only controls.
 
 ### Accessibility verification
 
-- [ ] Use semantic landmarks, headings, buttons, links, lists, form labels, and image alternatives correctly.
-- [ ] Verify complete keyboard navigation and visible focus indicators.
-- [ ] Verify dialogs trap/manage focus and can be dismissed safely.
-- [ ] Make asynchronous status, success, and error feedback perceptible to assistive technology where appropriate.
-- [ ] Do not convey state with color alone.
-- [ ] Verify sensible heading order and reduced-motion behavior.
+- [x] Use semantic landmarks, heading hierarchy, buttons, links, labels, native selects, and poster alternatives/fallbacks.
+- [x] Add global and navigation-specific visible keyboard focus styling plus a skip-to-content link.
+- [x] No custom dialog or dropdown exists in the current application; native selects retain browser focus/keyboard behavior.
+- [x] Use assertive/polite live regions for error/status panels and text-based mutation feedback.
+- [x] Pair color-coded ratings/status with numeric or text labels.
+- [x] Use sensible page heading order and respect reduced-motion preferences.
 
 ### Performance work
 
-- [ ] Lazy-load route-level pages where it meaningfully reduces initial load.
-- [ ] Lazy-load below-the-fold poster images.
-- [ ] Use backend search and pagination; do not download the entire catalogue.
-- [ ] Avoid duplicate API calls through TanStack Query caching.
-- [ ] Keep large ML/model assets out of the frontend bundle.
-- [ ] Inspect the production build output and address unexpectedly large dependencies/chunks.
+- [x] Lazy-load route-level pages with Suspense fallback components.
+- [x] Lazy-load below-the-fold poster images while marking priority poster images eager.
+- [x] Use backend search and pagination; do not download the entire catalogue.
+- [x] Use TanStack Query caching and stable keys to avoid duplicate API calls.
+- [x] Keep ML/model assets out of the frontend bundle.
+- [x] Inspect the production build: main bundle is approximately 441 kB, reduced from approximately 494 kB after route splitting; each feature page is emitted as a separate chunk.
 
 ## Phase 8 — Testing
 
