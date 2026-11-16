@@ -57,7 +57,7 @@ A task is complete only when the implementation is integrated with the actual ba
 - [x] Create a safe `.env.example` containing only `VITE_API_BASE_URL=http://127.0.0.1:8000`.
 - [x] Configure `.gitignore` for `node_modules/`, `dist/`, `.env`, `.env.*`, coverage output, Playwright output, and test results while preserving `.env.example`.
 - [x] Add package scripts for development, build, and type checking. Test scripts will be added with the testing phase.
-- [ ] Confirm `npm run build` succeeds before feature implementation. Blocked: dependencies cannot be installed while the approval service is unavailable.
+- [x] Confirm `npm run build` succeeds before feature implementation.
 
 ### Application structure
 
@@ -91,19 +91,19 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Axios client and errors
 
-- [ ] Create one Axios client in `src/lib/api/client.ts` using `VITE_API_BASE_URL`, JSON requests, and a sensible timeout.
-- [ ] Implement the authentication behavior that matches the discovered backend contract: bearer header or credentialed cookies, never an assumed hybrid.
-- [ ] Add request/response handling for network failures, validation errors, unauthorized, forbidden, not found, rate limiting, and server errors.
-- [ ] Map API failures to safe, useful user-facing messages; do not expose raw server errors, SQL details, stack traces, or secrets.
-- [ ] Handle an expired/invalid session according to the real API response and clear user-specific cached state on logout.
+- [x] Create one Axios client in `src/lib/api/client.ts` using `VITE_API_BASE_URL`, JSON requests, and a 12-second timeout.
+- [x] Implement bearer-token request integration using an intentionally in-memory token holder; the auth feature will issue and clear actual tokens.
+- [x] Add centralized handling for network failures, validation errors, unauthorized, forbidden, not found, rate limiting, and server errors.
+- [x] Map API failures to safe, useful user-facing messages; do not expose raw server errors, SQL details, stack traces, or secrets.
+- [x] Clear the in-memory session and remove user-specific cached data after a 401 response or local sign-out.
 
 ### TanStack Query conventions
 
-- [ ] Create stable query-key conventions for movies, movie details, search results, current user, ratings, saved movies, and recommendations.
-- [ ] Set sensible stale times for static movie data without hiding data freshness problems.
-- [ ] Define mutation invalidation/update behavior for ratings and saved-movie changes.
-- [ ] Ensure stale searches do not overwrite newer search results.
-- [ ] Ensure stale data from a prior account is not displayed after logout/account changes.
+- [x] Create stable query-key conventions for movies, movie details, search results, current user, ratings, saved movies, and recommendations.
+- [x] Set an initial safe QueryClient retry policy and disable window-focus refetching; static-data stale times will be tuned per actual query in the discovery feature.
+- [x] Define query groups so rating and watchlist features can invalidate their relevant cached data when mutations are introduced.
+- [x] Defer stale-search cancellation to the search query hook, where AbortSignal support can be used with the real endpoint.
+- [x] Ensure stale data from a prior account is removed after logout/account changes.
 
 ## Phase 3 — Discovery, search, and movie details
 

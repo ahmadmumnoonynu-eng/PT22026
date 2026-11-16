@@ -40,7 +40,7 @@ export function Navigation() {
       </aside>
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 flex gap-1 overflow-x-auto border-t border-[var(--mm-border)] bg-[color:rgb(13_17_38_/_0.96)] px-2 py-2 backdrop-blur-xl lg:hidden">
         {items.slice(0, 5).map(({ icon: Icon, label, to }) => (
-          <NavLink key={to} className={({ isActive }) => `flex min-w-18 flex-1 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold ${isActive ? "bg-[var(--mm-primary)] text-white" : "text-[var(--mm-text-muted)]"}`} to={to}>
+          <NavLink key={to} className={({ isActive }) => `flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${isActive ? "bg-[var(--mm-primary)] text-white" : "text-[var(--mm-text-muted)]"}`} to={to}>
             <Icon aria-hidden="true" className="size-5" />
             {label}
           </NavLink>

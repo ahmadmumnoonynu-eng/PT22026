@@ -29,7 +29,9 @@ pip_install.log
 
 # Local planning notes
 backend_task.md
-
+API_CONTRACT.md
+frontend_task.md
+MovieMind_UI_UX_Design_Skill_v2.md
 # OS / editor
 .DS_Store
 Thumbs.db
