@@ -220,3 +220,14 @@ The evaluation examples are limited and manually prepared. The reported metrics 
 ## Responsible Use
 
 This application is a resume review aid. It should not be used as the only basis for hiring, rejecting or ranking real people. Users and recruiters should review the original resume and job requirements before making decisions.
+## Generated Figures and Diagrams
+
+To support the technical report and documentation, the following figures and diagrams were created and generated:
+
+- **System Architecture Flowchart:** Automatically generated using a Python script to show the overall data flow.
+- **Skill Gap Analysis Pie Chart:** Generated to visually represent matched versus missing skills.
+- **Keyword Frequency Bar Chart:** Generated to highlight the most common keywords in the job description.
+- **Use Case Diagram:** Manually designed using Draw.io to illustrate user interactions with the system.
+- **Detailed Process Flow:** Manually designed using Draw.io to explain the step-by-step logic of the application.
+
+Run `python generate_report_figures.py` to generate the analytical charts. These figures are intended for the technical report and are not required to run the core application.
