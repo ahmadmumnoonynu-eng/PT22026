@@ -109,38 +109,38 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Reusable movie presentation
 
-- [ ] Define a real `Movie` UI type from the discovered API schema.
-- [ ] Build a reusable movie poster component with fixed 2:3 aspect ratio, image loading behavior, meaningful alt text, and a graceful missing-poster fallback.
-- [ ] Build an accessible movie card showing only API-provided title, year, rating, and genre information.
-- [ ] Make card navigation keyboard accessible and avoid nesting a separate action button inside an inaccessible full-card click target.
-- [ ] Build responsive movie-grid/list presentation that adapts cleanly across mobile, tablet, and desktop.
-- [ ] Add skeleton cards, empty states, and retryable error states.
+- [x] Define a real `Movie` UI type from the discovered API schema.
+- [x] Build a reusable movie poster component with fixed 2:3 aspect ratio, image loading behavior, meaningful alt text, and a graceful missing-poster fallback.
+- [x] Build an accessible movie card showing only API-provided title, year, rating, and genre information.
+- [x] Make card navigation keyboard accessible without nested interactive controls.
+- [x] Build a responsive movie-grid presentation that adapts across mobile, tablet, and desktop.
+- [x] Add skeleton cards, empty states, retryable error states, and safe API messaging.
 
 ### Discover page — `/`
 
-- [ ] Create a hero with the MovieMind value proposition and a prominent movie search form.
-- [ ] Fetch and render the real public movie list if the backend exposes it.
-- [ ] Implement API-supported filters only after confirming their schemas.
-- [ ] Implement pagination or Load more using the backend's actual page/cursor protocol.
-- [ ] Display a signed-in recommendation preview only when a suitable backend endpoint and data are available.
-- [ ] For visitors, show a neutral discovery prompt instead of personalized recommendation claims.
+- [x] Create a hero with the MovieMind value proposition and a prominent global movie search form.
+- [x] Fetch and render public popular movie data on Home and the full movie catalogue on Discover.
+- [x] Implement only confirmed filters: genre, exact release year, sort field, and sort direction.
+- [x] Implement the backend's offset pagination protocol.
+- [x] Do not display a sign-in-dependent recommendation preview before authentication is implemented.
+- [x] Show visitors a neutral discovery prompt rather than personalized recommendation claims.
 
 ### Search page — `/search`
 
-- [ ] Sync the query with URL search parameters so results can be refreshed and shared.
-- [ ] Submit search via Enter and a visible submit control.
-- [ ] Reflect the current query and result count only when returned by the backend.
-- [ ] Implement debounced live search only if the backend supports it and it is demonstrably useful; otherwise submit-on-search.
-- [ ] Support the actual search pagination protocol.
-- [ ] Add loading, no-results, API-error, and retry states.
+- [x] Sync the query with URL search parameters so results can be refreshed and shared.
+- [x] Submit search via Enter and a visible submit control.
+- [x] Reflect the current query and result count returned by the backend.
+- [x] Use explicit submit search; live search is intentionally omitted.
+- [x] Support the backend's offset pagination protocol.
+- [x] Add loading, no-results, API-error, and retry states.
 
 ### Movie detail page — `/movies/:movieId`
 
-- [ ] Retrieve the individual movie using the actual detail endpoint.
-- [ ] Render only confirmed fields (such as title, poster, description, date, genres, runtime, and clearly sourced rating).
-- [ ] Add loading, invalid-ID/not-found, and server-error states.
-- [ ] Provide signed-in rating and saved-movie actions only after their backend endpoints are implemented.
-- [ ] Keep recommendation-related actions off the page unless backed by a real endpoint.
+- [x] Retrieve the individual movie using the actual detail endpoint.
+- [x] Render only confirmed fields: title, poster, overview, release year, genres, average rating, and rating count.
+- [x] Add loading, invalid-ID/not-found, and server-error states.
+- [x] Defer signed-in rating and saved-movie actions until their feature/API integration is implemented.
+- [x] Keep recommendation-related actions off the page until a suitable endpoint is integrated.
 
 ## Phase 4 — Authentication
 

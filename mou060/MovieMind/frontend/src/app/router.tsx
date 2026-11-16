@@ -3,8 +3,11 @@ import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthPlaceholderPage } from "@/pages/AuthPlaceholderPage";
 import { HomePage } from "@/pages/HomePage";
+import { DiscoverPage } from "@/pages/DiscoverPage";
+import { MovieDetailsPage } from "@/pages/MovieDetailsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
+import { SearchPage } from "@/pages/SearchPage";
 
 export const router = createBrowserRouter([
   {
@@ -13,15 +16,15 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       {
         path: "discover",
-        element: <PlaceholderPage title="Discover Movies" description="Movie discovery is the next product slice." />,
+        element: <DiscoverPage />,
       },
       {
         path: "search",
-        element: <PlaceholderPage title="Search Movies" description="Search will use the real catalogue in the discovery phase." />,
+        element: <SearchPage />,
       },
       {
         path: "movies/:movieId",
-        element: <PlaceholderPage title="Movie Details" description="Movie detail data is connected in the discovery phase." />,
+        element: <MovieDetailsPage />,
       },
       {
         path: "watchlist",

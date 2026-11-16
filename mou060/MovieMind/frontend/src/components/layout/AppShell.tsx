@@ -14,7 +14,8 @@ export function AppShell() {
     event.preventDefault();
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
-    navigate({ pathname: "/search", search: params.toString() });
+    const search = params.toString();
+    navigate({ pathname: "/search", search: search ? `?${search}` : "" });
   }
 
   return (
