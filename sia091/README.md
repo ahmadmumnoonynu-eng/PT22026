@@ -126,11 +126,13 @@ sia091/
 │   ├── eval_eiffel.json
 │   ├── eval_hard.json
 │   ├── eval_set.json
+│   ├── controlled_model_comparison.csv
 │   ├── results.csv
 │   └── results_distilbert.csv
 ├── evaluate.py
 ├── evaluate_layout.py
 ├── evaluate_strict.py
+├── evaluate_models.py
 ├── plot_results.py
 ├── requirements.txt
 ├── .gitignore
@@ -152,6 +154,8 @@ sia091/
 | `evaluate.py` | Runs the evaluation process. |
 | `evaluate_strict.py` | Runs strict answer evaluation. |
 | `evaluate_layout.py` | Evaluates the layout-aware document processing workflow. |
+| `evaluate_models.py` | Runs 90 controlled experiments comparing DistilBERT and RoBERTa with different retrieval configurations. |
+| `eval/controlled_model_comparison.csv` | Stores the results of the 90 controlled experiments. |
 | `plot_results.py` | Creates graphs from evaluation results. |
 | `eval/` | Contains evaluation question sets and recorded result files. |
 | `requirements.txt` | Lists the Python dependencies. |
@@ -193,12 +197,6 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The layout-aware loader also requires PyMuPDF. Install it with:
-
-```bash
-pip install pymupdf
-```
-
 ### Step 6: Run the Application
 
 ```bash
@@ -229,6 +227,12 @@ After the application starts, open the local Gradio address shown in the termina
 The project includes evaluation question sets and scripts to test document retrieval and question answering.
 
 The evaluation files are stored in the `eval/` folder.
+
+### Controlled Model Comparison
+
+The project also includes 90 controlled experiments comparing two question-answering models: DistilBERT and RoBERTa. The experiments use 22 evaluation questions, three chunk sizes (40, 60, and 120), three retrieval depths (Top-1, Top-3, and Top-5), and five answer-ranking strategies. The results are stored in `eval/controlled_model_comparison.csv`.
+
+The experiments compare retrieval performance and answer quality using Evidence Recall@K, Custom Permissive Accuracy, Exact Match, and Token F1. The `evaluate_models.py` script runs these experiments, while `plot_results.py` creates the comparison graphs.
 
 The recorded retrieval results in `eval/results.csv` include experiments with different chunk sizes and retrieval depths.
 
