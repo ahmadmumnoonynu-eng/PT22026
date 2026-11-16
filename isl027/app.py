@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 import threading
 import webbrowser
@@ -7,6 +7,8 @@ import pandas as pd
 
 import gradio as gr
 
+# --- Environment Setup ---
+# Ensure the app runs locally and uses the cached models to avoid network timeouts
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -19,15 +21,21 @@ from nlp_features import (
     create_comparison_chart
 )
 
+# Pre-load the NLP models before the UI starts to ensure a smooth user experience
 print("Loading NLP models from local cache, please wait...")
 load_model()
 print("Models loaded successfully! Starting app...")
 
 def highlight_skills(text: str, skills: List[str]) -> str:
+    """
+    Highlights the matched skills within the CV text using HTML span tags.
+    This helps the user visually identify which parts of their CV matched the JD.
+    """
     if not text:
         return ""
     highlighted = text
     for skill in skills:
+        # Using regex with word boundaries to match exact skills (e.g., 'java' won't match 'javascript')
         pattern = re.compile(r"(?<!\w)(" + re.escape(skill) + r")(?!\w)", re.IGNORECASE)
         highlighted = pattern.sub(
             r'<span style="background-color: #d4edda; color: #155724; font-weight: bold; padding: 2px 4px; border-radius: 4px;">\1</span>',
@@ -36,17 +44,21 @@ def highlight_skills(text: str, skills: List[str]) -> str:
     return highlighted
 
 def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
+    """Main function to analyze a single CV against a JD."""
     try:
+        # Extract text from the uploaded PDF if provided
         if cv_file is not None:
             pdf_text = extract_text_from_pdf(cv_file.name)
             cv_text = (cv_text or "") + "\n" + pdf_text
 
+        # Validate that both CV and JD are provided before proceeding
         if not cv_text or not jd_text:
-            # Fixed: Return None for plot components instead of empty strings
             return "Please provide both a CV and a Job Description.", "", "", None, "", "", "", None, "", "", "", ""
 
+        # Call the core analysis function from model_utils
         result = analyze_match(cv_text, jd_text)
         
+        # Create a visually appealing HTML block to display the match score and level
         score_md = f"""
         <div style='text-align: center; padding: 20px; background: rgba(37, 99, 235, 0.1); border-radius: 10px; border: 1px solid #2563eb;'>
             <p style='margin: 0; font-size: 1.1rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;'>Match Score</p>
@@ -55,12 +67,14 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         </div>
         """
         
+        # Generate HTML badges to display matched (green) and missing (red) skills
         matched_html = "".join([f"<span style='display:inline-block; background: #10b981; color: white; padding: 4px 10px; border-radius: 15px; margin: 4px; font-size: 0.9rem; font-weight: 600;'>{s.capitalize()}</span>" for s in result['matched']])
         missing_html = "".join([f"<span style='display:inline-block; background: #ef4444; color: white; padding: 4px 10px; border-radius: 15px; margin: 4px; font-size: 0.9rem; font-weight: 600;'>{s.capitalize()}</span>" for s in result['missing']])
         
         matched_md = f"### Matched Skills\n<div>{matched_html if matched_html else 'None found'}</div>"
         missing_md = f"### Missing Skills\n<div>{missing_html if missing_html else 'None detected'}</div>"
         
+        # Call rule-based analytics functions from nlp_features
         gap_chart_fig = create_skill_gap_chart(result['matched'], result['missing'])
         scam_md = detect_fake_job(jd_text)
         ats_md = check_ats_compatibility(cv_text, result['missing'], result['matched'])
@@ -71,6 +85,7 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         feedback_md = f"### Automated Feedback\n{generate_feedback(result['score'], result['missing'])}"
         learning_md = f"### Skill Gap Learning Path\n{get_learning_recommendations(result['missing'])}"
         
+        # Highlight skills in the original CV text for the preview section
         hl_text = highlight_skills(cv_text, result['matched'])
         highlight_md = (
             "### Document Preview\n"
@@ -81,9 +96,11 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         return score_md, matched_md, missing_md, gap_chart_fig, scam_md, ats_md, keyword_md, keyword_chart_fig, questions_md, feedback_md, learning_md, highlight_md
         
     except Exception as e:
+        # Return empty plots (None) to prevent Gradio component errors in case of failure
         return f"Error: {str(e)}", "", "", None, "", "", "", None, "", "", "", ""
 
 def run_batch_analysis(jd_text: str, files: list):
+    """Handles multiple CVs at once for the Recruiter Mode."""
     if not jd_text or not files:
         return None, pd.DataFrame([["Error", "Please provide JD and at least one CV", ""]], columns=["Candidate", "Score", "Details"])
     
@@ -91,6 +108,7 @@ def run_batch_analysis(jd_text: str, files: list):
     names = []
     scores = []
     
+    # Iterate through each uploaded PDF and calculate the match score
     for file in files:
         try:
             pdf_text = extract_text_from_pdf(file.name)
@@ -103,8 +121,10 @@ def run_batch_analysis(jd_text: str, files: list):
             matched_str = ", ".join(result['matched']) if result['matched'] else "None"
             results.append([candidate_name, result['score'], matched_str, result['level']])
         except Exception as e:
+            # Handle cases where a PDF might be corrupted or unreadable
             results.append([os.path.basename(file.name), 0.0, "Error reading file", "Error"])
             
+    # Sort the dataframe so the highest scores appear at the top
     results.sort(key=lambda x: x[1], reverse=True)
     df = pd.DataFrame(results, columns=["Candidate Name", "Match Score (%)", "Matched Skills", "Level"])
     chart_fig = create_comparison_chart(names, scores)
@@ -120,19 +140,20 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
         return "Please provide the job description."
 
     try:
+        # Analyze the match to automatically find relevant skills for the letter
         match_result = analyze_match(cv_text, jd_text)
 
-        # Use skills matched by the CV-JD analysis first.
+        # Extract skills that were automatically matched
         selected_skills = list(match_result["matched"])
 
-        # Also allow the user to add extra skills manually.
+        # Allow the user to add extra skills manually via the text box
         manual_skills = [
             skill.strip()
             for skill in (skills_text or "").split(",")
             if skill.strip()
         ]
 
-        # Remove duplicates while keeping the original order.
+        # Remove duplicates while keeping the original order
         selected_skills = list(dict.fromkeys(selected_skills + manual_skills))
 
         return generate_cover_letter(selected_skills)
@@ -142,13 +163,13 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
 
 theme = gr.themes.Soft(primary_hue="blue", secondary_hue="slate")
 
-# Moved theme to launch() to fix the warning
+# Build the Gradio UI blocks with a tabbed layout
 with gr.Blocks(title="Resume Optimization System") as demo:
     
     gr.Markdown("# Resume Optimization System\n**Advanced NLP Analysis for Job Seekers and Professionals**")
     
     with gr.Tabs():
-        # TAB 1: Resume Analyzer
+        # --- TAB 1: Resume Analyzer ---
         with gr.TabItem("Resume Analyzer"):
             with gr.Row():
                 with gr.Column(scale=1):
@@ -193,15 +214,16 @@ with gr.Blocks(title="Resume Optimization System") as demo:
                     with gr.Accordion("Document Preview (Highlighted Skills)", open=False):
                         out_highlight = gr.Markdown()
 
+            # Link the Analyze button to the backend function
             event1 = btn.click(
                 fn=run_analysis, 
                 inputs=[cv_text, jd_text, cv_file], 
                 outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight]
             )
-            # Fixed: Return None for plots on Clear
+            # Clear all outputs when the Clear button is pressed
             stop1.click(fn=lambda: ("", "", "", None, "", "", "", None, "", "", "", ""), inputs=None, outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight])
 
-        # TAB 2: Cover Letter Generator
+        # --- TAB 2: Cover Letter Generator ---
         with gr.TabItem("Cover Letter Generator"):
             with gr.Row():
                 with gr.Column(scale=1):
@@ -226,7 +248,7 @@ with gr.Blocks(title="Resume Optimization System") as demo:
             )
             stop2.click(fn=lambda: ("",), inputs=None, outputs=[cl_output])
 
-        # TAB 3: Recruiter Mode (Batch Compare)
+        # --- TAB 3: Recruiter Mode (Batch Compare) ---
         with gr.TabItem("Recruiter Mode"):
             gr.Markdown("### Batch Candidate Analysis\nUpload multiple PDF resumes against a single Job Description to instantly rank candidates and visualize their match scores.")
             with gr.Row():
@@ -254,9 +276,9 @@ with gr.Blocks(title="Resume Optimization System") as demo:
             stop3.click(fn=lambda: (None, pd.DataFrame()), inputs=None, outputs=[batch_chart, batch_table])
 
 if __name__ == "__main__":
+    # Automatically open the web browser after the server starts
     def open_browser():
         webbrowser.open_new("http://127.0.0.1:7860")
     
     threading.Timer(2, open_browser).start()
-    # Fixed: Pass theme to launch() for Gradio 6.0 compatibility
     demo.launch(theme=theme, server_name="127.0.0.1", server_port=7860)
