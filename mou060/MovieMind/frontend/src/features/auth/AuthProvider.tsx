@@ -6,7 +6,7 @@ import { authSession } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/types/api";
 
-type AuthContextValue = {
+export type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (payload: LoginPayload) => Promise<User>;

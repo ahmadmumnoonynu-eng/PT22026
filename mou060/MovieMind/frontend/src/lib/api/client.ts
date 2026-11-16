@@ -4,7 +4,7 @@ import { authSession } from "@/lib/auth/session";
 import { toApiClientError } from "@/lib/api/errors";
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || "http://127.0.0.1:8000";
-const apiBaseUrl = `${configuredBaseUrl.replace(/\/$/, "")}/api/v1`;
+export const apiBaseUrl = `${configuredBaseUrl.replace(/\/$/, "")}/api/v1`;
 
 /**
  * The only shared HTTP client. Feature modules own their endpoint functions;

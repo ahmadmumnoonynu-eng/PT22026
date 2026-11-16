@@ -236,43 +236,43 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Test infrastructure
 
-- [ ] Configure Vitest and React Testing Library.
-- [ ] Add API mocking for component/integration tests (for example, MSW if appropriate).
-- [ ] Configure Playwright when critical user flows are functional and a safe test environment/account exists.
+- [x] Configure Vitest and React Testing Library.
+- [x] Add API mocking for component/integration tests with MSW handlers that mirror the verified FastAPI contract.
+- [x] Configure Playwright projects for mocked critical flows and gated live-backend smoke tests. Browser installation and execution remain pending the local Chromium download limitation; no test was run against production data.
 
 ### Unit and component tests
 
-- [ ] Test movie card rendering with complete data and missing poster data.
-- [ ] Test loading, empty, error, and retry UI states.
-- [ ] Test search input and URL/query behavior.
-- [ ] Test form validation and duplicate-submit prevention.
-- [ ] Test authentication-dependent navigation/UI.
-- [ ] Test rating and saved-movie controls, including pending/error states.
+- [x] Test movie card rendering with complete data and missing poster data.
+- [x] Test loading, empty, error, and retry UI states.
+- [x] Test search input and URL/query behavior.
+- [x] Test form validation and duplicate-submit prevention.
+- [x] Test authentication-dependent navigation/UI.
+- [x] Test rating and saved-movie controls, including pending/error states.
 
 ### API integration tests
 
-- [ ] Verify endpoint functions use correct discovered URLs, parameters, bodies, and authentication behavior.
-- [ ] Verify client error mapping for validation, unauthorized, not found, and server failures.
-- [ ] Verify relevant cached data is invalidated/updated after rating and saved-movie mutations.
-- [ ] Verify logout removes protected cached data.
+- [x] Verify endpoint functions use correct discovered URLs, parameters, bodies, and authentication behavior.
+- [x] Verify client error mapping for validation, unauthorized, not found, and server failures.
+- [x] Verify relevant cached data is invalidated/updated after rating and saved-movie mutations.
+- [x] Verify logout removes protected cached data.
 
 ### End-to-end tests
 
-- [ ] Test visitor discovery and movie detail navigation.
-- [ ] Test navigation to login.
-- [ ] Test login with a non-production test account.
-- [ ] Test adding/removing a saved movie when supported.
-- [ ] Test submitting/updating a rating when supported.
-- [ ] Test recommendations and logout when supported.
-- [ ] Do not run destructive automated tests against production user data.
+- [ ] Test visitor discovery and movie detail navigation. Mocked Playwright specifications are written in `e2e/mocked/visitor.spec.ts`; execution awaits the Chromium browser download.
+- [ ] Test navigation to login. Mocked Playwright specification included; execution pending.
+- [ ] Test login with a non-production test account. Gated live specification is written in `e2e/live/account.spec.ts`; it skips without `E2E_EMAIL`, `E2E_PASSWORD`, and a safe `E2E_BASE_URL`.
+- [ ] Test adding/removing a saved movie when supported. Mocked and gated live specifications included; execution pending.
+- [ ] Test submitting/updating a rating when supported. Mocked and gated live specifications included; execution pending.
+- [ ] Test recommendations and logout when supported. Mocked and gated live specifications included; execution pending.
+- [x] Do not run destructive automated tests against production user data. The live suite requires explicit credentials and is skipped by default.
 
 ## Phase 9 — Documentation, deployment, and release
 
 ### Documentation
 
-- [ ] Write `MovieMind/frontend/README.md` covering purpose, stack, prerequisites, installation, local development, environment variables, FastAPI integration, tests, build, Vercel deployment, screenshots, and known limitations.
-- [ ] Document confirmed API-contract assumptions and any unsupported specification features.
-- [ ] Keep broad system architecture and ML methodology in the main project documentation rather than duplicating it excessively in the frontend README.
+- [x] Write `MovieMind/frontend/README.md` covering purpose, stack, prerequisites, installation, local development, environment variables, FastAPI integration, tests, build, Vercel deployment, screenshots, and known limitations.
+- [x] Document confirmed API-contract assumptions and any unsupported specification features.
+- [x] Keep broad system architecture and ML methodology in the main project documentation rather than duplicating it excessively in the frontend README.
 
 ### Vercel deployment
 

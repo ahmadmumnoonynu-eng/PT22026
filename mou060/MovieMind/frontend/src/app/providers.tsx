@@ -6,18 +6,22 @@ import { AuthProvider } from "@/features/auth/AuthProvider";
 import { authSession } from "@/lib/auth/session";
 import { isUserSpecificQuery } from "@/lib/query/keys";
 
-function QueryProvider({ children }: PropsWithChildren) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: 1,
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  );
+export function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+}
+
+type QueryProviderProps = PropsWithChildren<{ client?: QueryClient }>;
+
+export function QueryProvider({ children, client }: QueryProviderProps) {
+  const [ownedClient] = useState(createQueryClient);
+  const queryClient = client ?? ownedClient;
 
   useEffect(
     () =>
