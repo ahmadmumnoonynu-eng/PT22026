@@ -197,12 +197,12 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ## Phase 6 — Recommendations
 
-- [ ] Confirm recommendation endpoint, eligibility requirements, response schema, recommendation type metadata, and cold-start/error responses.
-- [ ] Create a recommendations feature API module and query hook using the confirmed contract.
-- [ ] Build `/recommendations` with returned movie cards and all loading, empty, error, and retry states.
-- [ ] Display recommendation method/type only when reliable backend metadata explicitly provides it.
-- [ ] Render the backend's cold-start or insufficient-rating message when available; otherwise use neutral API-consistent guidance.
-- [ ] Never hardcode recommendations, expose model artifacts, run model training, or implement the recommendation algorithm in the browser.
+- [x] Confirm the authenticated recommendation endpoint, response schema, source/reason metadata, fallback status, and five-rating personalization threshold.
+- [x] Create a recommendations feature API module and query hook using the confirmed contract.
+- [x] Build `/recommendations` with returned movie cards and all loading, empty, error, and retry states.
+- [x] Display the backend-provided recommendation source and per-movie reason only when supplied.
+- [x] Clearly label the popularity fallback state and provide neutral rating-onboarding guidance; the API provides no separate cold-start message.
+- [x] Never hardcode recommendations, expose model artifacts, run model training, or implement the recommendation algorithm in the browser.
 
 ## Phase 7 — Responsive design, accessibility, and performance pass
 

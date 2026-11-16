@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { MovieCollection } from "@/features/discovery/components/MovieCollection";
 import { usePopularMovies } from "@/features/discovery/hooks";
+import { RecommendationPreview } from "@/features/recommendations/components/RecommendationPreview";
 
 export function HomePage() {
   const popular = usePopularMovies();
@@ -46,12 +47,7 @@ export function HomePage() {
           </div>
           <MovieCollection emptyDescription="There are no popular movies to show yet. Explore the catalogue to find something to watch." emptyTitle="No popular movies yet" error={popular.error} isLoading={popular.isLoading} movies={popular.data} onRetry={() => void popular.refetch()} />
         </div>
-        <aside className="rounded-3xl border border-[var(--mm-border)] bg-linear-to-br from-[#2B1C49] to-[var(--mm-surface)] p-6 shadow-[var(--mm-card-shadow)]">
-          <Sparkles aria-hidden="true" className="size-7 text-[var(--mm-accent)]" />
-          <h2 className="mt-6 text-xl font-bold">Recommendations that grow with you</h2>
-          <p className="mt-3 text-sm leading-6 text-[var(--mm-text-muted)]">Your personalized recommendations will use ratings returned by MovieMind—not made-up suggestions.</p>
-          <Link className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--mm-accent)] hover:text-white" to="/ratings">How ratings work <ArrowRight aria-hidden="true" className="size-4" /></Link>
-        </aside>
+        <RecommendationPreview />
       </section>
     </div>
   );

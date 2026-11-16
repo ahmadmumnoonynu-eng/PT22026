@@ -10,6 +10,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { RatingsPage } from "@/pages/RatingsPage";
+import { RecommendationsPage } from "@/pages/RecommendationsPage";
 import { SearchPage } from "@/pages/SearchPage";
 import { WatchlistPage } from "@/pages/WatchlistPage";
 
@@ -48,7 +49,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "recommendations",
-        element: <RequireAuth><PlaceholderPage title="Recommended for You" description="Personalized recommendations will be connected after ratings and authentication are ready." /></RequireAuth>,
+        element: <RequireAuth><RecommendationsPage /></RequireAuth>,
       },
     ],
   },
