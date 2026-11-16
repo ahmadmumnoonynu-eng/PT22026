@@ -694,6 +694,43 @@ def test_choosing_a_file_copies_it_into_the_session(monkeypatch):
     assert state["uploaded_bytes"] == b"type,amount\nTRANSFER,1"
 
 
+def test_leaving_the_single_view_keeps_the_typed_transaction(monkeypatch):
+    """The runtime drops a widget value when the widget is not rendered, so switching to
+    the upload view used to wipe the form. The kept copy is a plain dict and seeds it back."""
+    import mode_testing
+
+    kept = {"tx_type": "CASH_OUT", "tx_amount": 777_777.0, "tx_sender": 900_000.0,
+            "tx_receiver": 0.0, "tx_hour": 21}
+    state = {"tx_kept": kept}                    # the five widget keys are gone
+    monkeypatch.setattr(mode_testing.st, "session_state", state)
+    mode_testing._seed_single()
+    assert state["tx_type"] == "CASH_OUT"
+    assert state["tx_amount"] == 777_777.0
+    assert state["tx_hour"] == 21
+
+
+def test_the_single_view_starts_from_the_defaults_without_a_kept_copy(monkeypatch):
+    import mode_testing
+
+    state = {}
+    monkeypatch.setattr(mode_testing.st, "session_state", state)
+    mode_testing._seed_single()
+    assert state == mode_testing.SINGLE_DEFAULTS
+
+
+def test_the_single_view_remembers_what_is_on_screen(monkeypatch):
+    """Whatever is in the widgets now is copied out, so the next run can restore it."""
+    import mode_testing
+
+    state = {"tx_type": "DEBIT", "tx_amount": 12_345.0, "tx_sender": 20_000.0,
+             "tx_receiver": 0.0, "tx_hour": 5}
+    monkeypatch.setattr(mode_testing.st, "session_state", state)
+    mode_testing._remember_single()
+    assert state["tx_kept"]["tx_amount"] == 12_345.0
+    assert state["tx_kept"]["tx_type"] == "DEBIT"
+    assert state["tx_kept"]["tx_hour"] == 5
+
+
 def test_the_scored_table_shows_every_row_in_order():
     """No more top-25 cut: all rows are in the HTML, in file order (row 1, 2, 3, ...),
     and the card says so instead of hiding rows behind a 'top 25' title."""

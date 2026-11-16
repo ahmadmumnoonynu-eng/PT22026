@@ -22,6 +22,9 @@ VIEWS = ("Single transaction", "Upload a file")
 VIEW_KEY = "testing_view"        # which of the two views is open; kept in the session, not in the browser
 FILE_BYTES = "uploaded_bytes"    # the chosen file, copied out of the widget (see _keep_upload)
 FILE_NAME = "uploaded_name"
+SINGLE_DEFAULTS = {"tx_type": "TRANSFER", "tx_amount": 250_000.0, "tx_sender": 250_000.0,
+                   "tx_receiver": 0.0, "tx_hour": 3}
+TX_KEPT = "tx_kept"              # the typed transaction, copied out of the widgets (see _render_single)
 
 
 def _load_example(name: str) -> None:
@@ -81,14 +84,28 @@ def process_upload(tag: str, content: bytes, block: float, review_min: float, ca
     return process_frame(get_engine(tag), df, policy)
 
 
+def _seed_single() -> None:
+    """Put the typed transaction back into the widgets.
+
+    Streamlit drops a widget's value when that widget is not rendered in a run, so
+    switching to the upload view (or to another page) leaves the five keys unset and
+    the form would come back with its defaults. The kept copy is a plain dict, not a
+    widget, so it survives; setdefault only fills what the runtime dropped.
+    """
+    kept = st.session_state.get(TX_KEPT) or {}
+    for key, default in SINGLE_DEFAULTS.items():
+        st.session_state.setdefault(key, kept.get(key, default))
+
+
+def _remember_single() -> None:
+    """Copy what is on screen now (defaults, an example or typing) out of the widgets."""
+    st.session_state[TX_KEPT] = {key: st.session_state[key] for key in SINGLE_DEFAULTS}
+
+
 def _render_single(tag: str, engine, policy: Policy) -> None:
     st.markdown(ui.mode_head("Single transaction", "Type in a transaction and see its risk, the verdict, the decision and the reasons."),
                 unsafe_allow_html=True)
-    st.session_state.setdefault("tx_type", "TRANSFER")
-    st.session_state.setdefault("tx_amount", 250_000.0)
-    st.session_state.setdefault("tx_sender", 250_000.0)
-    st.session_state.setdefault("tx_receiver", 0.0)
-    st.session_state.setdefault("tx_hour", 3)
+    _seed_single()
 
     c = st.columns(5)
     c[0].selectbox("Type", TYPES, key="tx_type")
@@ -96,6 +113,8 @@ def _render_single(tag: str, engine, policy: Policy) -> None:
     c[2].number_input("Sender balance before", min_value=0.0, step=1_000.0, format="%.2f", key="tx_sender")
     c[3].number_input("Receiver balance before", min_value=0.0, step=1_000.0, format="%.2f", key="tx_receiver")
     c[4].slider("Hour of day", 0, 23, key="tx_hour")
+    # The next run may not render these widgets at all, and then only this copy is left.
+    _remember_single()
 
     b = st.columns([1, 1.6, 3.4])
     b[0].button("Example: normal transfer", on_click=_load_example, args=("normal",))
