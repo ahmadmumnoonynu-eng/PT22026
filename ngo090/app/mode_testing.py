@@ -106,9 +106,13 @@ def _render_file(tag: str, policy: Policy, costs) -> None:
     if batch.rows.empty:
         st.error("No valid rows were found in the file.")
     else:
+        stats = get_band_stats(tag)
         st.markdown(ui.batch_summary_html(summarize_batch(batch, costs)), unsafe_allow_html=True)
-        st.markdown(ui.scored_table_html(batch.rows), unsafe_allow_html=True)
+        st.markdown(ui.scored_table_html(batch.rows, bands=stats, n_total=sum(s.total for s in stats)),
+                    unsafe_allow_html=True)
         out = batch.rows.rename(columns={"reason": "main_reason"}).drop(columns=["applicable"])
+        out["verdict"] = [(band_for(float(r.risk), stats).label if getattr(r, "applicable", True) else "not covered")
+                          for r in batch.rows.itertuples()]
         st.download_button("Download the scored file", data=out.to_csv(index=False), file_name="scored_transactions.csv",
                            mime="text/csv")
     if not batch.rejected.empty:

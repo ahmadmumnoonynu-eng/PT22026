@@ -990,23 +990,40 @@ def batch_summary_html(s: dict) -> str:
     return compact(f'<div class="fa-root"><div class="fa-grid fa-kpis">{"".join(cards)}</div></div>')
 
 
-def scored_table_html(rows, limit: int = 25) -> str:
-    """Highest-risk transactions of a scored file."""
+def scored_table_html(rows, limit: int = 25, bands=None, n_total: int = 0) -> str:
+    """Highest-risk transactions of a scored file.
+
+    `bands` is the src.verdict band list; when given, each scored row also gets a
+    plain-language verdict measured from the labelled replay window.
+    """
+    from src.verdict import band_for
+
     top = rows.sort_values("risk", ascending=False).head(limit)
     labelled = "isFraud" in rows.columns and rows["isFraud"].notna().any()
-    head = ["Row", "Type", "Amount", "Risk", "Main reason", "Decision"] + (["Outcome"] if labelled else [])
+    applicable = "applicable" in rows.columns
+    head = (["Row", "Type", "Amount", "Risk", "Main reason", "Decision", "Verdict"]
+            + (["Outcome"] if labelled else []))
     body = []
     for r in top.itertuples():
         label, _ = DECISION_TEXT[r.decision]
+        covered = (not applicable) or bool(r.applicable)
+        band = band_for(r.risk, bands) if (bands and covered) else None
+        verdict = (f'<span class="fa-vchip {band.tone}">{escape(band.label)}</span>' if band else
+                   '<span class="fa-vchip clean" style="opacity:.55">Not covered</span>')
         cells = (f'<td>{r.row}</td><td>{escape(r.type.replace("_", " ").title())}</td><td>{r.amount:,.0f}</td>'
-                 f'<td>{r.risk:.1f}</td><td>{escape(r.reason or "-")}</td><td><span class="fa-tag {r.decision}">{label}</span></td>')
+                 f'<td>{r.risk:.1f}</td><td>{escape(r.reason or "-")}</td>'
+                 f'<td><span class="fa-tag {r.decision}">{label}</span></td><td>{verdict}</td>')
         if labelled:
             actual = getattr(r, "isFraud")
             cells += ('<td>-</td>' if actual != actual else
                       f'<td><span class="fa-tag {"yes" if actual == 1 else "no"}">{"Fraud" if actual == 1 else "Legitimate"}</span></td>')
         body.append(f"<tr>{cells}</tr>")
+    foot = ""
+    if bands:
+        foot = ('<div class="fa-note" style="margin-top:12px">Verdict: how often transactions with this score were '
+                f'fraud, measured on {n_total:,} labelled replay transactions.</div>')
     table = (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
-             f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>')
+             f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>{foot}')
     title = (f"Highest-risk transactions (top {len(top)} of {len(rows)})"
              if len(top) < len(rows) else "Scored transactions")
     return compact(f'<div class="fa-root">{card(title, table, "list")}</div>')

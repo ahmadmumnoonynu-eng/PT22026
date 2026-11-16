@@ -627,3 +627,29 @@ def test_the_card_says_is_this_fraud_not_only_how_risky():
     body = all_text(high)
     assert "Predicted: fraud" in body
     assert "99.5-100 band" in body
+
+
+def test_the_upload_table_verdicts_every_row():
+    """The scored-file table gets the same verdict column; uncovered types say so."""
+    import io
+
+    import pandas as pd
+
+    from src.artifacts import load_engine, load_run
+    from src.predict import DEFAULT_POLICY
+    from src.processing import process_frame
+    from src.verdict import band_stats
+
+    csv = ("type,amount,oldbalanceOrg,oldbalanceDest\n"
+           "TRANSFER,250000,250000,0\n"
+           "TRANSFER,8000,120000,60000\n"
+           "PAYMENT,120,5000,0\n")
+    engine = load_engine(ROOT, TAG)
+    stats = band_stats(engine, load_run(ROOT, TAG).replay)
+    batch = process_frame(engine, pd.read_csv(io.StringIO(csv)), DEFAULT_POLICY)
+    html = text(ui.scored_table_html(batch.rows, bands=stats, n_total=sum(s.total for s in stats)))
+    assert "Verdict" in html
+    assert "Not covered" in html                       # PAYMENT has no fraud examples to learn from
+    assert "Fraud" in html and "Not fraud" in html     # both verdicts appear, next to the decisions
+    assert "measured on" in html and "labelled replay transactions" in html
+
