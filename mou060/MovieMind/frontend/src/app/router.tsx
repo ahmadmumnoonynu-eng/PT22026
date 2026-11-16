@@ -9,7 +9,9 @@ import { MovieDetailsPage } from "@/pages/MovieDetailsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { RatingsPage } from "@/pages/RatingsPage";
 import { SearchPage } from "@/pages/SearchPage";
+import { WatchlistPage } from "@/pages/WatchlistPage";
 
 export const router = createBrowserRouter([
   {
@@ -30,11 +32,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "watchlist",
-        element: <RequireAuth><PlaceholderPage title="My List" description="Your saved movies feature will be connected in the next authenticated feature phase." /></RequireAuth>,
+        element: <RequireAuth><WatchlistPage /></RequireAuth>,
       },
       {
         path: "ratings",
-        element: <RequireAuth><PlaceholderPage title="My Ratings" description="Your ratings feature will be connected in the next authenticated feature phase." /></RequireAuth>,
+        element: <RequireAuth><RatingsPage /></RequireAuth>,
       },
       {
         path: "profile",

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusPanel } from "@/components/ui/StatusPanel";
 import { useMovie } from "@/features/discovery/hooks";
+import { RatingControl } from "@/features/ratings/components/RatingControl";
+import { WatchlistButton } from "@/features/watchlist/components/WatchlistButton";
 import { isApiClientError } from "@/lib/api/errors";
 
 function isUuid(value: string | undefined) {
@@ -46,7 +48,7 @@ export function MovieDetailsPage() {
             </div>
           </div>
         </div>
-        <div className="p-6 sm:p-10"><h2 className="text-xl font-bold">Overview</h2><p className="mt-3 max-w-3xl whitespace-pre-line leading-7 text-[var(--mm-text-muted)]">{item.overview ?? "An overview is not available for this movie."}</p><div className="mt-8 rounded-2xl border border-dashed border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] p-4 text-sm text-[var(--mm-text-muted)]"><Film aria-hidden="true" className="mr-2 inline size-4 text-[var(--mm-accent)]" /> Ratings and watchlist actions will be available after you sign in.</div></div>
+        <div className="space-y-8 p-6 sm:p-10"><div><h2 className="text-xl font-bold">Overview</h2><p className="mt-3 max-w-3xl whitespace-pre-line leading-7 text-[var(--mm-text-muted)]">{item.overview ?? "An overview is not available for this movie."}</p></div><div className="flex flex-wrap items-start gap-4"><WatchlistButton movieId={item.id} /></div><RatingControl movieId={item.id} /><div className="rounded-2xl border border-dashed border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] p-4 text-sm text-[var(--mm-text-muted)]"><Film aria-hidden="true" className="mr-2 inline size-4 text-[var(--mm-accent)]" /> Your rating and saved status are confirmed by MovieMind before this page is updated.</div></div>
       </div>
     </article>
   );

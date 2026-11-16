@@ -179,21 +179,21 @@ A task is complete only when the implementation is integrated with the actual ba
 
 ### Ratings
 
-- [ ] Confirm rating scale, permitted values, create/update semantics, and current-user rating source.
-- [ ] Build an accessible rating control with visible labels, keyboard support, and clear pending/success/error feedback.
-- [ ] Display a user's rating only when it comes from the authenticated API response.
-- [ ] Submit/create/update ratings through the actual endpoint.
-- [ ] Prevent duplicate mutations and preserve/recover UI state after an error.
-- [ ] Invalidate/update relevant movie, detail, recommendation, and user queries after successful rating changes.
+- [x] Confirm the 0.5–5.0 half-step rating scale, upsert semantics, and authenticated current-user rating endpoint.
+- [x] Build an accessible rating control with visible labels, keyboard support, and pending/success/error feedback.
+- [x] Display a user's rating only when it comes from the authenticated API response.
+- [x] Submit/create/update ratings through the actual endpoint.
+- [x] Prevent duplicate mutations and preserve/recover UI state after an error.
+- [x] Invalidate/update relevant movie, detail, recommendation, and personal-list queries after successful rating changes.
 
 ### Watchlist/favorites
 
-- [ ] Confirm whether the backend exposes watchlist, favorites, or both, and model the exact supported behavior.
-- [ ] Implement add/remove controls with clear accessible labels and pending state.
-- [ ] Create `/watchlist` using the authenticated user's real saved-movie endpoint.
-- [ ] Display saved movies in an adaptive grid/list.
-- [ ] Add useful empty state copy and a route back to discovery.
-- [ ] Update cached saved-movie state after mutations and verify persistence after refresh.
+- [x] Confirm watchlist is supported and favorites are not; model the backend's idempotent add/remove/list behavior.
+- [x] Implement add/remove controls with clear accessible labels and pending state.
+- [x] Create `/watchlist` using the authenticated user's real saved-movie endpoint.
+- [x] Display saved movies in an adaptive grid.
+- [x] Add useful empty state copy and a route back to discovery.
+- [x] Update cached saved-movie state after mutations. Persistence through a real page refresh awaits a running backend integration environment.
 
 ## Phase 6 — Recommendations
 
