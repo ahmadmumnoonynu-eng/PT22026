@@ -1018,15 +1018,15 @@ def batch_summary_html(s: dict) -> str:
 
 
 def scored_table_html(rows, bands=None, n_total: int = 0) -> str:
-    """Every transaction of a scored file, highest risk first (ties in row order),
-    with a verdict filter and 25 rows per page -- both wired by scored_table_script().
+    """Every transaction of a scored file, in file order (row 1, 2, 3, ...), with a
+    verdict filter and 25 rows per page -- both wired by scored_table_script().
 
     `bands` is the src.verdict band list; when given, each scored row also gets a
     plain-language verdict measured from the labelled replay window.
     """
     from src.verdict import band_for
 
-    ordered = rows.sort_values(["risk", "row"], ascending=[False, True])
+    ordered = rows.sort_values("row")
     labelled = "isFraud" in rows.columns and rows["isFraud"].notna().any()
     applicable = "applicable" in rows.columns
     head = (["Row", "Type", "Amount", "Risk", "Verdict", "Decision"]
@@ -1062,7 +1062,7 @@ def scored_table_html(rows, bands=None, n_total: int = 0) -> str:
                 f'{n_total:,} labelled replay transactions. <b>Decision</b>: what the policy does about it. '
                 '<b>Outcome</b>: what actually happened &mdash; known only because the file carries labels.</div>')
     legend = (f'<span class="fa-scored-count">{len(ordered):,} transactions</span>'
-              f'<span>&middot; highest risk first</span>')
+              f'<span>&middot; in file order</span>')
     table = (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
              f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
              f'<div class="fa-pager"></div>{foot}')

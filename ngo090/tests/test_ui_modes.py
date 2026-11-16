@@ -695,8 +695,8 @@ def test_choosing_a_file_copies_it_into_the_session(monkeypatch):
 
 
 def test_the_scored_table_shows_every_row_in_order():
-    """No more top-25 cut: all rows are in the HTML, highest risk first, ties in row
-    order, and the card says so instead of hiding rows behind a 'top 25' title."""
+    """No more top-25 cut: all rows are in the HTML, in file order (row 1, 2, 3, ...),
+    and the card says so instead of hiding rows behind a 'top 25' title."""
     import pandas as pd
 
     from src.verdict import BandStat
@@ -705,17 +705,16 @@ def test_the_scored_table_shows_every_row_in_order():
              BandStat(lo=99.5, hi=100.01, frauds=950, total=1_000)]
     rows = pd.DataFrame([{"row": i, "type": "TRANSFER", "amount": 100.0 + i,
                           "risk": 100.0 - (i % 7), "reason": "", "decision": "approve",
-                          "applicable": True} for i in range(1, 31)])   # 30 rows, risk ties
+                          "applicable": True} for i in range(1, 31)])   # 30 rows, mixed risk
     html = ui.scored_table_html(rows, bands=bands)
     assert html.count("<tr data-v=") == 30                              # nothing dropped
     assert "Highest-risk transactions" in html
     assert "top " not in text(html)                                     # the old "top 25 of 600" is gone
     assert "30 transactions" in text(html)
-    first = html[html.index("<tr data-v="):]
-    assert ">7<" in first[:200]                                         # row 7 has the top risk (100.0)
-    # Ties share the same risk, so they follow row order: 7, 14, 21, 28 all have risk 100.
-    tie_order = [int(t) for t in re.findall(r'<tr data-v="\w+"><td>(\d+)</td>', html)][:4]
-    assert tie_order == [7, 14, 21, 28]
+    assert "in file order" in text(html)                                # the legend matches the sort
+    # Row 1 first even though its risk is not the highest: the Row column reads 1, 2, 3, ...
+    order = [int(t) for t in re.findall(r'<tr data-v="\w+"><td>(\d+)</td>', html)]
+    assert order == list(range(1, 31))
 
 
 def test_the_scored_table_has_a_verdict_filter_and_a_pager():
