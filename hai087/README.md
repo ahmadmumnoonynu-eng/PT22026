@@ -45,6 +45,15 @@ hai087/
 Large files (the `venv` folder and the saved model in `models/`) are not
 uploaded to GitHub.
 
+## Datasets
+
+No dataset is stored in this repository. The scripts download them automatically from the Hugging Face Hub with the `datasets` library.
+
+| Dataset | Source | Used for |
+|---|---|---|
+| IMDB (`stanfordnlp/imdb`) | https://huggingface.co/datasets/stanfordnlp/imdb | 2,000 random training reviews for fine-tuning (`train.py`) and 500 random test reviews for evaluation (`evaluate.py`), both with random seed 42 |
+
+The baseline model (`distilbert-base-uncased-finetuned-sst-2-english`) is downloaded automatically from the Hugging Face Hub the first time the app runs. It was already fine-tuned on SST-2 by its authors. The fine-tuned model is not included in the repository because of its size: create it with `python train.py` (about 25 minutes on a CPU).
 ## Installation (Windows, PowerShell)
 
 1. Install Python 3.11 and Git.
