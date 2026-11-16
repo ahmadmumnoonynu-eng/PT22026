@@ -302,6 +302,24 @@ div[class*="st-key-cmp_sides"]{margin:8px 0 4px;}
 .fa-duo>.fa-card:has(.fa-bars.cmp){display:flex;flex-direction:column;}
 .fa-duo .fa-bars.cmp{flex:1;justify-content:space-evenly;gap:10px;}
 .fa-table tr.fa-strong td{border-top:1px solid rgba(96,140,220,.3);font-weight:650;color:#f2f7ff;}
+/* ---- model insights page ---- */
+.fa-pipe{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;}
+.fa-pnode{flex:1;min-width:118px;background:rgba(18,30,56,.8);border:1px solid rgba(96,140,220,.3);
+border-radius:14px;padding:11px 12px;text-align:center;}
+.fa-pnode b{display:block;font-size:13.5px;color:#e6edf7;font-weight:650;}
+.fa-pnode span{display:block;font-size:12px;color:#8fa3c2;margin-top:3px;line-height:1.35;}
+.fa-parr{align-self:center;flex:none;color:#5aa2ff;font-size:19px;font-weight:700;padding:0 1px;}
+.fa-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.fa-chip{padding:5px 12px;border-radius:999px;font-size:13px;background:rgba(59,130,246,.14);
+border:1px solid rgba(96,140,220,.35);color:#cfe0ff;font-weight:600;}
+.fa-chip.drop{background:rgba(244,63,94,.13);border-color:rgba(244,63,94,.4);color:#fda4af;}
+.fa-limit{display:flex;gap:12px;align-items:flex-start;padding:9px 0;font-size:13.5px;color:#d5e1f5;line-height:1.5;}
+.fa-limit+.fa-limit{border-top:1px solid rgba(96,140,220,.12);}
+.fa-limit svg{flex:none;margin-top:2px;}
+.fa-limit b{color:#e6edf7;}
+.fa-crvnote{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#9db0cf;margin-top:6px;}
+.fa-crvnote i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;}
+.fa-crvnote i.dash{width:16px;height:0;border-top:2px dashed rgba(244,63,94,.55);border-radius:0;}
 </style>
 """
 
@@ -595,6 +613,7 @@ def header_html(state: str, period: str, title: str, pill: bool = True) -> str:
                   "testing": ("Ready to test", "live"), "live": ("Simulated live", "live"),
                   "cases": ("Stored on disk", "done"), "audit": ("Append-only", "done"),
                   "case": ("Case file", "done"), "compare": ("Backtest, not a forecast", "done"),
+                  "model": ("From the training artifacts", "done"),
                   "approvals": ("Human in the loop", "idle")}[state]
     status = (f'<div class="fa-pills"><div class="fa-pill"><i class="fa-dot {dot}"></i>{label}</div></div>'
               if pill else "")
@@ -767,6 +786,91 @@ def pattern_table_html(rows: list[dict], left: str, right: str) -> str:
         for row in rows)
     return (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{head}</tr></thead>'
             f'<tbody>{body}</tbody></table></div>')
+
+
+def pipeline_html(steps: list[tuple[str, str]]) -> str:
+    """The decision path as one strip of boxes: each step is (title, short note)."""
+    arrow = '<div class="fa-parr">&rsaquo;</div>'
+    nodes = "".join(
+        f'{arrow}<div class="fa-pnode"><b>{escape(title)}</b><span>{escape(note)}</span></div>'
+        for title, note in steps)
+    return f'<div class="fa-pipe">{nodes}</div>'.replace(arrow, "", 1)
+
+
+def fact_table_html(headers: list[str], rows: list[tuple], strong: tuple[int, ...] = ()) -> str:
+    """A small table with emphasised rows (the model insights page)."""
+    head = "".join(f"<th>{escape(h)}</th>" for h in headers)
+    body = ""
+    for i, row in enumerate(rows):
+        cells = ""
+        for j, value in enumerate(row):
+            align = "" if j == 0 else ' style="text-align:right"'
+            cells += f"<td{align}>{escape(str(value))}</td>"
+        body += f'<tr{" class=fa-strong" if i in strong else ""}>{cells}</tr>'
+    return (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
+
+
+def feature_chips_html(used: list[tuple[str, str]], dropped: list[tuple[str, str]]) -> str:
+    """The inputs the model may see, and the ones the leakage audit removed."""
+    chips = "".join(f'<div class="fa-chip">{escape(name)}<span style="color:#8fa3c2;font-weight:500"> '
+                    f'&middot; {escape(note)}</span></div>' for name, note in used)
+    removed = "".join(
+        f'<div class="fa-limit">{icon("alert", "#fda4af", 15)}<span><b>{escape(name)}</b> '
+        f'&mdash; {escape(note)}</span></div>' for name, note in dropped)
+    tail = (f'<div class="fa-sub2" style="margin-top:16px">Removed by the leakage audit</div>{removed}'
+            if dropped else "")
+    return f'<div class="fa-chips">{chips}</div>{tail}'
+
+
+def limits_html(items: list[tuple[str, str]]) -> str:
+    """What the engine cannot do, one line each: (lead, rest)."""
+    rows = "".join(
+        f'<div class="fa-limit">{icon("alert", "#8fa3c2", 15)}<span><b>{escape(lead)}</b> {escape(rest)}</span></div>'
+        for lead, rest in items)
+    return f'<div class="fa-root">{rows}</div>'
+
+
+def pr_curve_html(curve: list[tuple[float, float]], points: list[tuple[float, float, str]],
+                  prevalence: float) -> str:
+    """Precision-recall curve, drawn in the app's dark style.
+
+    curve: (recall, precision) from low recall to high. points: operating
+    markers (recall, precision, colour). The dashed line is the precision an
+    approve-everything baseline would give (the fraud share).
+    """
+    width, height = 520, 300
+    left, right, top, bottom = 48, 16, 18, 40
+    pw, ph = width - left - right, height - top - bottom
+
+    def px(r):
+        return left + pw * max(0.0, min(1.0, r))
+
+    def py(p):
+        return top + ph * (1 - max(0.0, min(1.0, p)))
+
+    parts = [f'<svg viewBox="0 0 {width} {height}" style="width:100%;height:auto;display:block">']
+    for t in (0.0, 0.25, 0.5, 0.75, 1.0):
+        y = py(t)
+        parts.append(f'<line x1="{left}" x2="{width - right}" y1="{y:.1f}" y2="{y:.1f}" '
+                     f'stroke="rgba(143,163,194,.14)" stroke-dasharray="2 5"/>')
+        parts.append(f'<text x="{left - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="12" fill="{MUTED}">{t:.2f}</text>')
+    for t in (0.0, 0.5, 1.0):
+        parts.append(f'<text x="{px(t):.1f}" y="{height - 16}" text-anchor="middle" font-size="12" fill="{MUTED}">{t:.2f}</text>')
+    yline = py(prevalence)
+    parts.append(f'<line x1="{left}" x2="{width - right}" y1="{yline:.1f}" y2="{yline:.1f}" '
+                 f'stroke="rgba(244,63,94,.55)" stroke-dasharray="6 5"/>')
+    if curve:
+        path = "M" + " L".join(f"{px(r):.1f},{py(p):.1f}" for r, p in curve)
+        parts.append(f'<path d="{path}" fill="none" stroke="#38bdf8" stroke-width="2.4" '
+                     f'stroke-linejoin="round" stroke-linecap="round"/>')
+    for r, p, color in points:
+        parts.append(f'<circle cx="{px(r):.1f}" cy="{py(p):.1f}" r="5.5" fill="{color}" '
+                     f'stroke="#0b1428" stroke-width="2"/>')
+    parts.append(f'<text x="{left}" y="{top - 4}" font-size="12" fill="{MUTED}">Precision</text>')
+    parts.append(f'<text x="{width - right}" y="{height - 2}" text-anchor="end" font-size="12" fill="{MUTED}">Recall</text>')
+    parts.append("</svg>")
+    return "".join(parts)
 
 
 # --------------------------------------------------------------------------- #

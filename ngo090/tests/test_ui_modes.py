@@ -53,7 +53,7 @@ def test_the_sidebar_navigates_between_modes():
     at = page()
     nav = [b for b in at.sidebar.button if b.key and b.key.startswith("nav_")]
     assert {b.key for b in nav} == {"nav_live", "nav_replay", "nav_testing", "nav_compare",
-                                    "nav_cases", "nav_audit", "nav_approvals"}
+                                    "nav_model", "nav_cases", "nav_audit", "nav_approvals"}
     assert not at.exception
 
     at.sidebar.button(key="nav_replay").click().run()
@@ -68,6 +68,9 @@ def test_the_sidebar_navigates_between_modes():
     assert not at.exception
     assert at.session_state["mode"] == "Scenario comparison"
     assert "Two scenarios · one engine · one set of measures" in all_text(at)
+    at.sidebar.button(key="nav_model").click().run()
+    assert not at.exception
+    assert at.session_state["mode"] == "Model insights"
     at.sidebar.button(key="nav_cases").click().run()
     assert not at.exception
     assert at.session_state["mode"] == "Cases"
@@ -75,6 +78,27 @@ def test_the_sidebar_navigates_between_modes():
     at.sidebar.button(key="nav_audit").click().run()
     assert not at.exception
     assert at.session_state["mode"] == "Audit"
+
+
+def test_the_model_insights_page_reports_real_training_numbers():
+    """The reference page: pipeline, detectors with their blend weights, metrics, curve, limits."""
+    at = page(mode="Model insights")
+    assert not at.exception
+    body = all_text(at)
+    assert "Model insights" in body
+    assert "How a decision is made" in body and "Percentile" in body
+    assert "The three detectors" in body
+    assert "Features after the leakage audit" in body
+    assert "Removed by the leakage audit" in body
+    assert "Measured on the test window" in body
+    assert "PR-AUC" in body and "Risk engine (the blend)" in body
+    assert "Precision vs recall" in body and "approve-everything line" in body
+    assert "What it cannot do" in body
+    # the metrics are the real ones from results.csv, not placeholders
+    import pandas as pd
+    res = pd.read_csv(ROOT / "results" / TAG / "results.csv")
+    best = res.loc[res["model"] == "risk_engine", "pr_auc"].iloc[0]
+    assert f"{best:.3f}" in body
 
 
 def test_the_audit_page_lists_decisions_with_the_policy_behind_them(tmp_path, monkeypatch):
