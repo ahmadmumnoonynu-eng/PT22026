@@ -127,6 +127,21 @@ margin-left:auto !important;margin-right:16px !important;}
 .fa-vchip.fraud{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.45);}
 .fa-vchip.suspicious{background:rgba(245,158,11,.16);color:#fcd34d;border:1px solid rgba(245,158,11,.42);}
 .fa-vchip.clean{background:rgba(34,197,94,.16);color:#86efac;border:1px solid rgba(34,197,94,.4);}
+/* Verdict filter and pager of the scored-file table (plain HTML buttons, wired by script). */
+.fa-vfilters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+.fa-vpill{font-size:12.5px;font-weight:650;padding:5px 13px;border-radius:999px;cursor:pointer;
+background:rgba(18,30,56,.85);border:1px solid rgba(96,140,220,.3);color:#b7c6e0;}
+.fa-vpill b{color:#fff;font-weight:700;}
+.fa-vpill:hover{border-color:#3b82f6;color:#fff;}
+.fa-vpill.active{background:rgba(59,130,246,.22);border-color:#3b82f6;color:#fff;}
+.fa-pager{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:14px;}
+.fa-pager button{min-width:34px;height:32px;padding:0 9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+background:rgba(18,30,56,.85);border:1px solid rgba(96,140,220,.3);color:#b7c6e0;}
+.fa-pager button:hover:not(:disabled){border-color:#3b82f6;color:#fff;}
+.fa-pager button.on{background:linear-gradient(135deg,#2563eb,#0ea5e9);border:none;color:#fff;}
+.fa-pager button:disabled{opacity:.4;cursor:default;}
+.fa-pager .fa-pinfo{font-size:12.5px;color:#7f93b3;margin:0 8px;}
+.fa-pager .fa-pdots{color:#7f93b3;padding:0 2px;}
 .fa-vtext{font-size:13.5px;color:#cfdcf2;}
 .fa-vsub{font-size:12px;color:#7f93b3;margin:0 0 16px;}
 .fa-risk-big{font-size:58px;font-weight:700;letter-spacing:-1.5px;line-height:1.05;margin:6px 0 10px;}
@@ -1002,24 +1017,28 @@ def batch_summary_html(s: dict) -> str:
     return compact(f'<div class="fa-root"><div class="fa-grid fa-kpis">{"".join(cards)}</div></div>')
 
 
-def scored_table_html(rows, limit: int = 25, bands=None, n_total: int = 0) -> str:
-    """Highest-risk transactions of a scored file.
+def scored_table_html(rows, bands=None, n_total: int = 0) -> str:
+    """Every transaction of a scored file, highest risk first (ties in row order),
+    with a verdict filter and 25 rows per page -- both wired by scored_table_script().
 
     `bands` is the src.verdict band list; when given, each scored row also gets a
     plain-language verdict measured from the labelled replay window.
     """
     from src.verdict import band_for
 
-    top = rows.sort_values("risk", ascending=False).head(limit)
+    ordered = rows.sort_values(["risk", "row"], ascending=[False, True])
     labelled = "isFraud" in rows.columns and rows["isFraud"].notna().any()
     applicable = "applicable" in rows.columns
     head = (["Row", "Type", "Amount", "Risk", "Verdict", "Decision"]
             + (["Outcome"] if labelled else []) + ["Main reason"])
+    counts: dict[str, int] = {}
     body = []
-    for r in top.itertuples():
+    for r in ordered.itertuples():
         label, _ = DECISION_TEXT[r.decision]
         covered = (not applicable) or bool(r.applicable)
         band = band_for(r.risk, bands) if (bands and covered) else None
+        vkey = band.tone if band else "nc"
+        counts[vkey] = counts.get(vkey, 0) + 1
         verdict = (f'<span class="fa-vchip {band.tone}">{escape(band.label)}</span>' if band else
                    '<span class="fa-vchip clean" style="opacity:.55">Not covered</span>')
         cells = (f'<td>{r.row}</td><td>{escape(r.type.replace("_", " ").title())}</td><td>{r.amount:,.0f}</td>'
@@ -1030,18 +1049,95 @@ def scored_table_html(rows, limit: int = 25, bands=None, n_total: int = 0) -> st
             cells += ('<td>-</td>' if actual != actual else
                       f'<td><span class="fa-tag {"yes" if actual == 1 else "no"}">{"Fraud" if actual == 1 else "Legitimate"}</span></td>')
         cells += f'<td>{escape(r.reason or "-")}</td>'
-        body.append(f"<tr>{cells}</tr>")
+        body.append(f'<tr data-v="{vkey}">{cells}</tr>')
+    # The filter is verdict-only, as asked: one pill per verdict the file actually contains.
+    vlabel = {"fraud": "Fraud", "suspicious": "Suspicious", "clean": "Not fraud", "nc": "Not covered"}
+    pills = [f'<button class="fa-vpill active" data-v="all">All <b>{len(ordered):,}</b></button>']
+    pills += [f'<button class="fa-vpill" data-v="{k}">{vlabel[k]} <b>{counts[k]:,}</b></button>'
+              for k in ("fraud", "suspicious", "clean", "nc") if counts.get(k)]
     foot = ""
     if bands:
         foot = ('<div class="fa-note" style="margin-top:12px"><b>Verdict</b>: what the engine says, read from how '
                 'often this score band was fraud on '
                 f'{n_total:,} labelled replay transactions. <b>Decision</b>: what the policy does about it. '
                 '<b>Outcome</b>: what actually happened &mdash; known only because the file carries labels.</div>')
+    legend = (f'<span class="fa-scored-count">{len(ordered):,} transactions</span>'
+              f'<span>&middot; highest risk first</span>')
     table = (f'<div class="fa-tablewrap"><table class="fa-table"><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
-             f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>{foot}')
-    title = (f"Highest-risk transactions (top {len(top)} of {len(rows)})"
-             if len(top) < len(rows) else "Scored transactions")
-    return compact(f'<div class="fa-root">{card(title, table, "list")}</div>')
+             f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
+             f'<div class="fa-pager"></div>{foot}')
+    inner = (f'<div class="fa-card" id="fa_scored"><div class="fa-ctitle">{icon("list", "#5aa2ff", 24)}'
+             f'<span>Highest-risk transactions</span><div class="fa-legend">{legend}</div></div>'
+             f'<div class="fa-vfilters">{"".join(pills)}</div>{table}</div>')
+    return compact(f'<div class="fa-root">{inner}</div>')
+
+
+def scored_table_script() -> str:
+    """Client-side wiring for the scored table: verdict filter pills and the pager.
+
+    The table HTML carries every row; this script hides what is not on the current
+    page or verdict. It runs inside a component iframe and reaches the page document
+    through window.parent, the same way the scroll helpers do. Doing the paging in
+    the browser keeps the buttons instant -- no Streamlit rerun, no repaint blink.
+    """
+    return """
+<script>try{
+var d=window.parent.document,root=d.getElementById("fa_scored");
+if(root){
+  var rows=[].slice.call(root.querySelectorAll("tbody tr"));
+  var pager=root.querySelector(".fa-pager");
+  var count=root.querySelector(".fa-scored-count");
+  var PAGE=25,filter="all",page=1,v;
+  function picked(){return rows.filter(function(r){return filter==="all"||r.getAttribute("data-v")===filter;});}
+  function pageList(cur,total){
+    var a=[1],i;
+    if(total<=9){for(i=2;i<=total;i++)a.push(i);return a;}
+    var lo=Math.max(2,cur-2),hi=Math.min(total-1,cur+2);
+    if(lo>2)a.push(0);
+    for(i=lo;i<=hi;i++)a.push(i);
+    if(hi<total-1)a.push(0);
+    a.push(total);
+    return a;
+  }
+  function render(){
+    var vs=picked(),n=vs.length;
+    var pages=Math.max(1,Math.ceil(n/PAGE));
+    if(page>pages)page=pages;
+    if(page<1)page=1;
+    rows.forEach(function(r){r.style.display="none";});
+    vs.slice((page-1)*PAGE,page*PAGE).forEach(function(r){r.style.display="";});
+    var b=[],list=pageList(page,pages),i,x;
+    b.push('<button data-p="-1"'+(page<=1?" disabled":"")+'>&lsaquo;</button>');
+    for(i=0;i<list.length;i++){
+      x=list[i];
+      b.push(x===0?'<span class="fa-pdots">&hellip;</span>'
+        :'<button data-p="'+x+'"'+(x===page?' class="on"':"")+'>'+x+'</button>');
+    }
+    b.push('<button data-p="-2"'+(page>=pages?" disabled":"")+'>&rsaquo;</button>');
+    b.push('<span class="fa-pinfo">Page '+page+" of "+pages+'</span>');
+    pager.innerHTML=b.join("");
+    if(count)count.textContent=n
+      ?"Showing "+((page-1)*PAGE+1)+"\\u2013"+Math.min(page*PAGE,n)+" of "+n.toLocaleString()
+      :"Nothing matches this filter";
+  }
+  root.addEventListener("click",function(ev){
+    var p=ev.target.closest(".fa-vpill");
+    if(p){
+      filter=p.getAttribute("data-v");page=1;
+      [].forEach.call(root.querySelectorAll(".fa-vpill"),function(x){x.classList.toggle("active",x===p);});
+      render();
+      return;
+    }
+    var t=ev.target.closest(".fa-pager button[data-p]");
+    if(t&&!t.disabled){
+      v=parseInt(t.getAttribute("data-p"),10);
+      page=v===-1?page-1:v===-2?page+1:v;
+      render();
+    }
+  });
+  render();
+}
+}catch(e){}</script>"""
 
 
 # --------------------------------------------------------------------------- #

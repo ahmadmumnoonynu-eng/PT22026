@@ -35,9 +35,15 @@ def _keep_upload() -> None:
     Streamlit drops a widget's value when that widget is not rendered in a run, so a
     page switch would forget the file. A plain session key is not a widget, so the
     bytes survive navigation and the table is rebuilt from the cache for free.
+
+    The callback also fires when the file is removed with the uploader's X: that is a
+    deliberate "forget it", so the copy goes too -- otherwise the page falls back to
+    the copy and shows the Clear row as if the file were still loaded.
     """
     file = st.session_state.get("upload")
     if file is None:
+        st.session_state.pop(FILE_BYTES, None)
+        st.session_state.pop(FILE_NAME, None)
         return
     st.session_state[FILE_BYTES] = file.getvalue()
     st.session_state[FILE_NAME] = file.name
@@ -47,6 +53,16 @@ def _clear_upload() -> None:
     st.session_state.pop("upload", None)
     st.session_state.pop(FILE_BYTES, None)
     st.session_state.pop(FILE_NAME, None)
+
+
+def _wire_scored_table() -> None:
+    """The scored table's verdict filter and pager are plain HTML buttons; this runs
+    their script. Paging in the browser keeps every click instant: no rerun, no blink."""
+    try:
+        import streamlit.components.v1 as components
+        components.html(ui.scored_table_script(), height=0)
+    except Exception:                               # a cosmetic touch must never break the page
+        pass
 
 
 def _keep_view() -> None:
@@ -149,6 +165,7 @@ def _render_file(tag: str, policy: Policy, costs) -> None:
         st.markdown(ui.batch_summary_html(summarize_batch(batch, costs)), unsafe_allow_html=True)
         st.markdown(ui.scored_table_html(batch.rows, bands=stats, n_total=sum(s.total for s in stats)),
                     unsafe_allow_html=True)
+        _wire_scored_table()
         out = batch.rows.rename(columns={"reason": "main_reason"}).drop(columns=["applicable"])
         out["verdict"] = [(band_for(float(r.risk), stats).label if getattr(r, "applicable", True) else "not covered")
                           for r in batch.rows.itertuples()]

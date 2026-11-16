@@ -661,6 +661,88 @@ CSV_ROWS = ("type,amount,oldbalanceOrg,oldbalanceDest\n"
             "PAYMENT,120,5000,0\n")
 
 
+class _FakeFile:
+    def __init__(self, name, payload):
+        self.name = name
+        self._payload = payload
+
+    def getvalue(self):
+        return self._payload
+
+
+def test_removing_the_file_with_the_x_clears_everything(monkeypatch):
+    """The uploader's X fires the callback with a None value: that is a deliberate
+    'forget it', so the session copy goes too -- no Clear row for a vanished file."""
+    import mode_testing
+
+    state = {"upload": None, "uploaded_bytes": b"type,amount", "uploaded_name": "old.csv"}
+    monkeypatch.setattr(mode_testing.st, "session_state", state)
+    mode_testing._keep_upload()
+    assert "uploaded_bytes" not in state
+    assert "uploaded_name" not in state
+
+
+def test_choosing_a_file_copies_it_into_the_session(monkeypatch):
+    """Choosing a file stores its bytes and name outside the widget, so a page switch
+    cannot lose them (the widget's value is dropped when it is not rendered)."""
+    import mode_testing
+
+    state = {"upload": _FakeFile("demo.csv", b"type,amount\nTRANSFER,1")}
+    monkeypatch.setattr(mode_testing.st, "session_state", state)
+    mode_testing._keep_upload()
+    assert state["uploaded_name"] == "demo.csv"
+    assert state["uploaded_bytes"] == b"type,amount\nTRANSFER,1"
+
+
+def test_the_scored_table_shows_every_row_in_order():
+    """No more top-25 cut: all rows are in the HTML, highest risk first, ties in row
+    order, and the card says so instead of hiding rows behind a 'top 25' title."""
+    import pandas as pd
+
+    from src.verdict import BandStat
+
+    bands = [BandStat(lo=0.0, hi=99.5, frauds=0, total=1_000),
+             BandStat(lo=99.5, hi=100.01, frauds=950, total=1_000)]
+    rows = pd.DataFrame([{"row": i, "type": "TRANSFER", "amount": 100.0 + i,
+                          "risk": 100.0 - (i % 7), "reason": "", "decision": "approve",
+                          "applicable": True} for i in range(1, 31)])   # 30 rows, risk ties
+    html = ui.scored_table_html(rows, bands=bands)
+    assert html.count("<tr data-v=") == 30                              # nothing dropped
+    assert "Highest-risk transactions" in html
+    assert "top " not in text(html)                                     # the old "top 25 of 600" is gone
+    assert "30 transactions" in text(html)
+    first = html[html.index("<tr data-v="):]
+    assert ">7<" in first[:200]                                         # row 7 has the top risk (100.0)
+    # Ties share the same risk, so they follow row order: 7, 14, 21, 28 all have risk 100.
+    tie_order = [int(t) for t in re.findall(r'<tr data-v="\w+"><td>(\d+)</td>', html)][:4]
+    assert tie_order == [7, 14, 21, 28]
+
+
+def test_the_scored_table_has_a_verdict_filter_and_a_pager():
+    """One pill per verdict the file contains, with counts, and a pager placeholder
+    that scored_table_script() fills with 25-per-page page numbers."""
+    import pandas as pd
+
+    from src.verdict import BandStat
+
+    bands = [BandStat(lo=0.0, hi=99.5, frauds=0, total=1_000),
+             BandStat(lo=99.5, hi=100.01, frauds=950, total=1_000)]
+    rows = pd.DataFrame([{"row": i, "type": "TRANSFER", "amount": 100.0,
+                          "risk": 99.9 if i <= 2 else 10.0, "reason": "",
+                          "decision": "block" if i <= 2 else "approve",
+                          "applicable": i != 3} for i in range(1, 31)])  # 2 Fraud, 1 not covered
+    html = ui.scored_table_html(rows, bands=bands, n_total=39_102)
+    assert 'data-v="all"' in html and 'data-v="fraud"' in html
+    assert 'data-v="nc"' in html                                        # the Not covered pill
+    assert '<div class="fa-pager"></div>' in html
+    script = ui.scored_table_script()
+    assert "PAGE=25" in script and "fa_scored" in script
+    assert "Page " in script                                            # page numbers at the bottom
+    # The verdict is also on every row, so the filter has something to match on.
+    assert html.count('data-v="fraud"') == 2 + 1                        # 2 fraud rows + the pill
+
+
+
 def test_the_two_views_are_session_values_not_browser_tabs():
     """st.tabs reset to the first tab whenever a widget inside them reran, so the views
     are a segmented control driven by the session: asking for the upload view must land there."""
