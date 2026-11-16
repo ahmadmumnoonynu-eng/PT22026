@@ -44,7 +44,9 @@ CASES = "Cases"                     # the list of cases: a workspace page, not a
 CASE = "Case"                       # one case, opened from the list or from an alert
 AUDIT = "Audit"                     # the decision log: workspace too
 APPROVALS = "Approvals"             # the assistant's queue: workspace too
-MODES = (LIVE, REPLAY, TESTING, COMPARE, MODEL)   # the live feed is what greets the analyst
+MODES = (LIVE, REPLAY, TESTING, COMPARE)    # the live feed is what greets the analyst
+# Model insights is a reference page, not work: its button is rendered last,
+# below the workspace group, under its own "Reference" label.
 SLUG = common.PAGE_SLUGS           # the same slug the URL uses, so the two cannot drift
 ICON = {LIVE: ":material/sensors:", REPLAY: ":material/history:", TESTING: ":material/science:",
         COMPARE: ":material/compare_arrows:", MODEL: ":material/insights:",
@@ -104,6 +106,16 @@ def render_sidebar(store) -> str:
                   on_click=_switch_to, args=(APPROVALS,),
                   help="What the investigation assistant recommends. Nothing changes until a "
                        "person approves it.")
+
+        # The reference page goes last, under its own label: it explains the
+        # system instead of doing work, so it is not one of the analyst's modes.
+        st.markdown('<div class="fa-root"><div class="fa-side-label" style="margin-top:16px">Reference</div></div>',
+                    unsafe_allow_html=True)
+        st.button(MODEL, key=f"nav_{SLUG[MODEL]}", icon=ICON[MODEL], width="stretch",
+                  type="primary" if st.session_state.mode == MODEL else "secondary",
+                  on_click=_switch_to, args=(MODEL,),
+                  help="What the risk engine is, how well it scores on the test window, and "
+                       "where it falls short -- read from the training artifacts.")
     return st.session_state.mode
 
 
