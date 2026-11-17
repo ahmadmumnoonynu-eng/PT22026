@@ -25,6 +25,12 @@ print("Loading NLP models from local cache, please wait...")
 load_model()
 print("Models loaded successfully! Starting app...")
 
+def get_file_path(file) -> str:
+    """Returns a usable file path for both Gradio 3 (file object) and Gradio 4+ (string path)."""
+    if file is None:
+        return ""
+    return file.name if hasattr(file, "name") else str(file)
+
 def highlight_skills(text: str, skills: List[str]) -> str:
     """Wraps the matched skills inside the CV text with HTML span tags to highlight them."""
     if not text:
@@ -43,7 +49,7 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
     """Main function to analyze a single CV against a JD."""
     try:
         if cv_file is not None:
-            pdf_text = extract_text_from_pdf(cv_file.name)
+            pdf_text = extract_text_from_pdf(get_file_path(cv_file))
             cv_text = (cv_text or "") + "\n" + pdf_text
 
         if not cv_text or not jd_text:
@@ -102,10 +108,11 @@ def run_batch_analysis(jd_text: str, files: list):
     # Step 1: Process each uploaded PDF file and calculate the match score
     for file in files:
         try:
-            pdf_text = extract_text_from_pdf(file.name)
+            file_path = get_file_path(file)
+            pdf_text = extract_text_from_pdf(file_path)
             result = analyze_match(pdf_text, jd_text)
-            
-            candidate_name = os.path.basename(file.name).replace(".pdf", "")
+
+            candidate_name = os.path.basename(file_path).replace(".pdf", "")
             matched_str = ", ".join(result['matched']) if result['matched'] else "None"
             
             results.append({
@@ -116,7 +123,7 @@ def run_batch_analysis(jd_text: str, files: list):
             })
         except Exception as e:
             results.append({
-                "name": os.path.basename(file.name),
+                "name": os.path.basename(get_file_path(file)),
                 "score": 0.0,
                 "matched": "Error reading file",
                 "level": "Error"
@@ -183,7 +190,7 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
 theme = gr.themes.Soft(primary_hue="blue", secondary_hue="slate")
 
 # Build the main UI
-with gr.Blocks(title="Resume Optimization System") as demo:
+with gr.Blocks(theme=theme, title="Resume Optimization System") as demo:
     
     gr.Markdown("# Resume Optimization System\n**Advanced NLP Analysis for Job Seekers and Professionals**")
     
@@ -273,7 +280,6 @@ with gr.Blocks(title="Resume Optimization System") as demo:
                     batch_jd = gr.Textbox(label="Job Description", lines=6, placeholder="Paste the JD here...")
                     batch_files = gr.File(label="Upload Multiple Resumes (PDF)", file_count="multiple", file_types=[".pdf"])
                     
-                    # The slider has been completely removed from this section
                     
                     with gr.Row():
                         batch_btn = gr.Button("Compare Candidates", variant="primary", size="lg")
@@ -301,4 +307,4 @@ if __name__ == "__main__":
         webbrowser.open_new("http://127.0.0.1:7860")
     
     threading.Timer(2, open_browser).start()
-    demo.launch(theme=theme, server_name="127.0.0.1", server_port=7860)
+    demo.launch(server_name="127.0.0.1", server_port=7860)
