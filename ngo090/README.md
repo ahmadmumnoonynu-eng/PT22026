@@ -4,6 +4,14 @@ A fraud detection and risk-decision platform for mobile-money transactions. Thre
 
 The app has three modes: **historical replay** (backtest a past period hour by hour), **live simulation** (generated traffic scored as it arrives) and **transaction testing** (one transaction by hand, or a CSV file).
 
+<p align="center">
+  <img src="docs/screenshots/live_simulation.jpg" width="46%" alt="Live simulation dashboard: transactions, alerts raised, fraud caught and net benefit, with real-time trends and the decision split"/>&nbsp;
+  <img src="docs/screenshots/transaction_testing.jpg" width="46%" alt="Transaction testing: type in a transaction and see its risk, verdict, decision and the reasons"/>
+  <br><br>
+  <img src="docs/screenshots/scenario_comparison.jpg" width="46%" alt="Scenario comparison: two policies measured side by side on the same replay window"/>&nbsp;
+  <img src="docs/screenshots/case_detail.jpg" width="46%" alt="A case: the score, the explanation and the investigation assistant"/>
+</p>
+
 ---
 
 ## 1. Problem and idea
