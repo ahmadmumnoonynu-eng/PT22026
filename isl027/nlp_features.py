@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 # Common English stopwords to filter out during keyword extraction
 STOPWORDS = set([
-    "the", "and", "to", "of", "in", "a", "is", "for", "with", "on", "that", 
-    "this", "an", "as", "are", "be", "by", "or", "from", "at", "it", "we", 
+    "the", "and", "to", "of", "in", "a", "is", "for", "with", "on", "that",
+    "this", "an", "as", "are", "be", "by", "or", "from", "at", "it", "we",
     "you", "will", "your", "our", "have", "has", "must", "should", "can"
 ])
 
@@ -33,12 +33,12 @@ def create_keyword_chart(text: str):
         return None
     labels = [word[0].capitalize() for word in top_words]
     counts = [word[1] for word in top_words]
-    
+
     fig, ax = plt.subplots(figsize=(6, 3.5))
-    fig.patch.set_facecolor('#1e293b') 
+    fig.patch.set_facecolor('#1e293b')
     ax.set_facecolor('#1e293b')
-    ax.bar(labels, counts, color='#3b82f6', width=0.5) 
-    
+    ax.bar(labels, counts, color='#3b82f6', width=0.5)
+
     ax.spines['bottom'].set_color('#475569')
     ax.spines['left'].set_color('#475569')
     ax.spines['top'].set_visible(False)
@@ -56,13 +56,13 @@ def create_skill_gap_chart(matched: List[str], missing: List[str]):
         return None
     labels = ['Matched Skills', 'Missing Skills']
     sizes = [len(matched), len(missing)]
-    colors = ['#10b981', '#ef4444'] 
-    
+    colors = ['#10b981', '#ef4444']
+
     fig, ax = plt.subplots(figsize=(4, 3.5))
     fig.patch.set_facecolor('#1e293b')
     ax.set_facecolor('#1e293b')
     wedges, texts, autotexts = ax.pie(
-        sizes, labels=labels, colors=colors, autopct='%1.0f%%', 
+        sizes, labels=labels, colors=colors, autopct='%1.0f%%',
         startangle=90, textprops={'color': '#cbd5e1', 'fontweight': 'bold'}
     )
     for autotext in autotexts:
@@ -74,55 +74,169 @@ def create_skill_gap_chart(matched: List[str], missing: List[str]):
 
 def create_comparison_chart(candidate_names: List[str], scores: List[float], top_n: int = 3):
     """
-    Generates a bar chart comparing multiple candidates. 
+    Generates a bar chart comparing multiple candidates.
     The top N candidates are colored green to highlight them as the best matches.
     """
     if not candidate_names or not scores:
         return None
-        
+
     fig, ax = plt.subplots(figsize=(10, 4.5))
     fig.patch.set_facecolor('#1e293b')
     ax.set_facecolor('#1e293b')
-    
+
     # Color the top N bars green, and the rest blue
     colors = ['#10b981' if i < top_n else '#3b82f6' for i in range(len(candidate_names))]
     bars = ax.bar(candidate_names, scores, color=colors, width=0.5)
-    
+
     # Add percentage labels on top of the bars
     for bar in bars:
         yval = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2.0, yval + 1, f'{yval}%', ha='center', va='bottom', color='#cbd5e1', fontweight='bold')
-        
+
     ax.spines['bottom'].set_color('#475569')
     ax.spines['left'].set_color('#475569')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.tick_params(axis='x', colors='#cbd5e1', labelsize=10)
     ax.tick_params(axis='y', colors='#cbd5e1', labelsize=10)
-    ax.set_ylim(0, 110) 
+    ax.set_ylim(0, 110)
     ax.set_title(f"Candidate Match Score Comparison (Top {top_n} Highlighted)", color='#f8fafc', pad=15, fontweight='bold')
     plt.xticks(rotation=15, ha='right')
     plt.tight_layout()
     return fig
 
-def generate_interview_questions(matched_skills: List[str]) -> str:
+# Interview question bank with difficulty levels.
+# Each skill has one easy, one medium and one hard question.
+INTERVIEW_QUESTION_BANK = {
+    "python": {
+        "easy": "What is the difference between a list and a tuple in Python?",
+        "medium": "How does Python handle memory management and garbage collection?",
+        "hard": "Explain the GIL and its impact on multi-threaded Python programs."
+    },
+    "sql": {
+        "easy": "What is the difference between INNER JOIN and LEFT JOIN?",
+        "medium": "What is normalization? Explain 1NF, 2NF and 3NF with examples.",
+        "hard": "A query on a table with millions of rows is slow. How would you find the cause and optimize it?"
+    },
+    "machine learning": {
+        "easy": "What is the difference between supervised and unsupervised learning?",
+        "medium": "How do you handle overfitting in machine learning models?",
+        "hard": "Explain the bias-variance tradeoff and how you would diagnose it in a real project."
+    },
+    "docker": {
+        "easy": "What is the difference between a Docker image and a container?",
+        "medium": "What is a Dockerfile and how do image layers work?",
+        "hard": "How would you reduce the size of a Docker image for production deployment?"
+    },
+    "git": {
+        "easy": "What is the difference between git pull and git fetch?",
+        "medium": "How do you resolve a merge conflict in Git?",
+        "hard": "Explain the difference between git merge and git rebase, and when you would use each."
+    },
+    "aws": {
+        "easy": "What is the difference between EC2 and S3 in AWS?",
+        "medium": "What is an IAM role and why is it important for security?",
+        "hard": "How would you design a scalable architecture for a high-traffic web application on AWS?"
+    },
+    "react": {
+        "easy": "What is the difference between state and props in React?",
+        "medium": "What are React hooks and why were they introduced?",
+        "hard": "How does React's reconciliation and diffing process work under the hood?"
+    },
+    "django": {
+        "easy": "What is the MVT architecture in Django?",
+        "medium": "What is the purpose of middleware in Django?",
+        "hard": "How do you optimize Django ORM queries, and what is the difference between select_related and prefetch_related?"
+    },
+    "javascript": {
+        "easy": "What is the difference between var, let and const?",
+        "medium": "Can you explain closures in JavaScript with an example?",
+        "hard": "Explain how the JavaScript event loop works, including promises and async/await."
+    },
+    "java": {
+        "easy": "What are the four main principles of OOP?",
+        "medium": "What is the difference between an interface and an abstract class in Java?",
+        "hard": "How does JVM garbage collection work and how would you tune it?"
+    },
+    "html": {
+        "easy": "What are semantic HTML tags and why should you use them?",
+        "medium": "How do you make a web page accessible to screen readers?",
+        "hard": "How does the browser render a page from HTML and CSS (the critical rendering path)?"
+    },
+    "css": {
+        "easy": "What is the CSS box model?",
+        "medium": "When would you use Flexbox versus CSS Grid?",
+        "hard": "Explain CSS specificity and how the cascade resolves conflicting styles."
+    },
+    "pandas": {
+        "easy": "What is the difference between a Series and a DataFrame in pandas?",
+        "medium": "How does groupby work and when would you use it?",
+        "hard": "What is the difference between merge, join and concat, and what are their performance tradeoffs?"
+    },
+    "numpy": {
+        "easy": "What is the difference between a NumPy array and a Python list?",
+        "medium": "What is broadcasting in NumPy?",
+        "hard": "Why is vectorization faster than loops in NumPy? Explain at the memory level."
+    },
+    "excel": {
+        "easy": "What is the difference between VLOOKUP and INDEX-MATCH?",
+        "medium": "What are pivot tables and when would you use one?",
+        "hard": "How would you clean and validate a large messy dataset in Excel?"
+    },
+}
+
+# Aliases that should share the same question bank entry
+SKILL_ALIASES = {
+    "ml": "machine learning",
+    "js": "javascript",
+}
+
+# Generic fallback questions for skills that are not in the bank,
+# still split by difficulty so every skill gets a real practice path.
+GENERIC_QUESTIONS = {
+    "easy": "What are the core concepts of {skill} that every developer should know?",
+    "medium": "Describe a challenging project where you used {skill}. What problems did you face and how did you solve them?",
+    "hard": "What are the limitations or common pitfalls of {skill}, and how do you work around them in production?"
+}
+
+def generate_interview_questions(matched_skills: List[str], max_skills: int = 6) -> str:
+    """
+    Generates mock interview questions grouped by difficulty (easy, medium, hard).
+    Each matched skill gets one question per level, from a curated question bank
+    when available, otherwise from generic but level-specific fallbacks.
+    """
     if not matched_skills:
         return "### Mock Interview Questions\nNo specific technical skills matched."
-    question_bank = {
-        "python": "Can you explain the difference between lists and tuples in Python?",
-        "sql": "What is the difference between INNER JOIN and LEFT JOIN?",
-        "machine learning": "How do you handle overfitting in machine learning models?",
-        "ml": "How do you handle overfitting in machine learning models?",
-        "docker": "What is the difference between a Docker image and a container?",
-        "git": "How do you resolve a merge conflict in Git?",
-        "aws": "Can you explain the difference between EC2 and S3 in AWS?",
-        "react": "What is the difference between state and props in React?",
-        "django": "What is the purpose of middleware in Django?",
-    }
-    result = "### Mock Interview Questions\nBased on your matched skills:\n\n"
+
+    # Normalize skill names, resolve aliases and keep the original order
+    normalized = []
+    seen = set()
     for skill in matched_skills:
-        q = question_bank.get(skill.lower(), f"Can you describe a challenging project where you used {skill.capitalize()}?")
-        result += f"- **{skill.capitalize()}**: {q}\n"
+        key = skill.lower().strip()
+        key = SKILL_ALIASES.get(key, key)
+        if key and key not in seen:
+            seen.add(key)
+            normalized.append((skill, key))
+
+    # Limit the number of skills so the output stays readable
+    normalized = normalized[:max_skills]
+
+    levels = [
+        ("easy", "Easy (Warm-up Questions)"),
+        ("medium", "Medium (Core Knowledge)"),
+        ("hard", "Hard (Deep Dive)"),
+    ]
+
+    result = "### Mock Interview Questions\nBased on your matched skills, practice from easy to hard:\n"
+    for level_key, level_title in levels:
+        result += f"\n**{level_title}**\n"
+        for display_name, key in normalized:
+            bank_entry = INTERVIEW_QUESTION_BANK.get(key)
+            if bank_entry:
+                question = bank_entry[level_key]
+            else:
+                question = GENERIC_QUESTIONS[level_key].format(skill=display_name.capitalize())
+            result += f"- **{display_name.capitalize()}**: {question}\n"
     return result
 
 def detect_fake_job(jd_text: str) -> str:
@@ -136,22 +250,22 @@ def detect_fake_job(jd_text: str) -> str:
         "telegram": "Recruiters using Telegram for hiring are often scammers.",
         "no experience needed": "Unrealistic promises like 'no experience, high pay' are red flags.",
         "easy money": "Too-good-to-be-true promises are usually scams.",
-        "earn \$": "High daily/weekly earnings for basic work is a major red flag.",
+        "earn $": "High daily/weekly earnings for basic work is a major red flag.",
         "western union": "Scammers often use untraceable payment methods.",
         "bitcoin": "Crypto payments for jobs are a common scam.",
     }
     for keyword, reason in scam_keywords.items():
         if keyword in jd_lower:
             red_flags.append(f"- **Detected '{keyword}'**: {reason}")
-            
+
     emails = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', jd_text)
     for email in emails:
         if "@gmail.com" in email or "@yahoo.com" in email or "@hotmail.com" in email:
             red_flags.append(f"- **Suspicious Email ({email})**: Legitimate companies use corporate email addresses.")
-    
+
     if not red_flags:
         return "### Job Authenticity Check\nLooks Safe: No common scam patterns detected."
-    
+
     result = "### Job Authenticity Check\nWarning: Potential Red Flags Detected\n\n"
     result += "\n".join(red_flags)
     result += "\n\n*Note: Always verify the company independently.*"
