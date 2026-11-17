@@ -58,10 +58,10 @@ def plot_test_vs_real(table: pd.DataFrame, out_png) -> None:
     ax.bar_label(real_bars, fmt="%.3f", fontsize=8)
     ax.set_xticks(positions)
     ax.set_xticklabels(table["experiment"], rotation=20, ha="right")
-    ax.set_ylim(0, 1.05)
+    ax.set_ylim(0, 1.15)
     ax.set_ylabel("Macro-F1")
     ax.set_title("Domain-shift gap: test split vs real phone photos")
-    ax.legend(loc="lower right")
+    ax.legend(loc="upper center", ncol=2)
     fig.tight_layout()
     fig.savefig(out_png, dpi=150)
     plt.close(fig)
@@ -96,6 +96,8 @@ def plot_threshold_curve(thr_val: pd.DataFrame, thr_real: pd.DataFrame, out_png,
         table = table.dropna(subset=["accuracy_on_accepted"])
         ax.plot(table["coverage"], table["accuracy_on_accepted"], marker="o", label=label)
         for _, row in table.iterrows():
+            if label == "validation" and row["threshold"] < 0.8:
+                continue
             ax.annotate(f"{row['threshold']:.2f}", (row["coverage"], row["accuracy_on_accepted"]),
                         textcoords="offset points", xytext=(4, 4), fontsize=7)
     ax.set_xlabel("Coverage (share of images the model answers)")
