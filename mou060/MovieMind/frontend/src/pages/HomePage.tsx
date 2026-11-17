@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { MovieCard } from "@/components/movies/MovieCard";
+import { MovieCardSkeleton } from "@/components/movies/MovieCardSkeleton";
 import { Button } from "@/components/ui/Button";
 import { StatusPanel } from "@/components/ui/StatusPanel";
 import { usePopularMovies, useMovies } from "@/features/discovery/hooks";
@@ -48,7 +49,7 @@ export function HomePage() {
             icon={Flame}
             movies={trending.data}
             error={trending.error}
-            isLoading={trending.isLoading}
+            isLoading={trending.isFetching}
             onRetry={() => void trending.refetch()}
             seeAllTo="/discover?sort=ratings_count&direction=desc"
             title="Trending Now"
@@ -57,7 +58,7 @@ export function HomePage() {
             icon={Star}
             movies={topRated.data?.items}
             error={topRated.error}
-            isLoading={topRated.isLoading}
+            isLoading={topRated.isFetching}
             onRetry={() => void topRated.refetch()}
             seeAllTo="/discover?sort=average_rating&direction=desc"
             title="Top Rated Movies"
@@ -103,7 +104,7 @@ function HomeMovieRail({
   title,
 }: HomeMovieRailProps) {
   return (
-    <section aria-label={title} className="min-w-0">
+    <section aria-busy={isLoading} aria-label={title} className="min-w-0">
       <div className="mb-4 flex items-center justify-between gap-4">
         <h2 className="flex items-center gap-2 text-xl font-black tracking-tight sm:text-2xl">
           <Icon aria-hidden="true" className="size-5 text-[var(--mm-accent)]" />
@@ -115,13 +116,8 @@ function HomeMovieRail({
         </Link>
       </div>
       {isLoading ? (
-        <div aria-label={`Loading ${title}`} className="flex gap-4 overflow-hidden" role="status">
-          {Array.from({ length: 4 }, (_, index) => (
-            <div className="w-40 shrink-0 overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] sm:w-48" key={index}>
-              <div className="aspect-[2/3] animate-pulse bg-[var(--mm-surface-strong)]" />
-              <div className="space-y-2 p-3.5"><div className="h-4 w-4/5 animate-pulse rounded bg-[var(--mm-surface-strong)]" /><div className="h-3 w-2/5 animate-pulse rounded bg-[var(--mm-surface-strong)]" /></div>
-            </div>
-          ))}
+        <div aria-busy="true" aria-label={`Loading ${title}`} className="flex gap-4 overflow-hidden" role="status">
+          {Array.from({ length: 4 }, (_, index) => <MovieCardSkeleton className="w-40 shrink-0 sm:w-48" key={index} />)}
         </div>
       ) : error ? (
         <div className="space-y-3">

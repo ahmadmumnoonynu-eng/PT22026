@@ -25,6 +25,9 @@ describe("MoviePoster", () => {
     expect(image).toHaveAttribute("loading", "lazy");
     expect(image).toHaveClass("object-cover");
     expect(image).toHaveAttribute("src", "https://image.tmdb.org/t/p/w342/poster.jpg");
+    expect(image).toHaveClass("opacity-0");
+    fireEvent.load(image);
+    expect(image).toHaveClass("opacity-100");
   });
 
   it("shows the placeholder for missing and broken posters", () => {

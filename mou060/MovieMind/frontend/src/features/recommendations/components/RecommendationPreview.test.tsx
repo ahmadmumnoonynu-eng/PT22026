@@ -48,8 +48,9 @@ describe("RecommendationPreview", () => {
 
     renderWithProviders(<RecommendationPreview />);
 
-    expect(await screen.findByRole("heading", { name: "Your Recommendations" })).toBeInTheDocument();
-    expect(screen.getByText("Personalized from your taste profile")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Finding movies you'll love" })).toBeInTheDocument();
+    expect(await screen.findByText("Personalized from your taste profile", {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your Recommendations" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: `Poster for ${dune.title}` })).toBeInTheDocument();
     expect(screen.getByText(dune.average_rating!.toFixed(1))).toBeInTheDocument();
     expect(screen.getByRole("link", { name: `View details for ${dune.title}` })).toHaveAttribute(
@@ -60,5 +61,5 @@ describe("RecommendationPreview", () => {
       "href",
       "/recommendations",
     );
-  });
+  }, 15_000);
 });

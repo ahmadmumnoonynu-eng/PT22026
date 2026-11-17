@@ -1,8 +1,12 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { delay, http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { SearchPage } from "@/pages/SearchPage";
+import { apiBaseUrl } from "@/lib/api/client";
+import { dune, pageOf } from "@/test/fixtures";
+import { server } from "@/test/msw/server";
 import { LocationProbe, renderWithProviders } from "@/test/test-utils";
 
 describe("SearchPage", () => {
@@ -44,5 +48,20 @@ describe("SearchPage", () => {
     renderWithProviders(<SearchPage />, { initialEntries: ["/search?q=zzzz-not-a-movie"] });
 
     expect(await screen.findByRole("heading", { name: "No movies found" })).toBeInTheDocument();
+  });
+
+  it("shows a loading button and movie skeletons while a search is pending", async () => {
+    server.use(
+      http.get(`${apiBaseUrl}/movies`, async () => {
+        await delay(100);
+        return HttpResponse.json(pageOf([dune]));
+      }),
+    );
+
+    renderWithProviders(<SearchPage />, { initialEntries: ["/search?q=dune"] });
+
+    expect(screen.getByRole("button", { name: "Search" })).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Loading movies" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: dune.title })).toBeInTheDocument();
   });
 });

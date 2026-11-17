@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { MoviePoster } from "@/components/movies/MoviePoster";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusPanel } from "@/components/ui/StatusPanel";
 import { useMovie } from "@/features/discovery/hooks";
 import { RatingControl } from "@/features/ratings/components/RatingControl";
@@ -20,7 +21,7 @@ export function MovieDetailsPage() {
   const movie = useMovie(movieId ?? "", validId);
 
   if (!validId) return <NotFoundMovie />;
-  if (movie.isLoading) return <MovieDetailsSkeleton />;
+  if (movie.isFetching) return <MovieDetailsSkeleton />;
   if (movie.error) {
     if (isApiClientError(movie.error) && movie.error.status === 404) return <NotFoundMovie />;
     const message = isApiClientError(movie.error) ? movie.error.message : "We could not load this movie. Please try again.";
@@ -59,5 +60,5 @@ function NotFoundMovie() {
 }
 
 function MovieDetailsSkeleton() {
-  return <div aria-label="Loading movie details" className="mx-auto max-w-5xl animate-pulse overflow-hidden rounded-[28px] border border-[var(--mm-border)] bg-[var(--mm-surface)]"><div className="grid gap-7 p-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:p-10"><div className="aspect-[2/3] rounded-2xl bg-[var(--mm-surface-strong)]" /><div className="space-y-4 self-end"><div className="h-4 w-24 rounded bg-[var(--mm-surface-strong)]" /><div className="h-12 w-4/5 rounded bg-[var(--mm-surface-strong)]" /><div className="h-5 w-1/2 rounded bg-[var(--mm-surface-strong)]" /></div></div><div className="space-y-3 border-t border-[var(--mm-border)] p-6 sm:p-10"><div className="h-6 w-28 rounded bg-[var(--mm-surface-strong)]" /><div className="h-4 w-full rounded bg-[var(--mm-surface-strong)]" /><div className="h-4 w-4/5 rounded bg-[var(--mm-surface-strong)]" /></div></div>;
+  return <div aria-busy="true" aria-label="Loading movie details" className="mx-auto max-w-5xl overflow-hidden rounded-[28px] border border-[var(--mm-border)] bg-[var(--mm-surface)]" role="status"><div className="grid gap-7 p-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:p-10"><Skeleton className="aspect-[2/3] rounded-2xl" /><div className="space-y-4 self-end"><Skeleton className="h-4 w-24" /><Skeleton className="h-12 w-4/5" /><Skeleton className="h-5 w-1/2" /></div></div><div className="space-y-3 border-t border-[var(--mm-border)] p-6 sm:p-10"><Skeleton className="h-6 w-28" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></div></div>;
 }

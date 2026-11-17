@@ -1,5 +1,5 @@
 import { Bookmark, BookmarkCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
@@ -18,7 +18,6 @@ export function WatchlistButton({ compact = false, movieId, movieTitle }: Watchl
   const inWatchlist = list.data?.items.some((item) => item.movie.id === movieId) ?? false;
   const pending = add.isPending || remove.isPending;
 
-  useEffect(() => setMessage(null), [inWatchlist]);
   const actionLabel = inWatchlist
     ? `Remove ${movieTitle ?? "movie"} from My List`
     : `Add ${movieTitle ?? "movie"} to My List`;
@@ -45,5 +44,5 @@ export function WatchlistButton({ compact = false, movieId, movieTitle }: Watchl
     }
   }
 
-  return <div className="space-y-2"><Button aria-label={compact ? actionLabel : undefined} className={compact ? "size-11 rounded-xl p-0" : ""} disabled={pending || list.isLoading} isLoading={pending} onClick={() => void toggle()} variant={inWatchlist ? "secondary" : "primary"}>{inWatchlist ? <BookmarkCheck aria-hidden="true" className="size-4" /> : <Bookmark aria-hidden="true" className="size-4" />}{!compact && (inWatchlist ? "Saved to My List" : "Add to My List")}</Button>{message && <p className={`text-sm ${message.includes("could not") || message.includes("Too many") ? "text-[var(--mm-danger)]" : "text-[var(--mm-success)]"}`} role="status">{message}</p>}</div>;
+  return <div className="space-y-2"><Button aria-label={compact ? actionLabel : undefined} className={compact ? "size-11 rounded-xl p-0" : ""} disabled={pending || list.isFetching} isLoading={pending || list.isFetching} onClick={() => void toggle()} variant={inWatchlist ? "secondary" : "primary"}>{inWatchlist ? <BookmarkCheck aria-hidden="true" className="size-4" /> : <Bookmark aria-hidden="true" className="size-4" />}{!compact && (inWatchlist ? "Saved to My List" : "Add to My List")}</Button>{message && <p className={`mm-content-enter text-sm ${message.includes("could not") || message.includes("Too many") ? "text-[var(--mm-danger)]" : "text-[var(--mm-success)]"}`} role="status">{message}</p>}</div>;
 }

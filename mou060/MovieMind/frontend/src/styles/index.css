@@ -35,6 +35,19 @@ a { color: inherit; text-decoration: none; }
 .home-hero { background-image: linear-gradient(90deg, rgb(8 11 27 / 96%) 0%, rgb(8 11 27 / 86%) 38%, rgb(8 11 27 / 26%) 76%, rgb(8 11 27 / 12%) 100%), url("/images/Robot%E2%80%99s%20Dreamy%20Cinema%20Adventure.png"); background-position: center, right center; background-size: cover; }
 .auth-stage { background: radial-gradient(circle at 20% 15%, rgb(118 43 250 / 24%), transparent 24rem), radial-gradient(circle at 85% 80%, rgb(27 77 171 / 22%), transparent 26rem), var(--mm-bg); }
 
+@keyframes mm-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mm-content-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mm-page-enter { animation: mm-page-enter 220ms ease-out both; }
+.mm-content-enter { animation: mm-content-enter 180ms ease-out both; }
+
 @media (max-width: 639px) {
   .home-hero { background-image: linear-gradient(90deg, rgb(8 11 27 / 90%) 0%, rgb(8 11 27 / 64%) 62%, rgb(8 11 27 / 38%) 100%), linear-gradient(0deg, rgb(8 11 27 / 46%), transparent 56%), url("/images/Robot%E2%80%99s%20Dreamy%20Cinema%20Adventure.png"); background-position: center, center, 66% center; }
 }

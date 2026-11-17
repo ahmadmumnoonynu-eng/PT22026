@@ -72,6 +72,7 @@ describe("WatchlistButton", () => {
     await user.click(await screen.findByRole("button", { name: "Add to My List" }));
 
     expect(await screen.findByRole("button", { name: "Saved to My List" })).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("Added to your list.");
   });
 
   it("removes a saved movie", async () => {

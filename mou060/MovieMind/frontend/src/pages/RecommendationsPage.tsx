@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusPanel } from "@/components/ui/StatusPanel";
 import { RecommendationCard } from "@/features/recommendations/components/RecommendationCard";
+import { RecommendationCardSkeleton } from "@/features/recommendations/components/RecommendationSkeletons";
 import { useMyRecommendations } from "@/features/recommendations/hooks";
 import { isApiClientError } from "@/lib/api/errors";
 
 export function RecommendationsPage() {
   const recommendations = useMyRecommendations();
-  if (recommendations.isLoading) return <div className="space-y-5"><PageHeading /><StatusPanel>Finding movies for you…</StatusPanel></div>;
+  if (recommendations.isFetching) return <div aria-busy="true" className="space-y-7"><PageHeading /><section><h2 className="mb-4 text-xl font-bold">Top pick</h2><RecommendationCardSkeleton featured /></section><section><h2 className="mb-4 text-xl font-bold">More for you</h2><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <RecommendationCardSkeleton key={index} />)}</div></section><p className="sr-only" role="status">Finding movies you&apos;ll love…</p></div>;
   if (recommendations.error) {
     const message = isApiClientError(recommendations.error) ? recommendations.error.message : "We could not load your recommendations.";
     return <div className="space-y-5"><PageHeading /><StatusPanel tone="error">{message}</StatusPanel><Button onClick={() => void recommendations.refetch()} variant="secondary"><RefreshCw aria-hidden="true" className="size-4" /> Try again</Button></div>;

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { StatusPanel } from "@/components/ui/StatusPanel";
 import { MovieCollection } from "@/features/discovery/components/MovieCollection";
 import { MovieFilters } from "@/features/discovery/components/MovieFilters";
 import { Pagination } from "@/features/discovery/components/Pagination";
@@ -62,13 +63,14 @@ export function DiscoverPage() {
       <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submitSearch} role="search">
         <label className="sr-only" htmlFor="discover-search">Search movies</label>
         <div className="relative flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[var(--mm-text-subtle)]" /><Input id="discover-search" className="pl-12" onChange={(event) => setSearchValue(event.target.value)} placeholder="Search titles..." value={searchValue} /></div>
-        <Button className="rounded-xl" type="submit">Search movies</Button>
+        <Button className="rounded-xl" isLoading={movies.isFetching} type="submit">Search movies</Button>
       </form>
       <MovieFilters genres={genres.data ?? []} isLoadingGenres={genres.isLoading} onChange={updateFilters} onReset={resetFilters} value={query} />
-      <section aria-live="polite">
-        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-xl font-bold">{query.q ? `Results for “${query.q}”` : "Browse movies"}</h2>{movies.data && <p className="text-sm text-[var(--mm-text-muted)]">{movies.data.total} {movies.data.total === 1 ? "movie" : "movies"}</p>}</div>
-        <MovieCollection emptyDescription="Try another title, or clear filters to explore the full catalogue." emptyTitle="No movies match your search" error={movies.error} isLoading={movies.isLoading} movies={movies.data?.items} onRetry={() => void movies.refetch()} />
-        {movies.data && <Pagination limit={movies.data.limit} offset={movies.data.offset} onPageChange={(offset) => setSearchParams(updateParams(searchParams, { offset }))} total={movies.data.total} />}
+      {genres.error && <div className="space-y-3"><StatusPanel tone="error">We could not load movie genres. You can still browse all movies.</StatusPanel><Button isLoading={genres.isFetching} onClick={() => void genres.refetch()} variant="secondary">Retry genres</Button></div>}
+      <section aria-busy={movies.isFetching} aria-live="polite">
+        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-xl font-bold">{query.q ? `Results for “${query.q}”` : "Browse movies"}</h2>{movies.data && !movies.isFetching && <p className="text-sm text-[var(--mm-text-muted)]">{movies.data.total} {movies.data.total === 1 ? "movie" : "movies"}</p>}</div>
+        <MovieCollection emptyDescription="Try another title, or clear filters to explore the full catalogue." emptyTitle="No movies match your search" error={movies.error} isLoading={movies.isFetching} movies={movies.data?.items} onRetry={() => void movies.refetch()} />
+        {movies.data && !movies.isFetching && <Pagination limit={movies.data.limit} offset={movies.data.offset} onPageChange={(offset) => setSearchParams(updateParams(searchParams, { offset }))} total={movies.data.total} />}
       </section>
     </div>
   );

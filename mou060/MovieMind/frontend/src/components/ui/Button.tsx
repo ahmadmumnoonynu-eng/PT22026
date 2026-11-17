@@ -19,12 +19,13 @@ const variants: Record<ButtonVariant, string> = {
 export function Button({ children, className = "", disabled, isLoading, type = "button", variant = "primary", ...props }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)] disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
+      aria-busy={isLoading || undefined}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold transition-[color,background-color,border-color,opacity,transform,filter] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)] motion-safe:enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
       disabled={disabled || isLoading}
       type={type}
       {...props}
     >
-      {isLoading && <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />}
+      {isLoading && <span aria-hidden="true" className="size-4 rounded-full border-2 border-current border-r-transparent motion-safe:animate-spin" />}
       {children}
     </button>
   );

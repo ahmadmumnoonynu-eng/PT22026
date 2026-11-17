@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, useLocation } from "react-router-dom";
 import { lazy, Suspense, type ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -19,7 +19,12 @@ const SearchPage = lazy(async () => ({ default: (await import("@/pages/SearchPag
 const WatchlistPage = lazy(async () => ({ default: (await import("@/pages/WatchlistPage")).WatchlistPage }));
 
 function page(element: ReactNode) {
-  return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
+  return <Suspense fallback={<RouteFallback />}><PageTransition>{element}</PageTransition></Suspense>;
+}
+
+function PageTransition({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  return <div className="mm-page-enter" key={location.pathname}>{children}</div>;
 }
 
 export const router = createBrowserRouter([
