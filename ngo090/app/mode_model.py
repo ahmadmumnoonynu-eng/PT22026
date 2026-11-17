@@ -51,8 +51,6 @@ LIMITS = (
     ("No network features.", "The engine scores one transaction at a time; rings and mules across "
      "accounts are out of scope for now."),
 )
-CURVE_POINTS = 160            # vertices drawn of the PR curve
-REVIEW_COLOR, BLOCK_COLOR = "#fcd34d", "#fb7185"
 
 
 @st.cache_data(show_spinner="Reading the training results...")
@@ -66,28 +64,6 @@ def _scored_replay(tag: str) -> tuple[np.ndarray, np.ndarray]:
     engine = get_engine(tag)
     df = get_run(tag).replay
     return engine.score(df).risk, df["isFraud"].to_numpy()
-
-
-def _pr_curve(risk: np.ndarray, labels: np.ndarray) -> list[tuple[float, float]]:
-    """(recall, precision) at every rank, downsampled to a drawable number of points."""
-    order = np.argsort(-risk, kind="stable")
-    hits = labels[order]
-    tp = np.cumsum(hits)
-    fp = np.cumsum(1 - hits)
-    precision = tp / np.maximum(tp + fp, 1)
-    recall = tp / max(int(hits.sum()), 1)
-    idx = np.unique(np.linspace(0, len(hits) - 1, CURVE_POINTS).astype(int))
-    return [(float(recall[i]), float(precision[i])) for i in idx]
-
-
-def _operating(risk: np.ndarray, labels: np.ndarray, threshold: float) -> tuple[float, float]:
-    flag = risk >= threshold
-    flagged = int(flag.sum())
-    if flagged == 0:
-        return 0.0, 1.0
-    precision = float(((labels == 1) & flag).sum() / flagged)
-    recall = float(((labels == 1) & flag).sum() / max(int((labels == 1).sum()), 1))
-    return recall, precision
 
 
 def _metric_columns() -> list[tuple[str, str, object]]:
@@ -154,27 +130,19 @@ def render(header, tag: str, run) -> None:
     st.markdown(ui.card("Measured on the test window", _metrics_table(results), "bars"),
                 unsafe_allow_html=True)
 
-    # ---- the curve, and the honest boundaries ------------------------------ #
+    # ---- where the fraud actually sits ------------------------------------- #
     risk, labels = _scored_replay(tag)
-    review = _operating(risk, labels, 90.0)
-    block = _operating(risk, labels, 99.5)
-    curve = ui.card("Precision vs recall", ui.pr_curve_html(
-        _pr_curve(risk, labels), [(review[0], review[1], REVIEW_COLOR),
-                                  (block[0], block[1], BLOCK_COLOR)], float(labels.mean()),
-        y_label="How right we are", x_label="How much we catch")
+    top = risk >= 99.5
+    top_share = float((labels[top] == 1).sum() / max(int(top.sum()), 1))
+    curve = ui.card("Where the fraud hides", ui.risk_bands_html(risk, labels)
         + '<div class="fa-crvnote">'
-        f'<span><i style="background:#38bdf8"></i>the engine, from strictest to loosest</span>'
-        f'<span><i style="background:{BLOCK_COLOR}"></i>auto-block line (risk 99.5)</span>'
-        f'<span><i style="background:{REVIEW_COLOR}"></i>review line (risk 90)</span>'
-        '<span><i class="dash"></i>no engine at all</span></div>'
-        f'<div class="fa-note"><b>How to read it:</b> the higher the blue curve, the better &mdash; '
-        'the engine keeps catching more fraud while staying right. Right is <b>precision</b>: '
-        'of what we flag, how much is really fraud. Catch is <b>recall</b>: of all the fraud in the '
-        f'file, how much we found. The red dot is where the app blocks automatically: '
-        f'{block[1]:.0%} of what it blocks is really fraud, and it finds {block[0]:.0%} of all fraud. '
-        f'The yellow dot is the review line: {review[1]:.0%} right, {review[0]:.0%} found. '
-        'The dashed line is the floor &mdash; flagging nothing would still be '
-        f'{float(labels.mean()):.1%} right by luck. Measured on the {len(risk):,} replay transactions, '
-        'where the real answer is known for every one.</div>', "pulse")
+        '<span><i style="background:#5b6e8c"></i>honest transactions</span>'
+        '<span><i style="background:#f43f5e"></i>fraud</span></div>'
+        + '<div class="fa-note"><b>How to read it:</b> every bar is a range of the engine&rsquo;s '
+        'risk score, low on the left, high on the right; grey is honest traffic, red is fraud. '
+        'The red almost disappears on the left, grows past the review line, and in the last band '
+        f'{top_share:.0%} of the transactions are fraud &mdash; that is why the app blocks there '
+        f'automatically. Measured on the {len(risk):,} replay transactions, where the real answer '
+        'is known for every one.</div>', "pulse")
     limits = ui.card("What it cannot do", ui.limits_html(LIMITS), "alert")
     st.markdown(ui.two_cards(curve, limits), unsafe_allow_html=True)

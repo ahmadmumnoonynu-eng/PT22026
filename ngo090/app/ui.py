@@ -352,7 +352,6 @@ border:1px solid rgba(96,140,220,.35);color:#cfe0ff;font-weight:600;}
 .fa-limit b{color:#e6edf7;}
 .fa-crvnote{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#9db0cf;margin-top:6px;}
 .fa-crvnote i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;}
-.fa-crvnote i.dash{width:16px;height:0;border-top:2px dashed rgba(244,63,94,.55);border-radius:0;}
 </style>
 """
 
@@ -866,44 +865,53 @@ def limits_html(items: list[tuple[str, str]]) -> str:
     return f'<div class="fa-root">{rows}</div>'
 
 
-def pr_curve_html(curve: list[tuple[float, float]], points: list[tuple[float, float, str]],
-                  prevalence: float, y_label: str = "Precision", x_label: str = "Recall") -> str:
-    """Precision-recall curve, drawn in the app's dark style.
+def risk_bands_html(risk, labels) -> str:
+    """Histogram of the engine's risk score, split by the real answer.
 
-    curve: (recall, precision) from low recall to high. points: operating
-    markers (recall, precision, colour). The dashed line is the precision an
-    approve-everything baseline would give (the fraud share).
+    One bar per risk band: grey is the honest traffic of the band, red the
+    fraud share. Shows *why* the thresholds sit where they sit, without any
+    metric jargon. risk/labels are same-length sequences (0-100 score, 0/1).
     """
-    width, height = 520, 300
-    left, right, top, bottom = 48, 16, 18, 40
+    edges = ((0, 50), (50, 80), (80, 90), (90, 99.5), (99.5, 100.01))
+    names = ("0-50", "50-80", "80-90", "90-99.5", "99.5+")
+    rs = [float(v) for v in risk]
+    ls = [int(v) for v in labels]
+    bands = []
+    for lo, hi in edges:
+        idx = [i for i, r in enumerate(rs) if lo <= r < hi]
+        fraud = sum(ls[i] for i in idx)
+        bands.append((len(idx), fraud, fraud / len(idx) if idx else 0.0))
+
+    width, height = 520, 320
+    left, right, top, bottom = 46, 14, 34, 70
     pw, ph = width - left - right, height - top - bottom
-
-    def px(r):
-        return left + pw * max(0.0, min(1.0, r))
-
-    def py(p):
-        return top + ph * (1 - max(0.0, min(1.0, p)))
+    slot = pw / len(bands)
+    bar = slot * 0.56
+    grey = "#5b6e8c"
 
     parts = [f'<svg viewBox="0 0 {width} {height}" style="width:100%;height:auto;display:block">']
     for t in (0.0, 0.25, 0.5, 0.75, 1.0):
-        y = py(t)
+        y = top + ph * (1 - t)
         parts.append(f'<line x1="{left}" x2="{width - right}" y1="{y:.1f}" y2="{y:.1f}" '
                      f'stroke="rgba(143,163,194,.14)" stroke-dasharray="2 5"/>')
-        parts.append(f'<text x="{left - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="12" fill="{MUTED}">{t:.2f}</text>')
-    for t in (0.0, 0.5, 1.0):
-        parts.append(f'<text x="{px(t):.1f}" y="{height - 16}" text-anchor="middle" font-size="12" fill="{MUTED}">{t:.2f}</text>')
-    yline = py(prevalence)
-    parts.append(f'<line x1="{left}" x2="{width - right}" y1="{yline:.1f}" y2="{yline:.1f}" '
-                 f'stroke="rgba(244,63,94,.55)" stroke-dasharray="6 5"/>')
-    if curve:
-        path = "M" + " L".join(f"{px(r):.1f},{py(p):.1f}" for r, p in curve)
-        parts.append(f'<path d="{path}" fill="none" stroke="#38bdf8" stroke-width="2.4" '
-                     f'stroke-linejoin="round" stroke-linecap="round"/>')
-    for r, p, color in points:
-        parts.append(f'<circle cx="{px(r):.1f}" cy="{py(p):.1f}" r="5.5" fill="{color}" '
-                     f'stroke="#0b1428" stroke-width="2"/>')
-    parts.append(f'<text x="{left}" y="{top - 4}" font-size="12" fill="{MUTED}">{escape(y_label)}</text>')
-    parts.append(f'<text x="{width - right}" y="{height - 2}" text-anchor="end" font-size="12" fill="{MUTED}">{escape(x_label)}</text>')
+        parts.append(f'<text x="{left - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="12" fill="{MUTED}">{t:.0%}</text>')
+    parts.append(f'<text x="{left}" y="12" font-size="12" fill="{MUTED}">% fraud in the band</text>')
+    for k, ((n, fraud, share), name) in enumerate(zip(bands, names)):
+        x = left + slot * k + (slot - bar) / 2
+        red_h = ph * share
+        grey_h = ph - red_h
+        if fraud and red_h < 2:            # keep a visible sliver, never a fake bar
+            red_h, grey_h = 2.0, ph - 2.0
+        parts.append(f'<rect x="{x:.1f}" y="{top:.1f}" width="{bar:.1f}" height="{grey_h:.1f}" rx="3" fill="{grey}" opacity=".85"/>')
+        parts.append(f'<rect x="{x:.1f}" y="{top + grey_h:.1f}" width="{bar:.1f}" height="{red_h:.1f}" rx="2" fill="{RED}"/>')
+        share_txt = "no fraud" if fraud == 0 else ("<1% fraud" if share < 0.01 else f"{share:.0%} fraud")
+        parts.append(f'<text x="{x + bar / 2:.1f}" y="{top - 8:.1f}" text-anchor="middle" font-size="12" fill="#cfdcf2">{share_txt}</text>')
+        parts.append(f'<text x="{x + bar / 2:.1f}" y="{height - 44}" text-anchor="middle" font-size="12.5" fill="#cfdcf2">{name}</text>')
+        parts.append(f'<text x="{x + bar / 2:.1f}" y="{height - 28}" text-anchor="middle" font-size="11.5" fill="{MUTED}">{n:,} tx</text>')
+    zone = lambda k: left + slot * k + slot / 2          # noqa: E731
+    parts.append(f'<text x="{zone(3):.1f}" y="{height - 8}" text-anchor="middle" font-size="11.5" fill="{AMBER}">review zone</text>')
+    parts.append(f'<text x="{zone(4):.1f}" y="{height - 8}" text-anchor="middle" font-size="11.5" fill="{RED}">auto-block zone</text>')
+    parts.append(f'<text x="{left}" y="{height - 8}" font-size="12" fill="{MUTED}">engine risk score</text>')
     parts.append("</svg>")
     return "".join(parts)
 

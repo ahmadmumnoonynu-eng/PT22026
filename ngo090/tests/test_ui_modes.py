@@ -92,14 +92,27 @@ def test_the_model_insights_page_reports_real_training_numbers():
     assert "Removed by the leakage audit" in body
     assert "Measured on the test window" in body
     assert "PR-AUC" in body and "Risk engine (the blend)" in body
-    assert "Precision vs recall" in body and "How to read it" in body
-    assert "no engine at all" in body and "How right we are" in body
+    assert "Where the fraud hides" in body and "How to read it" in body
+    assert "review zone" in body and "auto-block zone" in body
     assert "What it cannot do" in body
     # the metrics are the real ones from results.csv, not placeholders
     import pandas as pd
     res = pd.read_csv(ROOT / "results" / TAG / "results.csv")
     best = res.loc[res["model"] == "risk_engine", "pr_auc"].iloc[0]
     assert f"{best:.3f}" in body
+
+
+def test_risk_bands_histogram_counts_the_bands_honestly():
+    """The replacement for the PR curve: one bar per risk band, shares straight from the data."""
+    risk = [10, 60, 85, 95, 99.9] * 4
+    labels = [0, 0, 1, 1, 1] * 4
+    svg = ui.risk_bands_html(risk, labels)
+    # five bands, the two lowest have no fraud at all, the top band is 100% fraud
+    assert "no fraud" in svg
+    assert "100% fraud" in svg
+    assert "4 tx" in svg                        # every band holds the same 4 rows
+    assert svg.count("<rect") == 10             # grey + red segment per band
+    assert "review zone" in svg and "auto-block zone" in svg
 
 
 def test_the_audit_page_lists_decisions_with_the_policy_behind_them(tmp_path, monkeypatch):
