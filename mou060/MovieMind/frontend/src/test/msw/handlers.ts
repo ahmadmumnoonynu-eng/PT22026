@@ -24,14 +24,31 @@ export const defaultHandlers = [
     if (body.password === "wrong-password") {
       return HttpResponse.json({ code: "unauthorized", detail: "Invalid credentials" }, { status: 401 });
     }
-    return HttpResponse.json({ access_token: "test-token", expires_in: 1800, token_type: "bearer" });
+    return HttpResponse.json({
+      access_token: "test-token",
+      csrf_token: "test-csrf-token",
+      expires_in: 1800,
+      token_type: "bearer",
+      user: testUser,
+    });
   }),
   http.post(`${apiBaseUrl}/auth/register`, () =>
     HttpResponse.json(
-      { access_token: "test-token", expires_in: 1800, token_type: "bearer", user: testUser },
+      {
+        access_token: "test-token",
+        csrf_token: "test-csrf-token",
+        expires_in: 1800,
+        token_type: "bearer",
+        user: testUser,
+      },
       { status: 201 },
     ),
   ),
+  http.get(`${apiBaseUrl}/auth/csrf`, () => HttpResponse.json({ csrf_token: null })),
+  http.post(`${apiBaseUrl}/auth/refresh`, () =>
+    HttpResponse.json({ code: "unauthorized", detail: "No refresh session" }, { status: 401 }),
+  ),
+  http.post(`${apiBaseUrl}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${apiBaseUrl}/users/me`, () => HttpResponse.json(testUser)),
   http.patch(`${apiBaseUrl}/users/me`, async ({ request }) => {
     const body = (await request.json()) as { display_name?: string; username?: string };

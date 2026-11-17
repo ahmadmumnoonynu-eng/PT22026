@@ -1,6 +1,7 @@
 type SessionListener = (accessToken: string | null) => void;
 
 let accessToken: string | null = null;
+let csrfToken: string | null = null;
 const listeners = new Set<SessionListener>();
 
 function notify() {
@@ -8,22 +9,33 @@ function notify() {
 }
 
 /**
- * Temporary in-memory session state for the bearer-token backend contract.
- *
- * Tokens intentionally are not persisted to localStorage. The authentication
- * feature will use this module after login/registration and will require the
- * user to sign in again after a browser refresh until the backend supports a
- * safer renewal mechanism.
+ * Access and CSRF tokens stay in memory. Persistent renewal is handled only by
+ * the backend's HttpOnly refresh cookie.
  */
 export const authSession = {
   clear() {
-    if (accessToken === null) return;
+    if (accessToken === null && csrfToken === null) return;
     accessToken = null;
+    csrfToken = null;
     notify();
+  },
+
+  getCsrfToken() {
+    return csrfToken;
   },
 
   getToken() {
     return accessToken;
+  },
+
+  setCsrfToken(token: string | null) {
+    csrfToken = token;
+  },
+
+  setSession(token: string, csrf: string) {
+    accessToken = token;
+    csrfToken = csrf;
+    notify();
   },
 
   setToken(token: string) {

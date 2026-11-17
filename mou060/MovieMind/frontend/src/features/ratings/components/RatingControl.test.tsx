@@ -18,10 +18,12 @@ const mockedUseAuth = vi.mocked(useAuth);
 function authValue(isAuthenticated = true): AuthContextValue {
   return {
     isAuthenticated,
+    initializationError: null,
     isLoading: false,
-    signIn: vi.fn(),
-    signOut: vi.fn(),
-    signUp: vi.fn(),
+    retryInitialization: vi.fn(),
+    signIn: vi.fn(async () => testUser),
+    signOut: vi.fn(async () => undefined),
+    signUp: vi.fn(async () => testUser),
     user: isAuthenticated ? testUser : null,
   };
 }

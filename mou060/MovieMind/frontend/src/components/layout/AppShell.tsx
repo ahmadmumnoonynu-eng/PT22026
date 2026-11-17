@@ -9,6 +9,8 @@ import { useAuth } from "@/features/auth/AuthProvider";
 
 export function AppShell() {
   const [query, setQuery] = useState("");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isAuthenticated, signOut, user } = useAuth();
 
@@ -18,6 +20,18 @@ export function AppShell() {
     if (query.trim()) params.set("q", query.trim());
     const search = params.toString();
     navigate({ pathname: "/search", search: search ? `?${search}` : "" });
+  }
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+    setSignOutError(null);
+    try {
+      await signOut();
+    } catch {
+      setSignOutError("MovieMind could not confirm server sign-out. Your local session was cleared.");
+    } finally {
+      setIsSigningOut(false);
+    }
   }
 
   return (
@@ -34,9 +48,10 @@ export function AppShell() {
           </form>
           <Link className="font-bold tracking-tight text-[var(--mm-text)] md:hidden" to="/">Movie<span className="text-[var(--mm-accent)]">Mind</span></Link>
           <nav aria-label="Account" className="ml-auto flex items-center gap-2">
-            {isAuthenticated && user ? <><Link aria-label="Open profile" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:px-3" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{user.display_name ?? user.username ?? "Account"}</span></Link><Button className="min-h-10 rounded-xl px-3 sm:px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
+            {isAuthenticated && user ? <><Link aria-label="Open profile" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:px-3" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{user.display_name ?? user.username ?? "Account"}</span></Link><Button className="min-h-10 rounded-xl px-3 sm:px-4" disabled={isSigningOut} isLoading={isSigningOut} onClick={() => void handleSignOut()} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
           </nav>
         </header>
+        {signOutError && <p className="border-b border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-center text-sm text-[var(--mm-danger)]" role="alert">{signOutError}</p>}
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-10 lg:pb-10" id="main-content" tabIndex={-1}><Outlet /></main>
         <footer aria-label="Credits" className="mx-auto flex w-full max-w-[1440px] flex-col items-center gap-3 border-t border-[var(--mm-border)] px-4 py-6 text-center sm:px-6 lg:px-10">
           <a aria-label="The Movie Database website" className="rounded-md bg-white px-2 py-1" href="https://www.themoviedb.org" rel="noreferrer" target="_blank">

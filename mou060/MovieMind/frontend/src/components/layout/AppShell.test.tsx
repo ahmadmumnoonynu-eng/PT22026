@@ -33,13 +33,15 @@ function renderShell(value: AuthContextValue) {
   );
 }
 
-function authValue(isAuthenticated: boolean, signOut = vi.fn()): AuthContextValue {
+function authValue(isAuthenticated: boolean, signOut = vi.fn(async () => undefined)): AuthContextValue {
   return {
     isAuthenticated,
+    initializationError: null,
     isLoading: false,
-    signIn: vi.fn(),
+    retryInitialization: vi.fn(),
+    signIn: vi.fn(async () => testUser),
     signOut,
-    signUp: vi.fn(),
+    signUp: vi.fn(async () => testUser),
     user: isAuthenticated ? testUser : null,
   };
 }

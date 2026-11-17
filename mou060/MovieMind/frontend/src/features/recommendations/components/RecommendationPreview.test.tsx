@@ -22,10 +22,12 @@ describe("RecommendationPreview", () => {
   it("renders API recommendation details, poster, rating, and movie navigation", async () => {
     const auth: AuthContextValue = {
       isAuthenticated: true,
+      initializationError: null,
       isLoading: false,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      signUp: vi.fn(),
+      retryInitialization: vi.fn(),
+      signIn: vi.fn(async () => testUser),
+      signOut: vi.fn(async () => undefined),
+      signUp: vi.fn(async () => testUser),
       user: testUser,
     };
     mockedUseAuth.mockReturnValue(auth);

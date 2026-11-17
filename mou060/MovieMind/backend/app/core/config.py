@@ -8,7 +8,7 @@ insecure — see ``Settings._enforce_production_safety``.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # --- Security -------------------------------------------------------------
     SECRET_KEY: str = _DEVELOPMENT_DEFAULT_SECRET
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=1, le=24 * 60)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, ge=1, le=365)
+    REFRESH_COOKIE_SECURE: bool = False
+    REFRESH_COOKIE_SAME_SITE: Literal["lax", "strict", "none"] = "lax"
     JWT_ALGORITHM: str = "HS256"
 
     # --- Database -------------------------------------------------------------
@@ -101,6 +104,15 @@ class Settings(BaseSettings):
             raise ValueError("API_V1_PREFIX must start with '/'")
         return value.rstrip("/") or "/"
 
+    @field_validator("REFRESH_COOKIE_SAME_SITE")
+    @classmethod
+    def _none_requires_secure_cookie(cls, value: str, info: ValidationInfo) -> str:
+        if value == "none" and info.data.get("APP_ENV") != "production" and not info.data.get(
+            "REFRESH_COOKIE_SECURE", False
+        ):
+            raise ValueError("SameSite=None requires REFRESH_COOKIE_SECURE=true outside production")
+        return value
+
     def _enforce_production_safety(self) -> None:
         """Raise if production configuration is missing or insecure."""
         if self.APP_ENV != "production":
@@ -120,6 +132,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @property
+    def refresh_cookie_secure(self) -> bool:
+        """Production refresh cookies must always be Secure."""
+        return self.is_production or self.REFRESH_COOKIE_SECURE
 
     @property
     def is_development(self) -> bool:

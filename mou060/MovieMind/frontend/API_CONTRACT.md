@@ -1,6 +1,6 @@
 # MovieMind Frontend API Contract
 
-**Verified:** 2026-11-16  
+**Verified:** 2026-11-17
 **Sources:** `backend/app` implementation and the supplied API documentation.  
 **Base path:** `/api/v1`
 
@@ -9,11 +9,15 @@ This is the frontend integration reference for the current backend. It records o
 ## Authentication
 
 - Authentication uses `Authorization: Bearer <access_token>`.
-- `POST /auth/register` accepts `{ email, password, username?, display_name? }` and returns `201` with `access_token`, `token_type`, `expires_in`, and `user`.
-- `POST /auth/login` accepts `{ email, password }` and returns `200` with `access_token`, `token_type`, and `expires_in`.
-- After login, call `GET /users/me` to obtain the current user profile.
-- Access tokens expire after the backend-configured number of seconds; the default is 30 minutes.
-- `POST /auth/refresh` and `POST /auth/logout` deliberately return `501`. Sign-out must discard the token and clear user-specific frontend cache locally.
+- Access tokens are short-lived (30 minutes by default) and are kept in frontend memory only.
+- `POST /auth/register` accepts `{ email, password, username?, display_name? }` and returns `201` with `access_token`, `token_type`, `expires_in`, `csrf_token`, and `user`.
+- `POST /auth/login` accepts `{ email, password }` and returns `200` with the same token fields and current `user`.
+- Login and registration also set a persistent HttpOnly refresh cookie. The raw refresh token is never returned in JSON or exposed to JavaScript.
+- `GET /auth/csrf` returns the CSRF token for the refresh cookie, or `null` when no refresh session exists.
+- `POST /auth/refresh` requires the `X-CSRF-Token` header and matching CSRF cookie; it rotates the refresh cookie and returns a new access token.
+- `POST /auth/logout` requires the CSRF token, revokes the refresh-token family, and clears both cookies.
+- On startup, refresh is attempted before fetching `GET /users/me`; protected routes remain in a loading state until restoration completes.
+- Refresh sessions expire after 30 days by default. The `refresh_sessions` table is added by an Alembic migration; deployments must apply it explicitly.
 - Registration password length is 8–128 characters. Login password length is 1–128 characters.
 - User-editable profile fields are only `username` and `display_name`, via `PATCH /users/me`.
 
@@ -116,8 +120,9 @@ Each watchlist item contains its `movie`, so no additional movie lookup is requi
 ## CORS and deployment
 
 - Local backend CORS currently permits `http://localhost:5173` and `http://127.0.0.1:5173`.
-- The backend allows `Authorization` and `Content-Type` headers and explicitly permits `GET`, `POST`, `PATCH`, `DELETE`, and `OPTIONS`.
+- The backend allows `Authorization`, `Content-Type`, and `X-CSRF-Token` headers and explicitly permits `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`.
 - Production requires the Vercel frontend origin to be added explicitly to `CORS_ORIGINS`; wildcards are rejected.
+- Cross-site frontend/API deployments must use `REFRESH_COOKIE_SAME_SITE=none`; production automatically sets Secure cookies. Same-site custom domains or a same-origin API proxy are more reliable where browsers block third-party cookies.
 - The frontend should set only the public `VITE_API_BASE_URL` environment variable. It must never contain backend secrets.
 
 ## Design-impacting decisions

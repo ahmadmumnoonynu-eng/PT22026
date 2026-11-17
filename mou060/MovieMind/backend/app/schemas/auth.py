@@ -23,7 +23,16 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds
+    csrf_token: str
 
 
 class RegisterResponse(TokenResponse):
     user: UserOut
+
+
+class LoginResponse(TokenResponse):
+    user: UserOut
+
+
+class CsrfTokenResponse(BaseModel):
+    csrf_token: str | None

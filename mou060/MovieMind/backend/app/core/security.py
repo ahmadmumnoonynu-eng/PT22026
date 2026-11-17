@@ -3,8 +3,8 @@
 - Passwords are hashed with Argon2id (``pwdlib`` + argon2-cffi) — never stored
   in plaintext, never reversible.
 - Access tokens are short-lived, HS256-signed JWTs with ``sub`` = user UUID,
-  ``type`` = "access", ``iat`` and ``exp``. There are no refresh tokens in the
-  first release (owner decision #6).
+  ``type`` = "access", ``iat`` and ``exp``.   Refresh tokens are opaque random values stored only as hashes by the refresh
+  session repository.
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ def create_access_token(user_id: uuid.UUID, expires_delta: timedelta | None = No
         "iat": now,
         "exp": expires,
         "type": "access",
+        "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 

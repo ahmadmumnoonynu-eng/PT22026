@@ -92,9 +92,24 @@ def test_patch_me_updates_display_name():
     assert r.json()["display_name"] == "Alice"
 
 
-def test_refresh_and_logout_not_implemented():
-    assert client.post("/api/v1/auth/refresh").status_code == 501
-    assert client.post("/api/v1/auth/logout").status_code == 501
+def test_refresh_and_logout_rotate_and_revoke_session():
+    registered = _register()
+    assert registered.status_code == 201
+    csrf_token = registered.json()["csrf_token"]
+
+    refreshed = client.post(
+        "/api/v1/auth/refresh",
+        headers={"X-CSRF-Token": csrf_token},
+    )
+    assert refreshed.status_code == 200
+    assert refreshed.json()["csrf_token"] != csrf_token
+
+    logout = client.post(
+        "/api/v1/auth/logout",
+        headers={"X-CSRF-Token": refreshed.json()["csrf_token"]},
+    )
+    assert logout.status_code == 204
+    assert client.post("/api/v1/auth/refresh").status_code == 401
 
 
 def test_short_password_rejected():

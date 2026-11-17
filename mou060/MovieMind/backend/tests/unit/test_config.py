@@ -48,6 +48,12 @@ def test_production_passes_with_real_secret():
         _env_file=None,
     )
     s._enforce_production_safety()  # must not raise
+    assert s.refresh_cookie_secure
+
+
+def test_cross_site_refresh_cookie_requires_secure_in_development():
+    with pytest.raises(ValueError, match="REFRESH_COOKIE_SECURE"):
+        Settings(REFRESH_COOKIE_SAME_SITE="none", _env_file=None)
 
 
 def test_get_settings_cached():

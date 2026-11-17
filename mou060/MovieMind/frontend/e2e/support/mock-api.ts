@@ -67,7 +67,7 @@ type MockState = {
 };
 
 const responseHeaders = {
-  "access-control-allow-headers": "authorization,content-type",
+  "access-control-allow-headers": "authorization,content-type,x-csrf-token",
   "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
   "access-control-allow-origin": "*",
 };
@@ -121,13 +121,45 @@ export async function installMockApi(page: Page): Promise<MockState> {
 
     if (method === "POST" && path === "/auth/login") {
       state.signedIn = true;
-      await json(route, { access_token: "e2e-token", expires_in: 1800, token_type: "bearer" });
+      await json(route, {
+        access_token: "e2e-token",
+        csrf_token: "e2e-csrf-token",
+        expires_in: 1800,
+        token_type: "bearer",
+        user,
+      });
       return;
     }
 
     if (method === "POST" && path === "/auth/register") {
       state.signedIn = true;
-      await json(route, { access_token: "e2e-token", expires_in: 1800, token_type: "bearer", user }, 201);
+      await json(route, {
+        access_token: "e2e-token",
+        csrf_token: "e2e-csrf-token",
+        expires_in: 1800,
+        token_type: "bearer",
+        user,
+      }, 201);
+      return;
+    }
+
+    if (method === "GET" && path === "/auth/csrf") {
+      return json(route, { csrf_token: state.signedIn ? "e2e-csrf-token" : null });
+    }
+
+    if (method === "POST" && path === "/auth/refresh") {
+      if (!state.signedIn) return json(route, { code: "unauthorized", detail: "No session" }, 401);
+      return json(route, {
+        access_token: "e2e-token",
+        csrf_token: "e2e-csrf-token",
+        expires_in: 1800,
+        token_type: "bearer",
+      });
+    }
+
+    if (method === "POST" && path === "/auth/logout") {
+      state.signedIn = false;
+      return route.fulfill({ headers: responseHeaders, status: 204 });
       return;
     }
 

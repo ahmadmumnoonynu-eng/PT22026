@@ -16,6 +16,7 @@ from app.db.models import (  # noqa: F401 — import to populate Base.metadata
     Movie,
     MovieGenre,
     Rating,
+    RefreshSession,
     User,
     UserRole,
     WatchlistItem,

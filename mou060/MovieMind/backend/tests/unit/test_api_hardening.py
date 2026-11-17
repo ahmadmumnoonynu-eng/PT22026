@@ -27,12 +27,13 @@ def test_cors_preflight():
         headers={
             "Origin": "http://localhost:5173",
             "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "content-type",
+            "Access-Control-Request-Headers": "content-type,x-csrf-token",
         },
     )
     assert r.status_code == 200
     assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
     assert "POST" in r.headers["access-control-allow-methods"]
+    assert "x-csrf-token" in r.headers["access-control-allow-headers"].lower()
 
 
 def test_body_limit_rejects_oversized_body():

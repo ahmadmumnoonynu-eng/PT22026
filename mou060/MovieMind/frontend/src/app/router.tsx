@@ -3,7 +3,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { RouteFallback } from "@/app/RouteFallback";
-import { RequireAuth } from "@/features/auth/RequireAuth";
+import { GuestOnly, RequireAuth } from "@/features/auth/RequireAuth";
 
 const AuthPage = lazy(async () => ({ default: (await import("@/pages/AuthPage")).AuthPage }));
 const DiscoverPage = lazy(async () => ({ default: (await import("@/pages/DiscoverPage")).DiscoverPage }));
@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: "login", element: page(<AuthPage mode="login" />) },
-  { path: "register", element: page(<AuthPage mode="register" />) },
+  { path: "login", element: page(<GuestOnly><AuthPage mode="login" /></GuestOnly>) },
+  { path: "register", element: page(<GuestOnly><AuthPage mode="register" /></GuestOnly>) },
   { path: "*", element: page(<NotFoundPage />) },
 ]);

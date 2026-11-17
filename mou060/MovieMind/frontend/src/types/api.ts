@@ -52,11 +52,14 @@ export type User = {
 
 export type TokenResponse = {
   access_token: string;
+  csrf_token: string;
   expires_in: number;
   token_type?: string;
 };
 
 export type RegisterResponse = TokenResponse & { user: User };
+export type LoginResponse = TokenResponse & { user: User };
+export type CsrfTokenResponse = { csrf_token: string | null };
 
 export type Rating = {
   created_at: string;

@@ -20,9 +20,11 @@ beforeEach(() => {
   signUp.mockReset();
   mockedUseAuth.mockReturnValue({
     isAuthenticated: false,
+    initializationError: null,
     isLoading: false,
+    retryInitialization: vi.fn(),
     signIn,
-    signOut: vi.fn(),
+    signOut: vi.fn(async () => undefined),
     signUp,
     user: null,
   } satisfies AuthContextValue);

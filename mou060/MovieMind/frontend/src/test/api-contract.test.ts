@@ -19,7 +19,13 @@ describe("auth endpoints", () => {
     server.use(
       http.post(`${apiBaseUrl}/auth/login`, async ({ request }) => {
         body = await request.json();
-        return HttpResponse.json({ access_token: "token", expires_in: 1800, token_type: "bearer" });
+        return HttpResponse.json({
+          access_token: "token",
+          csrf_token: "csrf",
+          expires_in: 1800,
+          token_type: "bearer",
+          user: testUser,
+        });
       }),
     );
 
@@ -34,7 +40,13 @@ describe("auth endpoints", () => {
     server.use(
       http.post(`${apiBaseUrl}/auth/register`, async ({ request }) => {
         registrations.push(await request.json());
-        return HttpResponse.json({ access_token: "token", expires_in: 1800, token_type: "bearer", user: testUser }, { status: 201 });
+        return HttpResponse.json({
+          access_token: "token",
+          csrf_token: "csrf",
+          expires_in: 1800,
+          token_type: "bearer",
+          user: testUser,
+        }, { status: 201 });
       }),
       http.patch(`${apiBaseUrl}/users/me`, async ({ request }) => {
         updates.push(await request.json());

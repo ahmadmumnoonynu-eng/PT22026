@@ -13,7 +13,7 @@ algorithm, model artifacts, or backend secrets.
 | --- | --- |
 | Application root | `MovieMind/frontend/` |
 | API base URL | `VITE_API_BASE_URL` + `/api/v1` |
-| Default local API | `http://127.0.0.1:8000/api/v1` |
+| Default local API | `http://localhost:8000/api/v1` |
 | Frontend dev server | `http://localhost:5173` (Vite default) |
 | Production output | `dist/` |
 | Deployment target | Vercel, rooted at `frontend/` |
@@ -95,12 +95,15 @@ Open `http://localhost:5173`.
 | `VITE_API_BASE_URL` | Recommended | Public origin of the FastAPI service, without a trailing slash and without `/api/v1`. The client appends `/api/v1`. |
 
 ```dotenv
-VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 Rules:
 
-- If unset, the client falls back to `http://127.0.0.1:8000`.
+- If unset, the client falls back to `http://localhost:8000`.
+- For local cookie persistence, keep the frontend and API on the same hostname
+  (`localhost` in the default configuration); `localhost` and `127.0.0.1` are
+  different cookie sites even though they may resolve to the same machine.
 - Only `VITE_*` values are exposed to the browser. Never put database URLs,
   access tokens, private keys, or other secrets in a `VITE_*` variable.
 - Do not commit `.env` or `.env.*`; only `.env.example` belongs in Git.
@@ -167,8 +170,10 @@ All requests go through one Axios client in `src/lib/api/client.ts`:
 - Base URL: `${VITE_API_BASE_URL}/api/v1`
 - JSON `Accept` and `Content-Type` headers
 - 12-second request timeout
-- Bearer token attached in memory when a session exists
-- A `401` response clears the in-memory token and protected query data
+- Credentials included for refresh-cookie requests
+- Access and CSRF tokens held in memory; refresh token is only an HttpOnly cookie
+- Concurrent `401` responses share one refresh request and retry once
+- Protected query data is cleared when the session is revoked or signed out
 - Failures are mapped to safe user-facing messages; raw server details, SQL
   errors, stack traces, and secrets are never rendered
 
@@ -179,9 +184,12 @@ schemas. UI components render only fields that the API actually returns.
 
 | Area | Endpoint | Notes |
 | --- | --- | --- |
-| Login | `POST /auth/login` | `{ email, password }` returns an access token, token type, and expiry. |
-| Register | `POST /auth/register` | Accepts `email`, `password` (8–128 characters), optional `username`, and optional `display_name`; returns a token and user. |
-| Current user | `GET /users/me` | Restores the session after login/registration. No token is persisted across refresh. |
+| Login | `POST /auth/login` | `{ email, password }` returns an access token, user, CSRF token, token type, and expiry; sets a rotating HttpOnly refresh cookie. |
+| Register | `POST /auth/register` | Accepts `email`, `password` (8–128 characters), optional `username`, and optional `display_name`; returns the user and tokens. |
+| CSRF token | `GET /auth/csrf` | Returns a CSRF token associated with the refresh cookie; returns `null` when no session cookie exists. |
+| Refresh | `POST /auth/refresh` | Validates CSRF, rotates the refresh cookie, and returns a new short-lived access token. |
+| Logout | `POST /auth/logout` | Validates CSRF, revokes the refresh-token family, and clears both cookies. |
+| Current user | `GET /users/me` | Loaded after startup refresh to restore the authenticated user before protected routes render. |
 | Profile update | `PATCH /users/me` | Only `username` and `display_name` are editable. |
 | Movie list | `GET /movies` | Offset pagination with `limit` (1–100), `offset`, `q`, `genre`, `year`, `sort`, and `direction`. |
 | Movie detail | `GET /movies/{movie_id}` | Returns one movie or `404`. |
@@ -200,8 +208,14 @@ Contract assumptions and behavior:
 
 - Authentication uses `Authorization: Bearer <access_token>`. Access tokens
   expire after the backend-configured interval (default 30 minutes).
-- `POST /auth/refresh` and `POST /auth/logout` return `501`; sign-out discards
-  the token and clears user-specific query data locally.
+- Refresh tokens are opaque, stored server-side only as hashes, rotated on
+  refresh, and sent in an HttpOnly cookie. Refresh and logout require the
+  matching CSRF cookie and `X-CSRF-Token` header.
+- The frontend attempts session restoration before deciding whether protected
+  routes should redirect. A missing refresh cookie is treated as a normal
+  signed-out state; transient restoration failures show a retry state.
+- The `refresh_sessions` table requires the Alembic migration described in the
+  backend README. It is not created automatically at application startup.
 - Errors use `{ "detail": string, "code": string }` with codes such as
   `unauthorized`, `forbidden`, `not_found`, `conflict`, `validation_error`,
   `rate_limited`, `database_unavailable`, `model_unavailable`, and
@@ -228,7 +242,6 @@ build or imply them:
 - Notifications, premium/payment flows, social features, chat, or public profiles
 - Settings beyond the current placeholder route
 - Client-side recommendation logic, model training, or ML artifact access
-- Token refresh, serverside logout, or persistent browser-token storage
 - Email verification
 
 ## Routes
@@ -272,7 +285,7 @@ authorization authority for every protected request.
 npm test
 ```
 
-The suite contains 64 tests across 14 files and covers:
+The suite contains 76 tests across 19 files and covers:
 
 - Movie card and poster fallbacks
 - Loading, empty, error, and retry states
@@ -280,8 +293,10 @@ The suite contains 64 tests across 14 files and covers:
 - Login/registration validation, duplicate-submit prevention, and safe errors
 - Authentication-dependent navigation and header UI
 - Rating and watchlist controls, including pending and error states
-- Endpoint URLs, query parameters, request bodies, and bearer authentication
-- Client error mapping and `401` session clearing
+- Endpoint URLs, query parameters, request bodies, bearer authentication, and
+  auth-cookie/CSRF contracts
+- Session restoration, destination-preserving redirects, single-flight refresh,
+  and `401` retry behavior
 - Cache invalidation after rating/watchlist mutations
 - Logout removal of protected cached data
 
@@ -329,10 +344,9 @@ Without `E2E_EMAIL` and `E2E_PASSWORD`, live tests are skipped. They mutate the
 dedicated account's watchlist and rating, so never point them at production user
 data or a shared account.
 
-**Current status:** the E2E specs and both configurations are implemented, but
-the Playwright Chromium download has not completed in this environment, so the
-E2E suites have not yet been executed. Component and API integration tests pass
-locally.
+**Current status:** the mocked Playwright suite was attempted but could not
+launch because the local Chromium executable is unavailable. Chromium was not
+installed for this task. Component and API integration tests pass locally.
 
 ## Build
 
@@ -371,9 +385,11 @@ deployed, so no production URL is recorded here.
    return `404`; no rewrite file is committed pre-emptively.
 8. Decide deliberately whether preview deployment origins are supported. Do not
    open production CORS to arbitrary preview domains.
-9. Reconfirm authentication after deployment. The current bearer flow stores the
-   token in memory and has no refresh/logout endpoint; any cookie-based
-   production model would require backend changes.
+9. Apply the backend Alembic migration for `refresh_sessions` before deploying
+   the backend changes. Configure explicit `CORS_ORIGINS` and, for a cross-site
+   frontend/API deployment, set `REFRESH_COOKIE_SAME_SITE=none`; production
+   automatically enforces `Secure`. Third-party-cookie restrictions may require
+   a same-site custom domain or same-origin API proxy.
 
 ## Screenshots
 
@@ -392,9 +408,9 @@ future `docs/screenshots/` directory) after deployment.
 
 ## Known limitations
 
-- The access token is intentionally held only in memory. A browser refresh
-  signs the user out because the backend has no refresh or persisted-session
-  mechanism.
+- Browser restoration depends on the backend `refresh_sessions` migration and
+  correctly configured production cookies/CORS. The access token remains
+  memory-only; the persistent credential is an HttpOnly refresh cookie.
 - Registration immediately signs the user in; there is no email verification.
 - Favorites are not supported; only the watchlist exists.
 - Recommendations use backend fallback behavior until five ratings exist.
@@ -402,8 +418,8 @@ future `docs/screenshots/` directory) after deployment.
   unsupported fields or actions.
 - The live backend integration environment has not been available for a full
   manual acceptance pass. UI behavior is covered with MSW contract mocks.
-- Playwright E2E execution is pending the local Chromium download. Live E2E tests
-  are gated and have not been run.
+- Playwright E2E execution is pending installation of its Chromium runtime.
+  Live E2E tests are gated and have not been run.
 - Vercel deployment, production CORS configuration, and post-deployment route
   refresh checks remain outstanding.
 - No ESLint or Prettier configuration exists yet; `npm run typecheck` and the

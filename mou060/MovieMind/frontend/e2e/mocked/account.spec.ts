@@ -17,6 +17,10 @@ async function login(page: Page) {
 test("signed-in user saves, rates, views recommendations, and signs out", async ({ page }) => {
   await login(page);
 
+  await page.goto("/watchlist");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+
   await page.goto(`/movies/${duneId}`);
   const add = page.getByRole("button", { name: "Add to My List" });
   await expect(add).toBeVisible();
