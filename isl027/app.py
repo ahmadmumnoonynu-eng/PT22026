@@ -7,8 +7,7 @@ import pandas as pd
 
 import gradio as gr
 
-# --- Environment Setup ---
-# Ensure the app runs locally and uses the cached models to avoid network timeouts
+# Set environment variables to ensure the app runs locally and uses cached models without network requests
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -21,21 +20,18 @@ from nlp_features import (
     create_comparison_chart
 )
 
-# Pre-load the NLP models before the UI starts to ensure a smooth user experience
+# Pre-load the model into memory when the app starts to avoid delays on the first request
 print("Loading NLP models from local cache, please wait...")
 load_model()
 print("Models loaded successfully! Starting app...")
 
 def highlight_skills(text: str, skills: List[str]) -> str:
-    """
-    Highlights the matched skills within the CV text using HTML span tags.
-    This helps the user visually identify which parts of their CV matched the JD.
-    """
+    """Wraps the matched skills inside the CV text with HTML span tags to highlight them."""
     if not text:
         return ""
     highlighted = text
     for skill in skills:
-        # Using regex with word boundaries to match exact skills (e.g., 'java' won't match 'javascript')
+        # Use regex with word boundaries to ensure exact matches
         pattern = re.compile(r"(?<!\w)(" + re.escape(skill) + r")(?!\w)", re.IGNORECASE)
         highlighted = pattern.sub(
             r'<span style="background-color: #d4edda; color: #155724; font-weight: bold; padding: 2px 4px; border-radius: 4px;">\1</span>',
@@ -46,19 +42,15 @@ def highlight_skills(text: str, skills: List[str]) -> str:
 def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
     """Main function to analyze a single CV against a JD."""
     try:
-        # Extract text from the uploaded PDF if provided
         if cv_file is not None:
             pdf_text = extract_text_from_pdf(cv_file.name)
             cv_text = (cv_text or "") + "\n" + pdf_text
 
-        # Validate that both CV and JD are provided before proceeding
         if not cv_text or not jd_text:
             return "Please provide both a CV and a Job Description.", "", "", None, "", "", "", None, "", "", "", ""
 
-        # Call the core analysis function from model_utils
         result = analyze_match(cv_text, jd_text)
         
-        # Create a visually appealing HTML block to display the match score and level
         score_md = f"""
         <div style='text-align: center; padding: 20px; background: rgba(37, 99, 235, 0.1); border-radius: 10px; border: 1px solid #2563eb;'>
             <p style='margin: 0; font-size: 1.1rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;'>Match Score</p>
@@ -67,14 +59,12 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         </div>
         """
         
-        # Generate HTML badges to display matched (green) and missing (red) skills
         matched_html = "".join([f"<span style='display:inline-block; background: #10b981; color: white; padding: 4px 10px; border-radius: 15px; margin: 4px; font-size: 0.9rem; font-weight: 600;'>{s.capitalize()}</span>" for s in result['matched']])
         missing_html = "".join([f"<span style='display:inline-block; background: #ef4444; color: white; padding: 4px 10px; border-radius: 15px; margin: 4px; font-size: 0.9rem; font-weight: 600;'>{s.capitalize()}</span>" for s in result['missing']])
         
         matched_md = f"### Matched Skills\n<div>{matched_html if matched_html else 'None found'}</div>"
         missing_md = f"### Missing Skills\n<div>{missing_html if missing_html else 'None detected'}</div>"
         
-        # Call rule-based analytics functions from nlp_features
         gap_chart_fig = create_skill_gap_chart(result['matched'], result['missing'])
         scam_md = detect_fake_job(jd_text)
         ats_md = check_ats_compatibility(cv_text, result['missing'], result['matched'])
@@ -85,7 +75,6 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         feedback_md = f"### Automated Feedback\n{generate_feedback(result['score'], result['missing'])}"
         learning_md = f"### Skill Gap Learning Path\n{get_learning_recommendations(result['missing'])}"
         
-        # Highlight skills in the original CV text for the preview section
         hl_text = highlight_skills(cv_text, result['matched'])
         highlight_md = (
             "### Document Preview\n"
@@ -96,38 +85,73 @@ def run_analysis(cv_text: str, jd_text: str, cv_file) -> tuple:
         return score_md, matched_md, missing_md, gap_chart_fig, scam_md, ats_md, keyword_md, keyword_chart_fig, questions_md, feedback_md, learning_md, highlight_md
         
     except Exception as e:
-        # Return empty plots (None) to prevent Gradio component errors in case of failure
         return f"Error: {str(e)}", "", "", None, "", "", "", None, "", "", "", ""
 
 def run_batch_analysis(jd_text: str, files: list):
-    """Handles multiple CVs at once for the Recruiter Mode."""
+    """
+    Handles multiple CVs for Recruiter Mode.
+    It ranks all candidates and automatically highlights the top 3 (or fewer if fewer are provided).
+    """
     if not jd_text or not files:
-        return None, pd.DataFrame([["Error", "Please provide JD and at least one CV", ""]], columns=["Candidate", "Score", "Details"])
+        return None, pd.DataFrame([["Error", "Please provide JD and at least one CV", "", "", ""]], columns=["Candidate", "Score", "Details", "Level", "Status"])
     
     results = []
     names = []
     scores = []
     
-    # Iterate through each uploaded PDF and calculate the match score
+    # Step 1: Process each uploaded PDF file and calculate the match score
     for file in files:
         try:
             pdf_text = extract_text_from_pdf(file.name)
             result = analyze_match(pdf_text, jd_text)
             
             candidate_name = os.path.basename(file.name).replace(".pdf", "")
-            names.append(candidate_name)
-            scores.append(result['score'])
-            
             matched_str = ", ".join(result['matched']) if result['matched'] else "None"
-            results.append([candidate_name, result['score'], matched_str, result['level']])
-        except Exception as e:
-            # Handle cases where a PDF might be corrupted or unreadable
-            results.append([os.path.basename(file.name), 0.0, "Error reading file", "Error"])
             
-    # Sort the dataframe so the highest scores appear at the top
-    results.sort(key=lambda x: x[1], reverse=True)
-    df = pd.DataFrame(results, columns=["Candidate Name", "Match Score (%)", "Matched Skills", "Level"])
-    chart_fig = create_comparison_chart(names, scores)
+            results.append({
+                "name": candidate_name,
+                "score": result['score'],
+                "matched": matched_str,
+                "level": result['level']
+            })
+        except Exception as e:
+            results.append({
+                "name": os.path.basename(file.name),
+                "score": 0.0,
+                "matched": "Error reading file",
+                "level": "Error"
+            })
+            
+    # Step 2: Sort all candidates by their match score in descending order (highest first)
+    results.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Step 3: Prepare the table data. Dynamically label the top 3 candidates.
+    final_table_data = []
+    for index, row in enumerate(results):
+        # Automatically assign a rank based on their position after sorting
+        if index == 0:
+            status = "Top 1 (Best Match)"
+        elif index == 1:
+            status = "Top 2"
+        elif index == 2:
+            status = "Top 3"
+        else:
+            status = "Standard Match"
+            
+        final_table_data.append([row['name'], row['score'], row['matched'], row['level'], status])
+        
+        # Collect data for the bar chart
+        names.append(row['name'])
+        scores.append(row['score'])
+    
+    # Step 4: Create a DataFrame containing ALL candidates, sorted by score
+    df = pd.DataFrame(
+        final_table_data, 
+        columns=["Candidate Name", "Match Score (%)", "Matched Skills", "Level", "Recruiter Status"]
+    )
+    
+    # Step 5: Create a chart showing all candidates, with the top 3 highlighted in green
+    chart_fig = create_comparison_chart(names, scores, top_n=3)
     
     return chart_fig, df
 
@@ -140,20 +164,15 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
         return "Please provide the job description."
 
     try:
-        # Analyze the match to automatically find relevant skills for the letter
         match_result = analyze_match(cv_text, jd_text)
-
-        # Extract skills that were automatically matched
         selected_skills = list(match_result["matched"])
 
-        # Allow the user to add extra skills manually via the text box
         manual_skills = [
             skill.strip()
             for skill in (skills_text or "").split(",")
             if skill.strip()
         ]
 
-        # Remove duplicates while keeping the original order
         selected_skills = list(dict.fromkeys(selected_skills + manual_skills))
 
         return generate_cover_letter(selected_skills)
@@ -163,7 +182,7 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
 
 theme = gr.themes.Soft(primary_hue="blue", secondary_hue="slate")
 
-# Build the Gradio UI blocks with a tabbed layout
+# Build the main UI
 with gr.Blocks(title="Resume Optimization System") as demo:
     
     gr.Markdown("# Resume Optimization System\n**Advanced NLP Analysis for Job Seekers and Professionals**")
@@ -214,13 +233,11 @@ with gr.Blocks(title="Resume Optimization System") as demo:
                     with gr.Accordion("Document Preview (Highlighted Skills)", open=False):
                         out_highlight = gr.Markdown()
 
-            # Link the Analyze button to the backend function
             event1 = btn.click(
                 fn=run_analysis, 
                 inputs=[cv_text, jd_text, cv_file], 
                 outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight]
             )
-            # Clear all outputs when the Clear button is pressed
             stop1.click(fn=lambda: ("", "", "", None, "", "", "", None, "", "", "", ""), inputs=None, outputs=[out_score, out_matched, out_missing, out_gap_chart, out_scam, out_ats, out_keywords, out_keyword_chart, out_questions, out_feedback, out_learning, out_highlight])
 
         # --- TAB 2: Cover Letter Generator ---
@@ -250,33 +267,36 @@ with gr.Blocks(title="Resume Optimization System") as demo:
 
         # --- TAB 3: Recruiter Mode (Batch Compare) ---
         with gr.TabItem("Recruiter Mode"):
-            gr.Markdown("### Batch Candidate Analysis\nUpload multiple PDF resumes against a single Job Description to instantly rank candidates and visualize their match scores.")
+            gr.Markdown("### Batch Candidate Analysis\nUpload multiple PDF resumes against a single Job Description. The system will automatically rank all candidates and highlight the top matches.")
             with gr.Row():
                 with gr.Column(scale=1):
-                    batch_jd = gr.Textbox(label="Job Description", lines=8, placeholder="Paste the JD here...")
+                    batch_jd = gr.Textbox(label="Job Description", lines=6, placeholder="Paste the JD here...")
                     batch_files = gr.File(label="Upload Multiple Resumes (PDF)", file_count="multiple", file_types=[".pdf"])
+                    
+                    # The slider has been completely removed from this section
+                    
                     with gr.Row():
                         batch_btn = gr.Button("Compare Candidates", variant="primary", size="lg")
                         stop3 = gr.Button("Clear", variant="secondary", size="lg")
                 
                 with gr.Column(scale=2):
                     with gr.Group():
-                        gr.Markdown("### Comparison Chart")
+                        gr.Markdown("### Comparison Chart (Top Candidates Highlighted in Green)")
                         batch_chart = gr.Plot(show_label=False)
                     
                     with gr.Group():
-                        gr.Markdown("### Candidate Ranking Table")
+                        gr.Markdown("### Candidate Ranking Table (Sorted from Best to Lowest)")
                         batch_table = gr.Dataframe(
-                            headers=["Candidate Name", "Match Score (%)", "Matched Skills", "Level"],
-                            datatype=["str", "number", "str", "str"],
+                            headers=["Candidate Name", "Match Score (%)", "Matched Skills", "Level", "Recruiter Status"],
+                            datatype=["str", "number", "str", "str", "str"],
                             label=""
                         )
 
+            # Updated to only take JD and Files as inputs (no slider)
             batch_btn.click(fn=run_batch_analysis, inputs=[batch_jd, batch_files], outputs=[batch_chart, batch_table])
             stop3.click(fn=lambda: (None, pd.DataFrame()), inputs=None, outputs=[batch_chart, batch_table])
 
 if __name__ == "__main__":
-    # Automatically open the web browser after the server starts
     def open_browser():
         webbrowser.open_new("http://127.0.0.1:7860")
     
