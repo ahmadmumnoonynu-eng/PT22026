@@ -11,7 +11,7 @@ type ButtonProps = PropsWithChildren<
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-[var(--mm-primary)] text-white shadow-[var(--mm-primary-shadow)] hover:bg-[var(--mm-primary-hover)]",
-  secondary: "border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text)] hover:bg-[var(--mm-surface)]",
+  secondary: "border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text)] hover:bg-[var(--mm-surface-hover)]",
   ghost: "text-[var(--mm-text-muted)] hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)]",
   icon: "size-11 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] p-0 text-[var(--mm-text)] hover:bg-[var(--mm-hover-surface-strong)]",
 };

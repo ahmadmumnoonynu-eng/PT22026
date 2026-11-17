@@ -10,7 +10,7 @@ export function ThemeToggle() {
     <button
       aria-checked={theme === "light"}
       aria-label="Light mode"
-      className="group relative grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text)] transition-colors hover:border-[var(--mm-primary)] hover:bg-[var(--mm-surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]"
+      className="group relative grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text)] transition-colors hover:border-[var(--mm-primary)] hover:bg-[var(--mm-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]"
       onClick={toggleTheme}
       role="switch"
       title={`Switch to ${nextTheme} mode`}

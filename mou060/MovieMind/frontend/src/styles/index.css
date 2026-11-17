@@ -9,6 +9,7 @@
   --mm-bg-elevated-rgb: 31 31 31;
   --mm-surface: #2b2b2b;
   --mm-surface-strong: #1f1f1f;
+  --mm-surface-hover: #2b2b2b;
   --mm-surface-glass: rgb(20 20 20 / 90%);
   --mm-subtle-surface: rgb(0 0 0 / 15%);
   --mm-hover-surface: rgb(255 255 255 / 5%);
@@ -19,11 +20,11 @@
   --mm-primary: #e50914;
   --mm-primary-rgb: 229 9 20;
   --mm-primary-hover: #b20710;
-  --mm-primary-bright: #ff4d56;
+  --mm-primary-bright: #ff5962;
   --mm-primary-deep: #b20710;
   --mm-primary-soft: rgb(229 9 20 / 24%);
   --mm-primary-shadow: 0 8px 24px rgb(229 9 20 / 30%);
-  --mm-accent: #ff4d56;
+  --mm-accent: #ff5962;
   --mm-gold: #f5c518;
   --mm-text: #ffffff;
   --mm-text-muted: #b3b3b3;
@@ -56,6 +57,7 @@
   --mm-bg-elevated-rgb: 255 255 255;
   --mm-surface: #ffffff;
   --mm-surface-strong: #ffffff;
+  --mm-surface-hover: #f5f5f5;
   --mm-surface-glass: rgb(255 255 255 / 92%);
   --mm-subtle-surface: #f5f5f5;
   --mm-hover-surface: rgb(23 23 23 / 5%);

@@ -35,7 +35,7 @@ export function HomePage() {
               <Compass aria-hidden="true" className="size-4" />
               Start Exploring
             </Link>
-            <Link className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-6 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-[var(--mm-surface)]" to="/preferences">
+            <Link className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-6 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-[var(--mm-surface-hover)]" to="/preferences">
               Learn More
               <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
