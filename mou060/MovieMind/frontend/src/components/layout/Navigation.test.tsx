@@ -29,6 +29,11 @@ describe("Navigation", () => {
     mockedUseAuth.mockReturnValue(authValue(false));
     renderWithProviders(<Navigation />);
 
+    expect(screen.getByRole("img", { name: "MovieMind" })).toHaveAttribute(
+      "src",
+      "/images/MovieMind%20Neon%20Cinema%20Logo.png",
+    );
+    expect(screen.getByRole("link", { name: "MovieMind home" })).toHaveAttribute("href", "/");
     expect(screen.getAllByRole("link", { name: "Home" })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "Discover" })).toHaveLength(2);
     expect(screen.queryByRole("link", { name: "My List" })).not.toBeInTheDocument();

@@ -1,54 +1,148 @@
-import { ArrowRight, Compass, Search, Sparkles } from "lucide-react";
-import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Compass, Flame, Sparkles, Star } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
+import { MovieCard } from "@/components/movies/MovieCard";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { MovieCollection } from "@/features/discovery/components/MovieCollection";
-import { usePopularMovies } from "@/features/discovery/hooks";
+import { StatusPanel } from "@/components/ui/StatusPanel";
+import { usePopularMovies, useMovies } from "@/features/discovery/hooks";
 import { RecommendationPreview } from "@/features/recommendations/components/RecommendationPreview";
+import { isApiClientError } from "@/lib/api/errors";
+import type { Movie } from "@/types/api";
 
 export function HomePage() {
-  const popular = usePopularMovies();
-  const [query, setQuery] = useState("");
-  const navigate = useNavigate();
-
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const search = query.trim();
-    navigate(search ? `/search?q=${encodeURIComponent(search)}` : "/discover");
-  }
+  const trending = usePopularMovies(8);
+  const topRated = useMovies({ direction: "desc", limit: 8, sort: "average_rating" });
 
   return (
-    <div className="space-y-8 lg:space-y-10">
-      <section className="hero-orbit relative isolate overflow-hidden rounded-[28px] border border-[var(--mm-border)] px-6 py-12 shadow-[var(--mm-card-shadow)] sm:px-10 sm:py-16 lg:px-14 lg:py-20">
-        <div className="relative z-10 max-w-2xl">
-          <p className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--mm-accent)]"><Sparkles aria-hidden="true" className="size-4" /> MovieMind</p>
-          <h1 className="max-w-xl text-4xl font-black leading-[1.03] tracking-tight text-[var(--mm-text)] sm:text-5xl lg:text-6xl">Your Personal Movie <span className="text-gradient">Companion</span></h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-[var(--mm-text-muted)] sm:text-lg">Discover films you will love and shape recommendations around your own taste.</p>
-          <form className="relative mt-6 max-w-xl" onSubmit={submitSearch} role="search">
-            <label className="sr-only" htmlFor="hero-movie-search">Search movies</label>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-[var(--mm-text-subtle)]" />
-            <Input id="hero-movie-search" className="rounded-full bg-[color:rgb(8_11_27_/_0.45)] py-1 pl-12 pr-28 backdrop-blur" onChange={(event) => setQuery(event.target.value)} placeholder="Search for movies..." value={query} />
-            <button className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full px-3 py-2 text-sm font-bold text-[var(--mm-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" type="submit">Search</button>
-          </form>
+    <div className="space-y-8 pb-4 lg:space-y-10">
+      <section className="home-hero relative isolate flex min-h-[27rem] items-center overflow-hidden rounded-[28px] border border-[var(--mm-border)] px-6 py-10 shadow-[var(--mm-card-shadow)] sm:min-h-[30rem] sm:px-10 sm:py-14 lg:min-h-[31rem] lg:px-14">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_88%_48%,rgba(144,70,255,.16),transparent_38%),linear-gradient(180deg,transparent_64%,rgba(8,11,27,.42))]" />
+        <div className="relative z-10 max-w-xl">
+          <p className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-[var(--mm-accent)]">
+            <Sparkles aria-hidden="true" className="size-4" />
+            MovieMind
+          </p>
+          <h1 className="text-4xl font-black leading-[1.04] tracking-tight text-[var(--mm-text)] sm:text-5xl lg:text-6xl">
+            Your Personal <span className="text-gradient">Movie Companion</span>
+          </h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-[var(--mm-text-muted)] sm:text-lg">
+            Get AI-powered recommendations and discover movies you&apos;ll love!
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/discover"><Button><Compass aria-hidden="true" className="size-4" /> Start exploring</Button></Link>
-            <Link className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--mm-border)] bg-black/15 px-5 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to="/preferences">My taste profile <ArrowRight aria-hidden="true" className="size-4" /></Link>
+            <Link className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-linear-to-r from-[#6D24F5] to-[#963BFF] px-6 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(118,43,250,.32)] transition hover:brightness-110" to="/discover">
+              <Compass aria-hidden="true" className="size-4" />
+              Start Exploring
+            </Link>
+            <Link className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-6 text-sm font-semibold text-[var(--mm-text)] transition hover:bg-[var(--mm-surface)]" to="/preferences">
+              Learn More
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
           </div>
         </div>
-        <div aria-hidden="true" className="hero-reel absolute inset-y-0 right-0 w-1/2 opacity-70" />
       </section>
-      <section aria-labelledby="catalogue-status" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div><p className="text-sm font-semibold text-[var(--mm-gold)]">Your movie space</p><h2 id="catalogue-status" className="mt-1 text-2xl font-bold">Ready for discovery</h2></div>
-            <Link className="hidden text-sm font-semibold text-[var(--mm-accent)] hover:text-white sm:block" to="/discover">Open Discover <span aria-hidden="true">→</span></Link>
-          </div>
-          <MovieCollection emptyDescription="There are no popular movies to show yet. Explore the catalogue to find something to watch." emptyTitle="No popular movies yet" error={popular.error} isLoading={popular.isLoading} movies={popular.data} onRetry={() => void popular.refetch()} />
+
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_21rem] xl:gap-9">
+        <div className="min-w-0 space-y-9">
+          <HomeMovieRail
+            icon={Flame}
+            movies={trending.data}
+            error={trending.error}
+            isLoading={trending.isLoading}
+            onRetry={() => void trending.refetch()}
+            seeAllTo="/discover?sort=ratings_count&direction=desc"
+            title="Trending Now"
+          />
+          <HomeMovieRail
+            icon={Star}
+            movies={topRated.data?.items}
+            error={topRated.error}
+            isLoading={topRated.isLoading}
+            onRetry={() => void topRated.refetch()}
+            seeAllTo="/discover?sort=average_rating&direction=desc"
+            title="Top Rated Movies"
+          />
+          <section className="relative overflow-hidden rounded-3xl border border-[rgba(193,123,255,.24)] bg-[radial-gradient(ellipse_at_82%_15%,rgba(108,79,255,.3),transparent_35%),linear-gradient(120deg,#211641,#11172f_74%)] p-6 shadow-[var(--mm-card-shadow)] sm:p-8">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 size-64 rounded-full border border-white/5" />
+            <div className="relative z-10 max-w-xl">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--mm-accent)]">Your next favorite is waiting</p>
+              <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Ready for your next movie adventure?</h2>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--mm-text-muted)]">Explore the catalogue and find a story worth settling in for.</p>
+              <Link className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-linear-to-r from-[#6D24F5] to-[#963BFF] px-5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(118,43,250,.32)] transition hover:brightness-110" to="/discover">
+                Discover Movies
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </div>
+          </section>
         </div>
-        <RecommendationPreview />
-      </section>
+        <div className="min-w-0 xl:sticky xl:top-24">
+          <RecommendationPreview />
+        </div>
+      </div>
     </div>
+  );
+}
+
+type HomeMovieRailProps = {
+  error: unknown;
+  icon: LucideIcon;
+  isLoading: boolean;
+  movies: Movie[] | undefined;
+  onRetry: () => void;
+  seeAllTo: string;
+  title: string;
+};
+
+function HomeMovieRail({
+  error,
+  icon: Icon,
+  isLoading,
+  movies,
+  onRetry,
+  seeAllTo,
+  title,
+}: HomeMovieRailProps) {
+  return (
+    <section aria-label={title} className="min-w-0">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="flex items-center gap-2 text-xl font-black tracking-tight sm:text-2xl">
+          <Icon aria-hidden="true" className="size-5 text-[var(--mm-accent)]" />
+          {title}
+        </h2>
+        <Link className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--mm-accent)] transition hover:text-white" to={seeAllTo}>
+          See All
+          <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
+      </div>
+      {isLoading ? (
+        <div aria-label={`Loading ${title}`} className="flex gap-4 overflow-hidden" role="status">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div className="w-40 shrink-0 overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] sm:w-48" key={index}>
+              <div className="aspect-[2/3] animate-pulse bg-[var(--mm-surface-strong)]" />
+              <div className="space-y-2 p-3.5"><div className="h-4 w-4/5 animate-pulse rounded bg-[var(--mm-surface-strong)]" /><div className="h-3 w-2/5 animate-pulse rounded bg-[var(--mm-surface-strong)]" /></div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="space-y-3">
+          <StatusPanel tone="error">{isApiClientError(error) ? error.message : "We could not load movies. Please try again."}</StatusPanel>
+          <Button onClick={onRetry} variant="secondary">Try again</Button>
+        </div>
+      ) : movies?.length ? (
+        <div aria-label={`${title} movies`} className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-4">
+          {movies.map((movie, index) => (
+            <MovieCard
+              className="w-40 shrink-0 snap-start sm:w-48"
+              key={movie.id}
+              movie={movie}
+              priority={index < 3}
+              showWatchlistButton
+            />
+          ))}
+        </div>
+      ) : (
+        <StatusPanel>No movies are available in this section yet.</StatusPanel>
+      )}
+    </section>
   );
 }

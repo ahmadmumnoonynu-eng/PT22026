@@ -2,15 +2,16 @@ import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { MoviePoster } from "@/components/movies/MoviePoster";
+import { WatchlistButton } from "@/features/watchlist/components/WatchlistButton";
 import type { Movie } from "@/types/api";
 
-type MovieCardProps = { movie: Movie; priority?: boolean };
+type MovieCardProps = { className?: string; movie: Movie; priority?: boolean; showWatchlistButton?: boolean };
 
-export function MovieCard({ movie, priority = false }: MovieCardProps) {
+export function MovieCard({ className = "", movie, priority = false, showWatchlistButton = false }: MovieCardProps) {
   const genres = movie.genres.slice(0, 2).join(" · ");
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] shadow-[var(--mm-card-shadow)] transition duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:border-[rgba(193,123,255,.4)]">
+    <article className={`group overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] shadow-[var(--mm-card-shadow)] transition duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:border-[rgba(193,123,255,.4)] ${className}`}>
       <Link aria-label={`View details for ${movie.title}`} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to={`/movies/${movie.id}`}>
         <MoviePoster className="aspect-[2/3]" movie={movie} priority={priority} />
         <div className="space-y-2 p-3.5">
@@ -24,6 +25,11 @@ export function MovieCard({ movie, priority = false }: MovieCardProps) {
           {genres && <p className="truncate text-xs text-[var(--mm-text-subtle)]">{genres}</p>}
         </div>
       </Link>
+      {showWatchlistButton && (
+        <div className="px-3.5 pb-3.5">
+          <WatchlistButton compact movieId={movie.id} movieTitle={movie.title} />
+        </div>
+      )}
     </article>
   );
 }

@@ -106,6 +106,46 @@ Rules:
 - Do not commit `.env` or `.env.*`; only `.env.example` belongs in Git.
 - Production must use the deployed HTTPS FastAPI origin.
 
+## Movie poster data
+
+The static MovieLens-to-TMDB poster map is
+`src/data/movie-posters.json`. The frontend looks posters up by MovieLens
+`movieId` (`movielens_id` in the API response); it never calls TMDB at runtime.
+Missing or failed images use the shared cinematic placeholder.
+
+To collect or refresh the catalogue, download the official MovieLens Latest
+Small dataset and run the backend script from the repository root:
+
+```powershell
+$env:TMDB_API_KEY = "your-local-tmdb-api-key"
+python backend/scripts/collect_movie_posters.py `
+  --movies-csv "C:\path\to\ml-latest-small\movies.csv" `
+  --links-csv "C:\path\to\ml-latest-small\links.csv"
+```
+
+The script writes the JSON map to `frontend/src/data/movie-posters.json` and
+keeps its resumable TMDB lookup cache in the ignored
+`backend/artifacts/tmdb_poster_cache.json`. It records every `movies.csv`
+movie, uses `links.csv` TMDB IDs, and leaves `posterUrl` null if there is no
+TMDB ID or the API confirms there is no poster. Transient lookup failures are
+reported and are not cached, so rerunning retries them. Keep the API key in a
+local environment variable; never add it to frontend configuration or Git.
+
+If you need to initialize or check the complete MovieLens ID manifest before
+setting up TMDB credentials, add `--catalog-only` to the command. That mode
+writes null URLs without checking TMDB; it is not a completed poster
+collection. Rerun without the flag once `TMDB_API_KEY` is configured.
+To publish URLs already collected in the local cache without making API
+requests, use `--cache-only`; uncached entries remain null until a regular run
+completes them.
+
+TMDB requires the approved logo and this prominent notice in an About/Credits
+section: “This product uses the TMDB API but is not endorsed or certified by
+TMDB.” The app displays both in its shared Credits footer. Non-commercial API
+use requires attribution; commercial use requires a separate license. See
+[TMDB's logo and attribution requirements](https://www.themoviedb.org/about/logos-attribution)
+and [API FAQ](https://developer.themoviedb.org/docs/faq).
+
 ## Scripts
 
 | Command | Purpose |

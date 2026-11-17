@@ -7,7 +7,9 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useAddToWatchlist, useRemoveFromWatchlist, useWatchlist } from "@/features/watchlist/hooks";
 import { isApiClientError } from "@/lib/api/errors";
 
-export function WatchlistButton({ movieId }: { movieId: string }) {
+type WatchlistButtonProps = { compact?: boolean; movieId: string; movieTitle?: string };
+
+export function WatchlistButton({ compact = false, movieId, movieTitle }: WatchlistButtonProps) {
   const { isAuthenticated } = useAuth();
   const list = useWatchlist(0, 100, isAuthenticated);
   const add = useAddToWatchlist();
@@ -17,7 +19,20 @@ export function WatchlistButton({ movieId }: { movieId: string }) {
   const pending = add.isPending || remove.isPending;
 
   useEffect(() => setMessage(null), [inWatchlist]);
-  if (!isAuthenticated) return <Link to="/login"><Button variant="secondary"><Bookmark aria-hidden="true" className="size-4" /> Sign in to save</Button></Link>;
+  const actionLabel = inWatchlist
+    ? `Remove ${movieTitle ?? "movie"} from My List`
+    : `Add ${movieTitle ?? "movie"} to My List`;
+
+  if (!isAuthenticated) {
+    return (
+      <Link aria-label={compact ? `Sign in to save ${movieTitle ?? "movie"}` : undefined} to="/login">
+        <Button className={compact ? "size-11 rounded-xl p-0" : ""} variant="secondary">
+          <Bookmark aria-hidden="true" className="size-4" />
+          {!compact && "Sign in to save"}
+        </Button>
+      </Link>
+    );
+  }
 
   async function toggle() {
     setMessage(null);
@@ -30,5 +45,5 @@ export function WatchlistButton({ movieId }: { movieId: string }) {
     }
   }
 
-  return <div className="space-y-2"><Button disabled={pending || list.isLoading} isLoading={pending} onClick={() => void toggle()} variant={inWatchlist ? "secondary" : "primary"}>{inWatchlist ? <BookmarkCheck aria-hidden="true" className="size-4" /> : <Bookmark aria-hidden="true" className="size-4" />}{inWatchlist ? "Saved to My List" : "Add to My List"}</Button>{message && <p className={`text-sm ${message.includes("could not") || message.includes("Too many") ? "text-[var(--mm-danger)]" : "text-[var(--mm-success)]"}`} role="status">{message}</p>}</div>;
+  return <div className="space-y-2"><Button aria-label={compact ? actionLabel : undefined} className={compact ? "size-11 rounded-xl p-0" : ""} disabled={pending || list.isLoading} isLoading={pending} onClick={() => void toggle()} variant={inWatchlist ? "secondary" : "primary"}>{inWatchlist ? <BookmarkCheck aria-hidden="true" className="size-4" /> : <Bookmark aria-hidden="true" className="size-4" />}{!compact && (inWatchlist ? "Saved to My List" : "Add to My List")}</Button>{message && <p className={`text-sm ${message.includes("could not") || message.includes("Too many") ? "text-[var(--mm-danger)]" : "text-[var(--mm-success)]"}`} role="status">{message}</p>}</div>;
 }

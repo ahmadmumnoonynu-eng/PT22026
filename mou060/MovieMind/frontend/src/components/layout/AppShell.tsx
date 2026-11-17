@@ -25,8 +25,8 @@ export function AppShell() {
       <a className="sr-only fixed left-4 top-4 z-50 rounded-xl bg-[var(--mm-primary)] px-4 py-3 font-semibold text-white focus:not-sr-only focus:outline-2 focus:outline-offset-2 focus:outline-[var(--mm-accent)]" href="#main-content">Skip to main content</a>
       <Navigation />
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between gap-4 border-b border-[var(--mm-border)] bg-[color:rgb(8_11_27_/_0.88)] px-4 backdrop-blur-xl sm:px-6 lg:px-10">
-          <form className="relative hidden w-full max-w-xl md:block" onSubmit={submitSearch} role="search">
+        <header className="sticky top-0 z-20 flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-[var(--mm-border)] bg-[color:rgb(8_11_27_/_0.88)] px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-10">
+          <form className="relative order-3 block w-full max-w-none md:order-none md:max-w-xl" onSubmit={submitSearch} role="search">
             <label className="sr-only" htmlFor="global-movie-search">Search for movies or genres</label>
             <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[var(--mm-text-subtle)]" />
             <Input id="global-movie-search" onChange={(event) => setQuery(event.target.value)} placeholder="Search for movies, genres..." value={query} className="rounded-full pl-12 pr-28" />
@@ -34,10 +34,16 @@ export function AppShell() {
           </form>
           <Link className="font-bold tracking-tight text-[var(--mm-text)] md:hidden" to="/">Movie<span className="text-[var(--mm-accent)]">Mind</span></Link>
           <nav aria-label="Account" className="ml-auto flex items-center gap-2">
-            {isAuthenticated && user ? <><Link aria-label="Open profile" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:flex" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span>{user.display_name ?? user.username ?? "Account"}</Link><Button className="min-h-10 rounded-xl px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
+            {isAuthenticated && user ? <><Link aria-label="Open profile" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:px-3" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{user.display_name ?? user.username ?? "Account"}</span></Link><Button className="min-h-10 rounded-xl px-3 sm:px-4" onClick={signOut} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
           </nav>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-10 lg:pb-10" id="main-content" tabIndex={-1}><Outlet /></main>
+        <footer aria-label="Credits" className="mx-auto flex w-full max-w-[1440px] flex-col items-center gap-3 border-t border-[var(--mm-border)] px-4 py-6 text-center sm:px-6 lg:px-10">
+          <a aria-label="The Movie Database website" className="rounded-md bg-white px-2 py-1" href="https://www.themoviedb.org" rel="noreferrer" target="_blank">
+            <img alt="The Movie Database" className="h-6 w-auto" src="/tmdb-logo.svg" />
+          </a>
+          <p className="text-sm font-medium text-[var(--mm-text-muted)]">Credits: This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+        </footer>
       </div>
     </div>
   );

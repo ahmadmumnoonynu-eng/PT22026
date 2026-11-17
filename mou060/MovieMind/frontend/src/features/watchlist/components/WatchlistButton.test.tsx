@@ -53,6 +53,16 @@ describe("WatchlistButton", () => {
     expect(screen.getByRole("link", { name: "Sign in to save" })).toHaveAttribute("href", "/login");
   });
 
+  it("keeps the compact action accessible and named for the movie", () => {
+    mockedUseAuth.mockReturnValue(authValue(false));
+    renderWithProviders(<WatchlistButton compact movieId={dune.id} movieTitle={dune.title} />);
+
+    expect(screen.getByRole("link", { name: `Sign in to save ${dune.title}` })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+  });
+
   it("adds a movie and reflects the refreshed saved state", async () => {
     const user = userEvent.setup();
     mockedUseAuth.mockReturnValue(authValue());

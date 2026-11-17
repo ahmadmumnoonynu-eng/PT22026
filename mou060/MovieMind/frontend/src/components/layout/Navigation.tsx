@@ -1,4 +1,4 @@
-import { Bookmark, Compass, Film, Heart, Home, Settings, Star, UserRound } from "lucide-react";
+import { Bookmark, Compass, Heart, Home, Settings, Star, UserRound } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -19,12 +19,12 @@ export function Navigation() {
   return (
     <>
       <aside className="hidden min-h-screen border-r border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] px-4 py-7 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
-        <NavLink className="mb-10 flex items-center gap-3 px-3" to="/">
-          <span className="grid size-12 place-items-center rounded-2xl bg-linear-to-br from-[var(--mm-primary)] to-[var(--mm-primary-deep)] shadow-[0_8px_24px_rgba(118,43,250,.36)]"><Film aria-hidden="true" className="size-7" /></span>
-          <span>
-            <span className="block text-2xl font-bold tracking-tight">Movie<span className="text-[var(--mm-accent)]">Mind</span></span>
-            <span className="block text-xs text-[var(--mm-text-muted)]">Discover. Watch. Enjoy.</span>
-          </span>
+        <NavLink aria-label="MovieMind home" className="mb-9 flex justify-center px-2" to="/">
+          <img
+            alt="MovieMind"
+            className="h-auto w-full max-w-[190px] object-contain"
+            src="/images/MovieMind%20Neon%20Cinema%20Logo.png"
+          />
         </NavLink>
         <nav aria-label="Main navigation" className="space-y-1">
           {visibleItems.map(({ icon: Icon, label, to }) => (

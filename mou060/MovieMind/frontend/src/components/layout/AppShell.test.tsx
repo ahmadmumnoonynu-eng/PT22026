@@ -53,6 +53,13 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Log in" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Create account/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+    expect(screen.getByRole("contentinfo", { name: "Credits" })).toHaveTextContent(
+      "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+    );
+    expect(screen.getByRole("img", { name: "The Movie Database" })).toHaveAttribute(
+      "src",
+      "/tmdb-logo.svg",
+    );
   });
 
   it("shows the signed-in identity and signs out on request", async () => {

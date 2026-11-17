@@ -1,18 +1,19 @@
 import { Film } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { getMoviePosterUrl } from "@/lib/movie-posters";
 import type { Movie } from "@/types/api";
 
 type MoviePosterProps = {
   className?: string;
-  movie: Pick<Movie, "poster_url" | "title">;
+  movie: Pick<Movie, "movielens_id" | "title">;
   priority?: boolean;
 };
 
 export function MoviePoster({ className = "", movie, priority = false }: MoviePosterProps) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [movie.poster_url, movie.title]);
-  const canShowImage = Boolean(movie.poster_url) && !failed;
+  const posterUrl = getMoviePosterUrl(movie.movielens_id);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const canShowImage = posterUrl !== null && posterUrl !== failedUrl;
 
   return (
     <div className={`relative overflow-hidden bg-[linear-gradient(145deg,#30215c,#10162f)] ${className}`}>
@@ -21,8 +22,8 @@ export function MoviePoster({ className = "", movie, priority = false }: MoviePo
           alt={`Poster for ${movie.title}`}
           className="size-full object-cover"
           loading={priority ? "eager" : "lazy"}
-          onError={() => setFailed(true)}
-          src={movie.poster_url ?? undefined}
+          onError={() => setFailedUrl(posterUrl)}
+          src={posterUrl}
         />
       ) : (
         <div className="flex size-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_50%_30%,rgba(193,123,255,.25),transparent_45%),linear-gradient(145deg,#241e4c,#10162f)] px-4 text-center">
