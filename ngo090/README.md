@@ -30,7 +30,7 @@ A PaySim-based fraud detection and risk-management platform that scores mobile-m
 - RiskPilot investigation assistant with human approval before case changes.
 - PDF and CSV case reports.
 
-This project currently supports PaySim mobile-money transactions. A credit-card fraud engine is not included yet.
+This project currently supports PaySim mobile-money transactions.
 
 ## Installation
 
