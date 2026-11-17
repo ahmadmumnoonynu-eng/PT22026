@@ -895,7 +895,6 @@ def risk_bands_html(risk, labels) -> str:
         parts.append(f'<line x1="{left}" x2="{width - right}" y1="{y:.1f}" y2="{y:.1f}" '
                      f'stroke="rgba(143,163,194,.14)" stroke-dasharray="2 5"/>')
         parts.append(f'<text x="{left - 8}" y="{y + 4:.1f}" text-anchor="end" font-size="12" fill="{MUTED}">{t:.0%}</text>')
-    parts.append(f'<text x="{left}" y="12" font-size="12" fill="{MUTED}">% fraud in the band</text>')
     for k, ((n, fraud, share), name) in enumerate(zip(bands, names)):
         x = left + slot * k + (slot - bar) / 2
         red_h = ph * share

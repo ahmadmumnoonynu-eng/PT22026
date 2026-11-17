@@ -132,17 +132,9 @@ def render(header, tag: str, run) -> None:
 
     # ---- where the fraud actually sits ------------------------------------- #
     risk, labels = _scored_replay(tag)
-    top = risk >= 99.5
-    top_share = float((labels[top] == 1).sum() / max(int(top.sum()), 1))
     curve = ui.card("Where the fraud hides", ui.risk_bands_html(risk, labels)
         + '<div class="fa-crvnote">'
         '<span><i style="background:#5b6e8c"></i>honest transactions</span>'
-        '<span><i style="background:#f43f5e"></i>fraud</span></div>'
-        + '<div class="fa-note"><b>How to read it:</b> every bar is a range of the engine&rsquo;s '
-        'risk score, low on the left, high on the right; grey is honest traffic, red is fraud. '
-        'The red almost disappears on the left, grows past the review line, and in the last band '
-        f'{top_share:.0%} of the transactions are fraud &mdash; that is why the app blocks there '
-        f'automatically. Measured on the {len(risk):,} replay transactions, where the real answer '
-        'is known for every one.</div>', "pulse")
+        '<span><i style="background:#f43f5e"></i>fraud</span></div>', "pulse")
     limits = ui.card("What it cannot do", ui.limits_html(LIMITS), "alert")
     st.markdown(ui.two_cards(curve, limits), unsafe_allow_html=True)
