@@ -5,10 +5,11 @@ import { queryKeys, type MovieListQuery } from "@/lib/query/keys";
 
 const movieStaleTime = 60_000;
 
-export function useMovies(query: MovieListQuery) {
+export function useMovies(query: MovieListQuery, enabled = true) {
   return useQuery({
     queryKey: queryKeys.movies.list(query),
     queryFn: ({ signal }) => fetchMovies(query, signal),
+    enabled,
     placeholderData: keepPreviousData,
     staleTime: movieStaleTime,
   });

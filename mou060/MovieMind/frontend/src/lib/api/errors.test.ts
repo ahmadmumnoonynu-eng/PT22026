@@ -43,10 +43,17 @@ describe("toApiClientError", () => {
     expect(error.message).toBe("We could not reach MovieMind. Check your connection and try again.");
   });
 
-  it("does not treat a non-Axios error as an API error", () => {
+  it("preserves a specific Axios transport message instead of hiding it behind the generic fallback", () => {
+    const error = toApiClientError(new AxiosError("Request timed out while contacting the API", "ECONNABORTED"));
+
+    expect(error).toMatchObject({ code: null, retryAfterSeconds: null, status: null });
+    expect(error.message).toBe("Request timed out while contacting the API");
+  });
+
+  it("preserves a non-Axios error message instead of hiding it behind a network fallback", () => {
     const error = toApiClientError(new Error("raw"));
 
-    expect(error).toMatchObject({ code: null, status: null });
+    expect(error).toMatchObject({ code: null, message: "raw", status: null });
     expect(isApiClientError(error)).toBe(true);
     expect(isApiClientError(new Error("raw"))).toBe(false);
   });

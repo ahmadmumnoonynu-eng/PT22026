@@ -35,20 +35,36 @@ function retryAfterSeconds(error: AxiosError) {
 
 /** Convert transport failures to a safe error object for UI components. */
 export function toApiClientError(error: unknown): ApiClientError {
-  if (!isAxiosError(error)) {
-    return { code: null, message: safeMessage(null, null), retryAfterSeconds: null, status: null };
+  if (isAxiosError(error)) {
+    const status = error.response?.status ?? null;
+    const payload = error.response?.data;
+    const code = isApiErrorResponse(payload) ? payload.code : null;
+    const rawMessage = error.message.trim();
+
+    const message =
+      status === null && rawMessage && !/^(network error|failed to fetch)$/i.test(rawMessage)
+        ? rawMessage
+        : safeMessage(status, code);
+
+    return {
+      code,
+      message,
+      retryAfterSeconds: retryAfterSeconds(error),
+      status,
+    };
   }
 
-  const status = error.response?.status ?? null;
-  const payload = error.response?.data;
-  const code = isApiErrorResponse(payload) ? payload.code : null;
+  if (error instanceof Error) {
+    const message = error.message.trim();
+    return {
+      code: null,
+      message: message || safeMessage(null, null),
+      retryAfterSeconds: null,
+      status: null,
+    };
+  }
 
-  return {
-    code,
-    message: safeMessage(status, code),
-    retryAfterSeconds: retryAfterSeconds(error),
-    status,
-  };
+  return { code: null, message: safeMessage(null, null), retryAfterSeconds: null, status: null };
 }
 
 export function isApiClientError(error: unknown): error is ApiClientError {

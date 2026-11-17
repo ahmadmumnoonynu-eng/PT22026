@@ -50,6 +50,20 @@ def test_request_id_header_present():
     assert r.headers.get("X-Request-ID")
 
 
+def test_cors_preflight_allows_put_requests():
+    r = client.options(
+        "/api/v1/preferences/me",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "PUT",
+            "Access-Control-Request-Headers": "authorization, content-type",
+        },
+    )
+    assert r.status_code == 200
+    assert "PUT" in r.headers.get("access-control-allow-methods", "")
+    assert "authorization" in r.headers.get("access-control-allow-headers", "").lower()
+
+
 def test_unknown_route_error_shape():
     r = client.get("/api/v1/does-not-exist")
     assert r.status_code == 404

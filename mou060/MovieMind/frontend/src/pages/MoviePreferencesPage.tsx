@@ -1,13 +1,16 @@
 import { Search, Sparkles, X } from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { StatusPanel } from "@/components/ui/StatusPanel";
+import { fetchMovie } from "@/features/discovery/api";
 import { useMovies, useGenres } from "@/features/discovery/hooks";
 import { useMyPreferences, useSavePreferences, useGeneratePreferenceRecommendations } from "@/features/preferences/hooks";
 import { RecommendationCard } from "@/features/recommendations/components/RecommendationCard";
 import { isApiClientError } from "@/lib/api/errors";
+import { queryKeys } from "@/lib/query/keys";
 import type { Movie, Recommendations } from "@/types/api";
 
 const defaultTraits = [
@@ -33,7 +36,6 @@ const defaultTraits = [
 export function MoviePreferencesPage() {
   const preferences = useMyPreferences();
   const genres = useGenres();
-  const allMovies = useMovies({ limit: 200, offset: 0, sort: "title" });
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [favoriteMovieIds, setFavoriteMovieIds] = useState<string[]>([]);
   const [description, setDescription] = useState("");
@@ -41,24 +43,33 @@ export function MoviePreferencesPage() {
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
 
+  const normalizedMovieSearch = movieSearch.trim();
+  const movieSearchQuery = useMovies(
+    { limit: 8, offset: 0, q: normalizedMovieSearch, sort: "title" },
+    Boolean(normalizedMovieSearch),
+  );
+  const selectedMovieQueries = useQueries({
+    queries: favoriteMovieIds.map((movieId) => ({
+      queryKey: queryKeys.movies.detail(movieId),
+      queryFn: ({ signal }: { signal: AbortSignal }) => fetchMovie(movieId, signal),
+      staleTime: 60_000,
+    })),
+  });
+
   const savePreferences = useSavePreferences();
   const generateRecommendations = useGeneratePreferenceRecommendations();
 
-  const searchResults = useMemo(() => {
-    const query = movieSearch.trim().toLowerCase();
-    if (!query) return [] as Movie[];
-    return (allMovies.data?.items ?? []).filter((movie) =>
-      movie.title.toLowerCase().includes(query) || movie.genres.some((genre) => genre.toLowerCase().includes(query)),
-    ).slice(0, 8);
-  }, [allMovies.data?.items, movieSearch]);
+  const searchResults = movieSearchQuery.data?.items ?? [];
 
   const selectedMovies = useMemo(
-    () => (allMovies.data?.items ?? []).filter((movie) => favoriteMovieIds.includes(movie.id)),
-    [allMovies.data?.items, favoriteMovieIds],
+    () => selectedMovieQueries.flatMap((query) => query.data ? [query.data] : []),
+    [selectedMovieQueries],
   );
 
   const genreOptions = useMemo(() => {
-    const names = new Set(genres.data?.map((genre) => genre.name) ?? []);
+    const names = new Set(
+      genres.data?.map((genre) => genre.name === "Sci-Fi" ? "Science Fiction" : genre.name) ?? [],
+    );
     defaultTraits.forEach((genre) => names.add(genre));
     return [...names].sort((left, right) => left.localeCompare(right));
   }, [genres.data]);
@@ -104,7 +115,11 @@ export function MoviePreferencesPage() {
       const generated = await generateRecommendations.mutateAsync(payload);
       setRecommendations(generated);
     } catch (submitError) {
-      const message = isApiClientError(submitError) ? submitError.message : "We could not generate recommendations for your taste profile right now.";
+      const message = isApiClientError(submitError)
+        ? submitError.message
+        : submitError instanceof Error && submitError.message.trim()
+          ? submitError.message
+          : "We could not generate recommendations for your taste profile right now.";
       setError(message);
     }
   }
@@ -148,7 +163,7 @@ export function MoviePreferencesPage() {
               <Input id="movie-preference-search" className="pl-12" onChange={(event) => setMovieSearch(event.target.value)} placeholder="Search the catalogue for movies you love" value={movieSearch} />
             </div>
 
-            {movieSearch.trim() && (
+            {normalizedMovieSearch && (
               <div className="rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] p-3">
                 {searchResults.length ? (
                   <ul className="space-y-2">

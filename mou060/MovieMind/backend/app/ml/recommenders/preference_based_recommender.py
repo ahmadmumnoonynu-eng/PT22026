@@ -3,15 +3,16 @@ from __future__ import annotations
 import re
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.models.movie import Movie, MovieGenre
+from app.db.models.movie import Genre, Movie, MovieGenre
 from app.ml.recommenders.content_based_recommender import (
     compute_genre_preferences,
-    score_by_preferences,
 )
 from app.services.recommendation_service import RecommendationItem, RecommendationStrategy
+
+GENRE_ALIASES = {"science fiction": "Sci-Fi"}
 
 
 class PreferenceBasedRecommender(RecommendationStrategy):
@@ -28,7 +29,11 @@ class PreferenceBasedRecommender(RecommendationStrategy):
         description: str | None = None,
     ) -> None:
         self._db = db
-        self._favorite_genres = [genre.strip() for genre in favorite_genres if genre and genre.strip()]
+        self._favorite_genres = [
+            GENRE_ALIASES.get(genre.strip().casefold(), genre.strip())
+            for genre in favorite_genres
+            if genre and genre.strip()
+        ]
         self._favorite_movie_ids = {
             uuid.UUID(str(movie_id)) for movie_id in favorite_movie_ids if str(movie_id).strip()
         }
@@ -70,33 +75,40 @@ class PreferenceBasedRecommender(RecommendationStrategy):
             return []
 
         description_terms = self._description_terms()
-        movies = list(
-            self._db.scalars(
-                select(Movie)
-                .where(Movie.id.not_in(sorted(self._favorite_movie_ids)))
-                .options(selectinload(Movie.genre_links).selectinload(MovieGenre.genre))
-            ).all()
+        genre_score = func.coalesce(
+            func.sum(case(profile, value=Genre.name, else_=0.0)),
+            0.0,
         )
-
-        ranked: list[RecommendationItem] = []
-        for movie in movies:
-            score = score_by_preferences(movie.genres, profile)
-            if description_terms:
-                haystack = " ".join(
-                    part for part in [movie.title, movie.overview or "", " ".join(movie.genres)]
-                ).lower()
-                boost = sum(1 for term in description_terms if term in haystack)
-                score += boost * 0.15
-            if score <= 0:
-                continue
-            ranked.append(
-                RecommendationItem(
-                    movie=movie,
-                    score=float(score),
-                    source=self.source,
-                    reason="Matches the preference profile you saved",
-                )
+        description_score = 0.0
+        for term in sorted(description_terms):
+            contains_term = or_(
+                func.lower(Movie.title).contains(term),
+                func.lower(func.coalesce(Movie.overview, "")).contains(term),
+                func.lower(func.coalesce(Genre.name, "")).contains(term),
             )
+            description_score += func.max(case((contains_term, 1.0), else_=0.0))
 
-        ranked.sort(key=lambda item: (-item.score, item.movie.title, str(item.movie.id)))
-        return ranked[:limit]
+        score_expr = genre_score + description_score * 0.15
+        stmt = (
+            select(Movie, score_expr.label("score"))
+            .outerjoin(MovieGenre, MovieGenre.movie_id == Movie.id)
+            .outerjoin(Genre, Genre.id == MovieGenre.genre_id)
+            .options(selectinload(Movie.genre_links).selectinload(MovieGenre.genre))
+            .group_by(Movie.id)
+            .having(score_expr > 0.0)
+            .order_by(score_expr.desc(), Movie.title, Movie.id)
+            .limit(limit)
+        )
+        if self._favorite_movie_ids:
+            stmt = stmt.where(Movie.id.not_in(sorted(self._favorite_movie_ids)))
+
+        rows = self._db.execute(stmt).all()
+        return [
+            RecommendationItem(
+                movie=movie,
+                score=float(score),
+                source=self.source,
+                reason="Matches the preference profile you saved",
+            )
+            for movie, score in rows
+        ]

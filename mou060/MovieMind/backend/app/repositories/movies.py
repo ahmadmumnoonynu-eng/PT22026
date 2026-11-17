@@ -42,7 +42,12 @@ def list_movies(
     stmt = _base_select()
 
     if q:
-        stmt = stmt.where(Movie.title.ilike(f"%{q}%"))
+        matching_genres = (
+            select(MovieGenre.movie_id)
+            .join(Genre, Genre.id == MovieGenre.genre_id)
+            .where(Genre.name.ilike(f"%{q}%"))
+        )
+        stmt = stmt.where(or_(Movie.title.ilike(f"%{q}%"), Movie.id.in_(matching_genres)))
     if year is not None:
         stmt = stmt.where(Movie.release_year == year)
     if genre:
