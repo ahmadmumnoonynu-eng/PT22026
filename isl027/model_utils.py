@@ -6,7 +6,7 @@ from typing import Dict, List
 from sentence_transformers import SentenceTransformer, util
 
 # --- Environment Setup ---
-# Force offline mode for fast, reproducible local execution
+# Force offline mode by default for fast, reproducible local execution
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
@@ -32,13 +32,37 @@ def load_model() -> SentenceTransformer:
     Load and cache the pre-trained SentenceTransformer model.
     Using lru_cache ensures the heavy model is only loaded into memory once, 
     significantly improving the response time for subsequent requests.
+
+    Attempts to load from the local cache first (offline mode).
+    If the model is not found in cache, it attempts to download it automatically
+    if internet access is available, or provides a clear error message.
     """
-    return SentenceTransformer(MODEL_NAME, local_files_only=True)
+    try:
+        # First attempt: load from local cache (strictly offline)
+        return SentenceTransformer(MODEL_NAME, local_files_only=True)
+    except Exception:
+        # Fallback: if not cached, temporarily allow network access to download
+        try:
+            os.environ["HF_HUB_OFFLINE"] = "0"
+            os.environ["TRANSFORMERS_OFFLINE"] = "0"
+            model = SentenceTransformer(MODEL_NAME, local_files_only=False)
+            # Re-enable offline mode after successful download
+            os.environ["HF_HUB_OFFLINE"] = "1"
+            os.environ["TRANSFORMERS_OFFLINE"] = "1"
+            return model
+        except Exception as e:
+            raise RuntimeError(
+                f"\n\n[Model Loading Error: '{MODEL_NAME}']\n"
+                "The model was not found in your local Hugging Face cache and could not be downloaded.\n"
+                "Please connect to the internet and run this command once:\n"
+                f'  python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer(\'{MODEL_NAME}\')"\n\n'
+                "See README.md (Step 3: Download the model) for details.\n"
+            ) from e
 
 
 def normalize_text(text: str) -> str:
     """Converts text to lowercase and removes extra whitespaces for consistency."""
-    return re.sub(r"\s+", " ", text.lower()).strip()
+    return re.sub(r"\s+", " ", (text or "").lower()).strip()
 
 
 def extract_skills(text: str) -> List[str]:
@@ -60,6 +84,9 @@ def extract_skills(text: str) -> List[str]:
 
 def extract_text_from_pdf(path: str) -> str:
     """Extracts raw text content from an uploaded PDF file."""
+    if not path or not os.path.exists(path):
+        raise FileNotFoundError(f"PDF file not found: {path}")
+
     try:
         from pypdf import PdfReader
     except ImportError:
