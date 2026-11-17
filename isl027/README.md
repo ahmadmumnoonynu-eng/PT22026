@@ -1,12 +1,12 @@
-# Resume Optimization System
+﻿# Resume Optimization System
 
-## Project Overview
+## About the Project
 
-The Resume Optimization System is a Python application that compares a resume (CV) with a job description (JD). It uses a pre-trained SentenceTransformer model to compare the meaning of the two texts and a skill dictionary to identify matching and missing skills.
+The Resume Optimization System is a Python application that compares a resume (CV) with a job description (JD). It uses a pre-trained SentenceTransformer model to compare the meaning of both texts. It also checks for skills that appear in the job description and whether those skills are included in the resume.
 
-The application is built with Gradio. It is intended to help job seekers review how closely their resume relates to a particular vacancy. It can also provide basic resume checks and preparation suggestions.
+I built the application with Gradio so users can work with it through a web interface. It is designed to help job seekers review their resumes, identify missing skills and prepare for job applications. Recruiters can also use it to compare several resumes against the same job description.
 
-The score is a guide for reviewing a resume. It should not be treated as a hiring decision or a guarantee of getting an interview.
+The match score is only a guide. It does not decide whether someone should be hired or guarantee an interview.
 
 ## Main Features
 
@@ -14,68 +14,68 @@ The application has three main sections.
 
 ### 1. Resume Analyzer
 
-- Accepts resume text or a text-based PDF.
-- Compares the resume with a job description.
-- Displays a match score and a match category.
-- Lists matched and missing skills.
-- Shows a skill-gap pie chart.
-- Displays frequently used words in the job description.
-- Provides basic ATS-related checks.
-- Shows possible warning signs in a job advertisement.
-- Generates interview questions and learning suggestions.
-- Displays a resume preview with matched skills highlighted.
+In this section, users can:
+
+- Paste resume text or upload a text-based PDF.
+- Compare a resume with a job description.
+- View the match score and its category.
+- Check which skills are matched and which are missing.
+- View a chart showing the skill gap.
+- See the most frequent keywords in the job description.
+- Get basic ATS-related suggestions.
+- Check a job description for selected warning signs.
+- Receive sample interview questions and learning suggestions.
+- Preview the resume with matched skills highlighted.
 
 ### 2. Cover Letter Generator
 
-The user provides resume text and a job description. The application compares them and uses the matched skills to prepare a cover letter draft. Users can also enter extra skills they want to highlight.
+Users can enter their resume text and a job description. The application checks the skills in both texts and uses the matched skills to prepare a cover letter draft. Users can also add extra skills they want to mention.
 
-The generated letter is a starting draft. It should be reviewed and edited before being sent to an employer.
+The generated letter is a starting point, so it should be checked and edited before being sent to an employer.
 
 ### 3. Recruiter Mode
 
-Recruiter Mode accepts multiple text-based PDF resumes and compares them with one job description. It displays a candidate ranking table and a bar chart of the calculated match scores.
+Recruiter Mode allows users to upload several text-based PDF resumes and compare them with one job description. The application shows the candidates in a ranking table and displays their match scores in a bar chart.
 
-## Machine Learning Model
+## Machine Learning Model and Scoring
 
-The project uses the following pre-trained model:
+The project uses this pre-trained model:
 
 - **Model:** `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
 - **Source:** Hugging Face Model Hub
-- **Model type:** SentenceTransformer
-- **Main use:** Text embedding and semantic similarity
+- **Type:** SentenceTransformer
+- **Purpose:** Text embeddings and semantic similarity
 
-The model converts the resume and job description into numerical vector representations called embeddings. The application then calculates cosine similarity between these embeddings.
+The model converts the resume and job description into numerical representations called embeddings. The application uses cosine similarity to measure how close the two texts are in meaning.
 
-The final score combines two parts:
+The final match score combines two parts:
 
-- 60% semantic similarity
-- 40% exact skill match ratio
+- **60% semantic similarity**
+- **40% skill match ratio**
 
-The skill match ratio is calculated from the number of recognized job-description skills that are also found in the resume.
+The skill match ratio is based on the recognized skills in the job description that are also found in the resume. If no recognized skills are found in the job description, the semantic score is used for the skill component as well.
 
-If the job description contains no skills from the predefined dictionary, the application uses the semantic score as the skill score as well.
+The final score is kept between 0 and 100.
 
-The final result is limited to the range from 0 to 100.
-
-### Match Categories
+## Match Categories
 
 - **Strong match:** 75% or higher
 - **Moderate match:** 50% to below 75%
 - **Low match:** Below 50%
 
-These categories are project-defined thresholds, not official hiring standards.
+These ranges are defined for this project. They are not official hiring standards.
 
 ## Other Processing Methods
 
-Some features do not use a trained machine learning classifier. They use predefined rules or keyword lists.
+Not every feature uses a trained machine learning model. Some parts of the application use simple rules and predefined keyword lists:
 
-- Skill extraction uses a fixed dictionary and regular expressions.
-- ATS-related checks look for contact information, resume word count and missing job skills.
-- The job warning feature searches for selected suspicious phrases and email patterns.
-- Interview questions and learning suggestions are selected from predefined rules.
-- Keyword frequency is calculated using word counts.
+- Skill extraction uses a fixed skill dictionary and regular expressions.
+- ATS-related checks look for contact details, resume length and missing job skills.
+- The job warning feature checks for selected suspicious phrases and email patterns.
+- Interview questions and learning suggestions are selected using predefined rules.
+- Keyword frequency is calculated by counting words in the job description.
 
-These features are intended as basic assistance. They do not replace a professional ATS platform, a recruitment investigation or human review.
+These features provide basic guidance. They do not replace a professional ATS platform, a proper investigation of a job advertisement or a human review.
 
 ## Project Structure
 
@@ -86,148 +86,149 @@ Resume-Optimization-System/
 ├── model_utils.py
 ├── nlp_features.py
 ├── evaluation.py
+├── generate_report_figures.py
 ├── requirements.txt
 ├── README.md
-└── evaluation_results.csv   # Created after running evaluation.py
+├── evaluation_results.csv       # Created by evaluation.py
+└── report_figures/              # Created by generate_report_figures.py
 ```
+
+The `report_figures` folder is created when the figure-generation script runs. It contains the generated PNG and SVG files.
 
 ## Requirements
 
-- Python 3.10 or a compatible newer Python version
+- Python 3.10 or a compatible newer version
 - pip
-- Internet connection for the first model download
-- Sufficient memory to load the SentenceTransformer model
+- An internet connection for the first model download
+- Enough memory to load the SentenceTransformer model
 
-The Python packages used by the project are listed in `requirements.txt`.
+The required Python packages are listed in `requirements.txt`.
 
 ## Installation
 
-Open a terminal in the project folder.
+Open a terminal in the project folder and follow these steps.
 
 ### 1. Create a virtual environment
 
-Windows PowerShell:
+**Windows PowerShell:**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-If PowerShell blocks activation, you can use this command for the current terminal session:
+If PowerShell does not allow the environment to activate, run this command in the current terminal session and try again:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-Linux or macOS:
+**Linux or macOS:**
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 2. Install dependencies
+### 2. Install the required packages
 
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Download the model before the first run
+### 3. Download the model
 
-The application is configured to load the model in offline mode. Therefore, the model must already exist in the local Hugging Face cache.
+The application is set to use offline mode when it starts. This means the pre-trained model needs to be downloaded to the local Hugging Face cache before running the application for the first time.
 
-Run this command once while you have an internet connection:
+While connected to the internet, run:
 
 ```bash
 python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
 ```
 
-Wait until the model has finished downloading. After that, the application can load it from the local cache.
+Wait for the download to finish. The application can then load the model from the local cache.
 
-If the model is not cached, the application will not be able to download it automatically because offline mode is enabled.
+If the model has not been downloaded, the application will not be able to fetch it automatically because offline mode is enabled.
 
 ## Running the Application
 
-After installing the dependencies and downloading the model, run:
+After installing the packages and downloading the model, run:
 
 ```bash
 python app.py
 ```
 
-Open the following address in your browser if it does not open automatically:
+The application should open in your browser. If it does not, visit:
 
-```text
-http://127.0.0.1:7860
-```
+`http://127.0.0.1:7860`
 
-## Running Model Evaluation
+## Running the Evaluation
 
-The evaluation script checks the main text-processing functions using a small set of manually labelled examples.
-
-Run:
+The project includes an evaluation script with a small number of manually prepared test examples. To run it, use:
 
 ```bash
 python evaluation.py
 ```
 
-The evaluation includes:
+The script checks:
 
-- Skill extraction checks against manually specified expected skills.
-- Candidate matching checks for strong, partial and low skill matches.
-- Fake-job warning checks using selected positive and negative examples.
-- Precision, Recall and F1-score for skill extraction and fake-job warning tests.
-- Candidate match scores and categories.
+- Skill extraction against manually written expected results.
+- Resume and job-description matching using strong, partial and low-match examples.
+- The job warning feature using selected suspicious and normal job descriptions.
+- Precision, recall and F1-score for skill extraction and the job warning tests.
+- Match scores and categories for the candidate examples.
 
-The script creates:
+After the evaluation finishes, the script saves the detailed results in:
 
-```text
-evaluation_results.csv
+`evaluation_results.csv`
+
+The test examples are limited and were prepared for this project. The results should not be treated as general performance measurements for all resumes or job advertisements. A larger test set with independently labelled examples would be needed for a more complete evaluation.
+
+## Generating Figures for the Report
+
+The project also includes a script for creating figures used in the technical report. Run:
+
+```bash
+python generate_report_figures.py
 ```
 
-This file contains the individual test results.
+The script saves PNG and SVG figures in the `report_figures` folder. These figures are for the report and are not needed to run the main application.
 
-The evaluation examples are limited and manually prepared. The reported metrics should not be interpreted as general accuracy on real resumes or job advertisements. A larger independently labelled dataset would be needed for a stronger performance evaluation.
+Some diagrams, such as the use case diagram and detailed process flow, were prepared separately in Draw.io.
 
 ## Input Notes
 
 - Resume text can be pasted directly into the application.
-- PDF upload is supported for PDFs that contain selectable text.
-- Image-only or scanned PDFs may not produce extractable text because OCR is not included.
-- For batch comparison, upload text-based PDF resumes.
-- The job description should contain clear role requirements for more useful skill comparison.
+- PDF upload works with PDFs that contain selectable text.
+- Scanned or image-only PDFs may not work because the project does not include OCR.
+- Recruiter Mode accepts multiple text-based PDF resumes.
+- A clear job description with specific role requirements will make the comparison more useful.
 
 ## Limitations
 
-1. **Fixed skill dictionary:** The application only recognizes skills included in its predefined list. New, specialized or differently written skills may be missed.
-2. **Exact skill matching:** Skill extraction is based on keyword patterns. It may not understand every synonym or equivalent skill description.
-3. **Semantic score:** Similarity between two text embeddings does not prove that a candidate is qualified for a job.
-4. **ATS checks:** The ATS score is a small set of heuristic checks. It is not a real ATS compatibility test and does not fully inspect resume formatting.
-5. **Job warning feature:** The detector identifies selected warning signs. It cannot confirm whether a job is genuine or fraudulent.
-6. **Generated content:** Cover letters, interview questions and learning recommendations should be checked by the user.
-7. **PDF extraction:** Scanned PDFs are not supported because the project does not include OCR.
-8. **Evaluation data:** The current evaluation uses a small set of manually prepared examples. It is not a large benchmark.
+There are a few limitations to keep in mind:
+
+1. **Fixed skill dictionary:** The application can only identify skills included in its predefined list. It may miss new or specialized skills.
+2. **Exact skill matching:** The skill extractor looks for keyword patterns. It may not recognize every synonym or differently written version of a skill.
+3. **Semantic similarity:** A high similarity score does not prove that a candidate is qualified for a job.
+4. **Basic ATS checks:** The ATS score is based on a few simple checks. It is not a full ATS compatibility test and does not inspect every part of the resume layout.
+5. **Job warning feature:** The detector looks for selected warning signs. It cannot confirm whether a job is real or fraudulent.
+6. **Generated suggestions:** Cover letters, interview questions and learning recommendations may need editing or further checking.
+7. **PDF extraction:** Scanned PDFs are not supported because OCR is not included.
+8. **Evaluation data:** The evaluation uses a small set of manually prepared examples, not a large real-world benchmark.
 
 ## Acknowledgements
 
-- The pre-trained SentenceTransformer model is provided through the Hugging Face Model Hub.
-- Gradio is used to build the application interface.
-- Matplotlib is used for charts.
-- pypdf is used to extract text from PDF resumes.
-- pandas is used to organize candidate comparison results.
+This project uses the following tools and resources:
+
+- The pre-trained SentenceTransformer model from the Hugging Face Model Hub.
+- Gradio for the web interface.
+- Matplotlib for charts and figures.
+- pypdf for extracting text from PDF resumes.
+- pandas for organizing candidate comparison results.
 
 ## Responsible Use
 
-This application is a resume review aid. It should not be used as the only basis for hiring, rejecting or ranking real people. Users and recruiters should review the original resume and job requirements before making decisions.
-## Generated Figures and Diagrams
-
-To support the technical report and documentation, the following figures and diagrams were created and generated:
-
-- **System Architecture Flowchart:** Automatically generated using a Python script to show the overall data flow.
-- **Skill Gap Analysis Pie Chart:** Generated to visually represent matched versus missing skills.
-- **Keyword Frequency Bar Chart:** Generated to highlight the most common keywords in the job description.
-- **Use Case Diagram:** Manually designed using Draw.io to illustrate user interactions with the system.
-- **Detailed Process Flow:** Manually designed using Draw.io to explain the step-by-step logic of the application.
-
-Run `python generate_report_figures.py` to generate the analytical charts. These figures are intended for the technical report and are not required to run the core application.
+This application is intended to support resume review, not to make hiring decisions. It should not be used as the only reason to hire, reject or rank a person. Job seekers and recruiters should always review the original resume and job requirements before making a decision.
