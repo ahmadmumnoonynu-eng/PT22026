@@ -92,7 +92,8 @@ def test_the_model_insights_page_reports_real_training_numbers():
     assert "Removed by the leakage audit" in body
     assert "Measured on the test window" in body
     assert "PR-AUC" in body and "Risk engine (the blend)" in body
-    assert "Precision vs recall" in body and "approve-everything line" in body
+    assert "Precision vs recall" in body and "How to read it" in body
+    assert "no engine at all" in body and "How right we are" in body
     assert "What it cannot do" in body
     # the metrics are the real ones from results.csv, not placeholders
     import pandas as pd

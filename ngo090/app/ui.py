@@ -867,7 +867,7 @@ def limits_html(items: list[tuple[str, str]]) -> str:
 
 
 def pr_curve_html(curve: list[tuple[float, float]], points: list[tuple[float, float, str]],
-                  prevalence: float) -> str:
+                  prevalence: float, y_label: str = "Precision", x_label: str = "Recall") -> str:
     """Precision-recall curve, drawn in the app's dark style.
 
     curve: (recall, precision) from low recall to high. points: operating
@@ -902,8 +902,8 @@ def pr_curve_html(curve: list[tuple[float, float]], points: list[tuple[float, fl
     for r, p, color in points:
         parts.append(f'<circle cx="{px(r):.1f}" cy="{py(p):.1f}" r="5.5" fill="{color}" '
                      f'stroke="#0b1428" stroke-width="2"/>')
-    parts.append(f'<text x="{left}" y="{top - 4}" font-size="12" fill="{MUTED}">Precision</text>')
-    parts.append(f'<text x="{width - right}" y="{height - 2}" text-anchor="end" font-size="12" fill="{MUTED}">Recall</text>')
+    parts.append(f'<text x="{left}" y="{top - 4}" font-size="12" fill="{MUTED}">{escape(y_label)}</text>')
+    parts.append(f'<text x="{width - right}" y="{height - 2}" text-anchor="end" font-size="12" fill="{MUTED}">{escape(x_label)}</text>')
     parts.append("</svg>")
     return "".join(parts)
 

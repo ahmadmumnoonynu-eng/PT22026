@@ -160,13 +160,21 @@ def render(header, tag: str, run) -> None:
     block = _operating(risk, labels, 99.5)
     curve = ui.card("Precision vs recall", ui.pr_curve_html(
         _pr_curve(risk, labels), [(review[0], review[1], REVIEW_COLOR),
-                                  (block[0], block[1], BLOCK_COLOR)], float(labels.mean()))
+                                  (block[0], block[1], BLOCK_COLOR)], float(labels.mean()),
+        y_label="How right we are", x_label="How much we catch")
         + '<div class="fa-crvnote">'
-        f'<span><i style="background:#38bdf8"></i>engine curve</span>'
-        f'<span><i style="background:{REVIEW_COLOR}"></i>review cut-off (risk 90)</span>'
-        f'<span><i style="background:{BLOCK_COLOR}"></i>auto-block (risk 99.5)</span>'
-        '<span><i class="dash"></i>approve-everything line</span></div>'
-        f'<div class="fa-note">Computed live from the replay sample ({len(risk):,} transactions) '
-        "scored by the loaded engine and judged against the recorded outcomes.</div>", "pulse")
+        f'<span><i style="background:#38bdf8"></i>the engine, from strictest to loosest</span>'
+        f'<span><i style="background:{BLOCK_COLOR}"></i>auto-block line (risk 99.5)</span>'
+        f'<span><i style="background:{REVIEW_COLOR}"></i>review line (risk 90)</span>'
+        '<span><i class="dash"></i>no engine at all</span></div>'
+        f'<div class="fa-note"><b>How to read it:</b> the higher the blue curve, the better &mdash; '
+        'the engine keeps catching more fraud while staying right. Right is <b>precision</b>: '
+        'of what we flag, how much is really fraud. Catch is <b>recall</b>: of all the fraud in the '
+        f'file, how much we found. The red dot is where the app blocks automatically: '
+        f'{block[1]:.0%} of what it blocks is really fraud, and it finds {block[0]:.0%} of all fraud. '
+        f'The yellow dot is the review line: {review[1]:.0%} right, {review[0]:.0%} found. '
+        'The dashed line is the floor &mdash; flagging nothing would still be '
+        f'{float(labels.mean()):.1%} right by luck. Measured on the {len(risk):,} replay transactions, '
+        'where the real answer is known for every one.</div>', "pulse")
     limits = ui.card("What it cannot do", ui.limits_html(LIMITS), "alert")
     st.markdown(ui.two_cards(curve, limits), unsafe_allow_html=True)
