@@ -3,7 +3,8 @@
 Usage (from the ask084 folder):  python -m src.evaluate 500
 """
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"
+if os.environ.get("NER_OFFLINE") == "1":
+    os.environ["HF_HUB_OFFLINE"] = "1"
 
 import json
 import random

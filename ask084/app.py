@@ -4,7 +4,8 @@ os.environ["HF_HUB_OFFLINE"] = "1"  # use the cached model (network blocks HF ch
 
 """Gradio app: NER Studio (analyzer + model arena)."""
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"  # use the cached model (network blocks HF checks)
+if os.environ.get("NER_OFFLINE") == "1":  # set on networks that block Hugging Face
+    os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["NO_PROXY"] = "localhost,127.0.0.1,0.0.0.0"
 os.environ["no_proxy"] = "localhost,127.0.0.1,0.0.0.0"
 import csv
