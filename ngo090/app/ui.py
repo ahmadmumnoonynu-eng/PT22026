@@ -113,6 +113,8 @@ background:rgba(18,30,56,.85) !important;color:#e6edf7 !important;font-weight:60
 .stButton button[kind="primary"]{background:linear-gradient(135deg,#2563eb,#0ea5e9) !important;border:none !important;color:#fff !important;}
 /* The scored-file download sits right under the results card; keep it off the card edge. */
 div[class*="st-key-scored_download"]{margin-top:18px !important;}
+/* Model insights: a bit of air between the sections, without letting them drift apart. */
+div[class*="st-key-page-model"] [data-testid="stMarkdownContainer"]{margin-bottom:8px;}
 /* The Clear button on the upload view: small, on the right, its edge lined up with "Browse files". */
 div[class*="st-key-clear_upload"]{text-align:right !important;}
 div[class*="st-key-clear_upload"] button{width:auto !important;min-width:92px !important;min-height:34px !important;
