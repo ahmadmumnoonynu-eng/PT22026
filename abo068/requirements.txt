@@ -1,3 +1,9 @@
-gradio
-transformers
-torch
+
+gradio==6.31.0
+transformers==5.22.2
+torch==2.15.0
+accelerate
+scikit-learn
+pandas
+numpy
+plotly

@@ -1,0 +1,98 @@
+[
+    {
+        "source": "AI Playground",
+        "text": "im going to class now",
+        "sentiment": "Neutral",
+        "confidence": 96.98,
+        "scores": {
+            "Negative": 1.46,
+            "Neutral": 96.98,
+            "Positive": 1.56
+        },
+        "time": "2026-11-17 22:17:50"
+    },
+    {
+        "source": "AI Playground",
+        "text": "im going to class now",
+        "sentiment": "Neutral",
+        "confidence": 96.98,
+        "scores": {
+            "Negative": 1.46,
+            "Neutral": 96.98,
+            "Positive": 1.56
+        },
+        "time": "2026-11-17 22:14:58"
+    },
+    {
+        "source": "AI Playground",
+        "text": "The product arrived yesterday. It has the features described on the website.",
+        "sentiment": "Neutral",
+        "confidence": 95.02,
+        "scores": {
+            "Negative": 0.12,
+            "Neutral": 95.02,
+            "Positive": 4.86
+        },
+        "time": "2026-11-17 22:14:49"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-17 22:14:40"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I am very disappointed with this product. The quality is terrible and customer service was unhelpful.",
+        "sentiment": "Negative",
+        "confidence": 97.55,
+        "scores": {
+            "Negative": 97.55,
+            "Neutral": 2.27,
+            "Positive": 0.18
+        },
+        "time": "2026-11-17 21:58:43"
+    },
+    {
+        "source": "AI Playground",
+        "text": "The product arrived yesterday. It has the features described on the website.",
+        "sentiment": "Neutral",
+        "confidence": 95.02,
+        "scores": {
+            "Negative": 0.12,
+            "Neutral": 95.02,
+            "Positive": 4.86
+        },
+        "time": "2026-11-17 21:58:40"
+    },
+    {
+        "source": "Test",
+        "text": "I love this application!",
+        "sentiment": "Positive",
+        "confidence": 95.5,
+        "scores": {
+            "Positive": 95.5,
+            "Neutral": 3.0,
+            "Negative": 1.5
+        },
+        "time": "2026-11-17 21:35:41"
+    },
+    {
+        "source": "Test",
+        "text": "I love this application!",
+        "sentiment": "Positive",
+        "confidence": 95.5,
+        "scores": {
+            "Positive": 95.5,
+            "Neutral": 3.0,
+            "Negative": 1.5
+        },
+        "time": "2026-11-17 21:35:23"
+    }
+]
