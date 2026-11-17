@@ -118,7 +118,7 @@ def render(header, tag: str, run) -> None:
     """Draw the model insights page. `run` supplies the training metadata."""
     meta = run.meta
     header.markdown(ui.header_html(
-        "model", f"Run {tag} · test split at step {meta.get('split_step')}", "Model insights"),
+        "model", "How the engine is built, what it caught and what it cannot do", "Model insights"),
         unsafe_allow_html=True)
 
     results = _results(tag)
@@ -151,13 +151,8 @@ def render(header, tag: str, run) -> None:
     st.markdown(ui.two_cards(detectors, features), unsafe_allow_html=True)
 
     # ---- the measured scores ----------------------------------------------- #
-    k = meta.get("daily_capacity_k")
     st.markdown(ui.card("Measured on the test window", _metrics_table(results), "bars"),
                 unsafe_allow_html=True)
-    st.caption(f"Test window: steps > {meta.get('split_step')} · {meta.get('test_rows', 0):,} transactions · "
-               f"{meta.get('test_fraud_rate', 0):.1%} fraud · @k uses the review capacity "
-               f"k = {k} per day · PR-AUC is the headline number at this base rate, and every "
-               "baseline must be beaten.")
 
     # ---- the curve, and the honest boundaries ------------------------------ #
     risk, labels = _scored_replay(tag)
@@ -175,8 +170,3 @@ def render(header, tag: str, run) -> None:
         "scored by the loaded engine and judged against the recorded outcomes.</div>", "pulse")
     limits = ui.card("What it cannot do", ui.limits_html(LIMITS), "alert")
     st.markdown(ui.two_cards(curve, limits), unsafe_allow_html=True)
-
-    st.caption(f"Everything above comes from results/{tag}/ as written by train/train.py, or is "
-               "computed in the browser session from those artifacts. Regenerate with: "
-               "python train/train.py --data-path data/<PaySim csv> "
-               "--drop-features amount_to_balance oldbalanceOrg")
