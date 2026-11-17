@@ -22,6 +22,7 @@ for _path in (str(_APP_DIR.parent), str(_APP_DIR)):
     if _path not in sys.path:
         sys.path.insert(0, _path)
 
+import bootstrap                   # noqa: E402  (fetches artifacts a deployment lacks)
 import common                      # noqa: E402  (sets up the import paths)
 import streamlit as st             # noqa: E402
 
@@ -150,6 +151,21 @@ def scroll_to_top() -> None:
 
 def main() -> None:
     st.markdown(ui.STYLE, unsafe_allow_html=True)
+
+    # The trained files are not in the repository (course rule: no large binaries),
+    # so a fresh deployment owns them only after this fetch. When they are already
+    # on disk -- a local checkout, a warm container -- it costs five stat calls.
+    pending = bootstrap.missing(common.ROOT)
+    if pending:
+        amount = sum(a.size for a in pending) / (1024 * 1024)
+        with st.spinner(f"Fetching {len(pending)} trained files ({amount:.1f} MB)…"):
+            try:
+                fetched = bootstrap.ensure(common.ROOT)
+            except bootstrap.ArtifactsUnavailable as exc:
+                st.error("The trained model files are missing and could not be fetched.\n\n"
+                         f"{exc}")
+                st.stop()
+        st.toast(bootstrap.summary(fetched), icon="✅")
 
     runs = discover_runs(common.ROOT)
     if not runs:
