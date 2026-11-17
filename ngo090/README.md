@@ -2,6 +2,8 @@
 
 A PaySim-based fraud detection and risk-management platform that scores mobile-money transactions, recommends approve/review/block decisions, and supports investigation workflows.
 
+**Live demo:** [fraudintelai.streamlit.app](https://fraudintelai.streamlit.app/)
+
 ## Visual demo
 
 <p align="center">
