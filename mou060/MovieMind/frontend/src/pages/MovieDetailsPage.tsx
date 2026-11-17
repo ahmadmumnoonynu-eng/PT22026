@@ -34,9 +34,9 @@ export function MovieDetailsPage() {
     <article className="mx-auto max-w-5xl">
       <Link className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--mm-text-muted)] hover:text-[var(--mm-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to="/discover"><ArrowLeft aria-hidden="true" className="size-4" /> Back to Discover</Link>
       <div className="overflow-hidden rounded-[28px] border border-[var(--mm-border)] bg-[var(--mm-surface)] shadow-[var(--mm-card-shadow)]">
-        <div className="relative overflow-hidden bg-[radial-gradient(circle_at_80%_20%,rgba(118,43,250,.32),transparent_34rem),linear-gradient(120deg,#15112f,#10162f)] p-6 sm:p-10">
+        <div className="movie-detail-backdrop relative overflow-hidden p-6 sm:p-10">
           <div className="relative grid gap-7 sm:grid-cols-[13rem_minmax(0,1fr)] sm:items-end">
-            <MoviePoster className="mx-auto aspect-[2/3] w-44 rounded-2xl border border-white/10 shadow-2xl sm:mx-0 sm:w-full" movie={item} priority />
+            <MoviePoster className="mx-auto aspect-[2/3] w-44 rounded-2xl border border-[var(--mm-border)] shadow-2xl sm:mx-0 sm:w-full" movie={item} priority />
             <div>
               <p className="text-sm font-bold text-[var(--mm-accent)]">Movie details</p>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{item.title}</h1>
@@ -45,7 +45,7 @@ export function MovieDetailsPage() {
                 {item.average_rating !== null && <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--mm-gold)]"><Star aria-hidden="true" className="size-4 fill-current" /> {item.average_rating.toFixed(1)} <span className="font-normal text-[var(--mm-text-muted)]">average rating</span></span>}
                 {item.ratings_count !== null && <span>{item.ratings_count} {item.ratings_count === 1 ? "rating" : "ratings"}</span>}
               </div>
-              {item.genres.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{item.genres.map((genre) => <span className="inline-flex items-center gap-1 rounded-full border border-[var(--mm-border)] bg-black/15 px-3 py-1.5 text-xs font-semibold text-[var(--mm-text-muted)]" key={genre}><Tags aria-hidden="true" className="size-3" /> {genre}</span>)}</div>}
+              {item.genres.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{item.genres.map((genre) => <span className="inline-flex items-center gap-1 rounded-full border border-[var(--mm-border)] bg-[var(--mm-subtle-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--mm-text-muted)]" key={genre}><Tags aria-hidden="true" className="size-3" /> {genre}</span>)}</div>}
             </div>
           </div>
         </div>

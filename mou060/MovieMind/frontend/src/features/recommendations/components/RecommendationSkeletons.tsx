@@ -16,12 +16,12 @@ export function RecommendationCardSkeleton({ featured = false }: { featured?: bo
 
 export function RecommendationPreviewSkeleton() {
   return (
-    <aside aria-busy="true" aria-label="Finding movies you'll love" className="rounded-3xl border border-[rgba(193,123,255,.22)] bg-[linear-gradient(155deg,#21183e,var(--mm-surface)_55%)] p-5 shadow-[var(--mm-card-shadow)] sm:p-6" role="status">
+    <aside aria-busy="true" aria-label="Finding movies you'll love" className="recommendation-panel rounded-3xl border p-5 shadow-[var(--mm-card-shadow)] sm:p-6" role="status">
       <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--mm-accent)]">Finding movies you&apos;ll love…</p>
       <h2 className="mt-3 text-xl font-black">Your Recommendations</h2>
       <div className="mt-5 space-y-3">
         {Array.from({ length: 3 }, (_, index) => (
-          <div aria-hidden="true" className="flex gap-3 rounded-2xl border border-white/5 bg-black/15 p-2.5" key={index}>
+          <div aria-hidden="true" className="flex gap-3 rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-subtle-surface)] p-2.5" key={index}>
             <Skeleton className="aspect-[2/3] w-16 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1 space-y-2 py-1"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-1/4" /><Skeleton className="h-3 w-full" /></div>
           </div>

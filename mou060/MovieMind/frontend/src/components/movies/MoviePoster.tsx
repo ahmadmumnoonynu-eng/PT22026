@@ -18,7 +18,7 @@ export function MoviePoster({ className = "", movie, priority = false }: MoviePo
   const canShowImage = posterUrl !== null && posterUrl !== failedUrl;
 
   return (
-    <div className={`relative overflow-hidden bg-[linear-gradient(145deg,#30215c,#10162f)] ${className}`}>
+    <div className={`relative overflow-hidden bg-[var(--mm-bg-elevated)] ${className}`}>
       {canShowImage ? (
         <>
           {loadedUrl !== posterUrl && <Skeleton className="absolute inset-0 rounded-none" />}
@@ -33,7 +33,7 @@ export function MoviePoster({ className = "", movie, priority = false }: MoviePo
           />
         </>
       ) : (
-        <div className="flex size-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_50%_30%,rgba(193,123,255,.25),transparent_45%),linear-gradient(145deg,#241e4c,#10162f)] px-4 text-center">
+        <div className="movie-poster-fallback flex size-full flex-col items-center justify-center gap-3 px-4 text-center">
           <Film aria-hidden="true" className="size-9 text-[var(--mm-accent)]" />
           <span className="line-clamp-2 text-xs font-semibold text-[var(--mm-text-muted)]">{movie.title}</span>
         </div>

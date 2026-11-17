@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter, useLocation, type MemoryRouterProps } from "react-router-dom";
 
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { ThemeProvider } from "@/features/theme/ThemeProvider";
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -32,9 +33,11 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     const router = <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>;
     return (
-      <QueryClientProvider client={queryClient}>
-        {withAuth ? <AuthProvider>{router}</AuthProvider> : router}
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          {withAuth ? <AuthProvider>{router}</AuthProvider> : router}
+        </QueryClientProvider>
+      </ThemeProvider>
     );
   }
 

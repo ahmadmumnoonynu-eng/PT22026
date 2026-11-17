@@ -163,7 +163,7 @@ export function MoviePreferencesPage() {
               return (
                 <button
                   key={genre}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${active ? "border-transparent bg-[var(--mm-primary)] text-white shadow-[0_6px_18px_rgba(118,43,250,.2)]" : "border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text-muted)] hover:bg-white/5 hover:text-[var(--mm-text)]"}`}
+                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)] ${active ? "border-transparent bg-[var(--mm-primary)] text-white shadow-[var(--mm-primary-shadow)] hover:bg-[var(--mm-primary-hover)]" : "border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text-muted)] hover:border-[var(--mm-primary)] hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)]"}`}
                   onClick={() => toggleGenre(genre)}
                   type="button"
                 >
@@ -192,7 +192,7 @@ export function MoviePreferencesPage() {
                 ) : searchResults.length ? (
                   <ul className="space-y-2">
                     {searchResults.map((movie) => (
-                      <li key={movie.id} className="flex items-center justify-between gap-3 rounded-xl bg-black/10 px-3 py-2">
+                      <li key={movie.id} className="flex items-center justify-between gap-3 rounded-xl bg-[var(--mm-subtle-surface)] px-3 py-2">
                         <div>
                           <p className="font-semibold text-[var(--mm-text)]">{movie.title}</p>
                           <p className="text-xs text-[var(--mm-text-muted)]">{movie.genres.join(", ") || "No genres listed"}</p>
@@ -213,7 +213,7 @@ export function MoviePreferencesPage() {
               {selectedMovies.map((movie) => (
                 <span key={movie.id} className="inline-flex items-center gap-2 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-3 py-2 text-sm text-[var(--mm-text)]">
                   {movie.title}
-                  <button aria-label={`Remove ${movie.title}`} className="rounded-full p-1 text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)]" onClick={() => removeFavoriteMovie(movie.id)} type="button">
+                  <button aria-label={`Remove ${movie.title}`} className="rounded-full p-1 text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)]" onClick={() => removeFavoriteMovie(movie.id)} type="button">
                     <X aria-hidden="true" className="size-3.5" />
                   </button>
                 </span>

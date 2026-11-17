@@ -11,7 +11,7 @@ export function MovieCard({ className = "", movie, priority = false, showWatchli
   const genres = movie.genres.slice(0, 2).join(" · ");
 
   return (
-    <article className={`group overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] shadow-[var(--mm-card-shadow)] transition-[transform,border-color] duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:border-[rgba(193,123,255,.4)] ${className}`}>
+    <article className={`group overflow-hidden rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] shadow-[var(--mm-card-shadow)] transition-[transform,border-color] duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:border-[var(--mm-primary)] ${className}`}>
       <Link aria-label={`View details for ${movie.title}`} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to={`/movies/${movie.id}`}>
         <MoviePoster className="aspect-[2/3]" movie={movie} priority={priority} />
         <div className="space-y-2 p-3.5">

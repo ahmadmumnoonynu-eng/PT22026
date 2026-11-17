@@ -3,6 +3,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Input } from "@/components/ui/Input";
 import { isApiClientError } from "@/lib/api/errors";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -72,8 +73,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const help = isLogin ? "Sign in to rate films, build your list, and personalize recommendations." : "Start rating movies to make MovieMind recommendations feel more personal.";
 
   return (
-    <main className="auth-stage grid min-h-screen place-items-center p-5 text-[var(--mm-text)]">
-      <section className="w-full max-w-md rounded-[28px] border border-[var(--mm-border)] bg-[color:rgb(18_23_47_/_0.92)] p-7 shadow-[var(--mm-card-shadow)] backdrop-blur-xl sm:p-9">
+    <main className="auth-stage relative grid min-h-screen place-items-center p-5 text-[var(--mm-text)]">
+      <div className="absolute right-5 top-5 sm:right-8 sm:top-8"><ThemeToggle /></div>
+      <section className="w-full max-w-md rounded-[28px] border border-[var(--mm-border)] bg-[var(--mm-surface-glass)] p-7 shadow-[var(--mm-card-shadow)] backdrop-blur-xl sm:p-9">
         <Link className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--mm-text-muted)] hover:text-[var(--mm-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" to="/"><ArrowLeft aria-hidden="true" className="size-4" /> Back to Home</Link>
         <div className="mt-8 grid size-12 place-items-center rounded-2xl bg-linear-to-br from-[var(--mm-primary)] to-[var(--mm-primary-deep)]"><Film aria-hidden="true" className="size-7" /></div>
         <h1 className="mt-6 text-3xl font-black tracking-tight">{heading}</h1>
@@ -83,12 +85,12 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           {!isLogin && <FormField error={errors.username} id="username" label="Username (optional)"><Input aria-describedby={errors.username ? "username-error" : undefined} aria-invalid={Boolean(errors.username)} autoComplete="username" id="username" maxLength={50} onChange={(event) => setUsername(event.target.value)} value={username} /></FormField>}
           <FormField error={errors.email} id="email" label="Email address"><Input aria-describedby={errors.email ? "email-error" : undefined} aria-invalid={Boolean(errors.email)} autoComplete="email" id="email" inputMode="email" onChange={(event) => setEmail(event.target.value)} type="email" value={email} /></FormField>
           <FormField error={errors.password} id="password" label={isLogin ? "Password" : "Password (8–128 characters)"}>
-            <div className="relative"><Input aria-describedby={errors.password ? "password-error" : undefined} aria-invalid={Boolean(errors.password)} autoComplete={isLogin ? "current-password" : "new-password"} id="password" maxLength={128} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} value={password} className="pr-12" /><button aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-[var(--mm-text-muted)] hover:bg-white/5 hover:text-[var(--mm-text)] focus-visible:outline-2 focus-visible:outline-[var(--mm-accent)]" onClick={() => setShowPassword((visible) => !visible)} type="button">{showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}</button></div>
+            <div className="relative"><Input aria-describedby={errors.password ? "password-error" : undefined} aria-invalid={Boolean(errors.password)} autoComplete={isLogin ? "current-password" : "new-password"} id="password" maxLength={128} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} value={password} className="pr-12" /><button aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-[var(--mm-text-muted)] hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)] focus-visible:outline-2 focus-visible:outline-[var(--mm-accent)]" onClick={() => setShowPassword((visible) => !visible)} type="button">{showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}</button></div>
           </FormField>
-          {formError && <p className="rounded-xl border border-[color:rgb(240_107_131_/_0.4)] bg-[color:rgb(240_107_131_/_0.1)] px-3 py-2 text-sm text-[var(--mm-danger)]" role="alert">{formError}</p>}
+          {formError && <p className="rounded-xl border border-[var(--mm-danger-soft-border)] bg-[var(--mm-danger-soft-bg)] px-3 py-2 text-sm text-[var(--mm-danger)]" role="alert">{formError}</p>}
           <Button className="w-full" isLoading={isSubmitting} type="submit">{isLogin ? "Sign in" : "Create account"}</Button>
         </form>
-        <p className="mt-6 text-center text-sm text-[var(--mm-text-muted)]">{isLogin ? "New to MovieMind?" : "Already have an account?"} <Link className="font-semibold text-[var(--mm-accent)] hover:text-white" to={isLogin ? "/register" : "/login"}>{isLogin ? "Create an account" : "Log in"}</Link></p>
+        <p className="mt-6 text-center text-sm text-[var(--mm-text-muted)]">{isLogin ? "New to MovieMind?" : "Already have an account?"} <Link className="font-semibold text-[var(--mm-accent)] hover:text-[var(--mm-text)]" to={isLogin ? "/register" : "/login"}>{isLogin ? "Create an account" : "Log in"}</Link></p>
       </section>
     </main>
   );

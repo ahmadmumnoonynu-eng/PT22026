@@ -10,10 +10,10 @@ type ButtonProps = PropsWithChildren<
 >;
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-linear-to-r from-[#6D24F5] to-[#963BFF] text-white shadow-[0_8px_24px_rgba(118,43,250,.32)] hover:brightness-110",
+  primary: "bg-[var(--mm-primary)] text-white shadow-[var(--mm-primary-shadow)] hover:bg-[var(--mm-primary-hover)]",
   secondary: "border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] text-[var(--mm-text)] hover:bg-[var(--mm-surface)]",
-  ghost: "text-[var(--mm-text-muted)] hover:bg-white/5 hover:text-[var(--mm-text)]",
-  icon: "size-11 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] p-0 text-[var(--mm-text)] hover:bg-white/10",
+  ghost: "text-[var(--mm-text-muted)] hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)]",
+  icon: "size-11 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] p-0 text-[var(--mm-text)] hover:bg-[var(--mm-hover-surface-strong)]",
 };
 
 export function Button({ children, className = "", disabled, isLoading, type = "button", variant = "primary", ...props }: ButtonProps) {

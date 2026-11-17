@@ -20,7 +20,7 @@ export function MovieFilters({ genres, isLoadingGenres, onChange, onReset, value
       <div className="flex items-center gap-2 pb-2 text-sm font-semibold text-[var(--mm-text-muted)]"><SlidersHorizontal aria-hidden="true" className="size-4 text-[var(--mm-accent)]" /> Filters</div>
       <label aria-busy={isLoadingGenres} className="grid min-w-36 flex-1 gap-1 text-xs font-semibold text-[var(--mm-text-muted)]">Genre
         {isLoadingGenres && <span className="text-[var(--mm-text-subtle)]">Loading genres…</span>}
-        <select className="min-h-10 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-3 text-sm text-[var(--mm-text)] outline-none transition-[border-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--mm-accent)]" disabled={isLoadingGenres} onChange={(event) => onChange({ genre: event.target.value || undefined })} value={value.genre ?? ""}>
+        <select className="min-h-10 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface-strong)] px-3 text-sm text-[var(--mm-text)] outline-none transition-[border-color,box-shadow,opacity] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--mm-accent)] disabled:cursor-not-allowed disabled:opacity-60" disabled={isLoadingGenres} onChange={(event) => onChange({ genre: event.target.value || undefined })} value={value.genre ?? ""}>
           <option value="">All genres</option>
           {genres.map((genre) => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
         </select>

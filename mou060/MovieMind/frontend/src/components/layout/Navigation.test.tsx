@@ -33,7 +33,7 @@ describe("Navigation", () => {
 
     expect(screen.getByRole("img", { name: "MovieMind" })).toHaveAttribute(
       "src",
-      "/images/MovieMind%20Neon%20Cinema%20Logo.png",
+      "/images/Glossy%20MovieMind%20Cinematic%20Logo.png",
     );
     expect(screen.getByRole("link", { name: "MovieMind home" })).toHaveAttribute("href", "/");
     expect(screen.getAllByRole("link", { name: "Home" })).toHaveLength(2);

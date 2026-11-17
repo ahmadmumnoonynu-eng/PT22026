@@ -9,6 +9,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 
 afterEach(() => {
   cleanup();
+  document.documentElement.removeAttribute("data-theme");
   server.resetHandlers();
   authSession.clear();
   localStorage.clear();

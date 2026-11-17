@@ -3,6 +3,7 @@ import { useEffect, useState, type PropsWithChildren } from "react";
 
 import { App } from "@/app/App";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { authSession } from "@/lib/auth/session";
 import { isUserSpecificQuery } from "@/lib/query/keys";
 
@@ -40,10 +41,12 @@ export function QueryProvider({ children, client }: QueryProviderProps) {
 
 export function AppProviders() {
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </QueryProvider>
+    <ThemeProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </QueryProvider>
+    </ThemeProvider>
   );
 }

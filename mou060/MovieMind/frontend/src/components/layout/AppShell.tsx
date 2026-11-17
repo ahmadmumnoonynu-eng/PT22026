@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 
 import { Navigation } from "@/components/layout/Navigation";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -39,16 +40,17 @@ export function AppShell() {
       <a className="sr-only fixed left-4 top-4 z-50 rounded-xl bg-[var(--mm-primary)] px-4 py-3 font-semibold text-white focus:not-sr-only focus:outline-2 focus:outline-offset-2 focus:outline-[var(--mm-accent)]" href="#main-content">Skip to main content</a>
       <Navigation />
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-[var(--mm-border)] bg-[color:rgb(8_11_27_/_0.88)] px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-10">
+        <header className="sticky top-0 z-20 flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-[var(--mm-border)] bg-[var(--mm-surface-glass)] px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-10">
           <form className="relative order-3 block w-full max-w-none md:order-none md:max-w-xl" onSubmit={submitSearch} role="search">
             <label className="sr-only" htmlFor="global-movie-search">Search for movies or genres</label>
             <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[var(--mm-text-subtle)]" />
             <Input id="global-movie-search" onChange={(event) => setQuery(event.target.value)} placeholder="Search for movies, genres..." value={query} className="rounded-full pl-12 pr-28" />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--mm-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" type="submit">Search</button>
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--mm-accent)] transition-colors hover:text-[var(--mm-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mm-accent)]" type="submit">Search</button>
           </form>
           <Link className="font-bold tracking-tight text-[var(--mm-text)] md:hidden" to="/">Movie<span className="text-[var(--mm-accent)]">Mind</span></Link>
           <nav aria-label="Account" className="ml-auto flex items-center gap-2">
-            {isAuthenticated && user ? <><Link aria-label="Open profile" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:px-3" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{user.display_name ?? user.username ?? "Account"}</span></Link><Button className="min-h-10 rounded-xl px-3 sm:px-4" disabled={isSigningOut} isLoading={isSigningOut} onClick={() => void handleSignOut()} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-white/5 hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
+            <ThemeToggle />
+            {isAuthenticated && user ? <><Link aria-label="Open profile" className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)] sm:px-3" to="/profile"><span className="grid size-7 place-items-center rounded-full bg-[var(--mm-primary-deep)] text-xs text-white">{(user.display_name ?? user.username ?? user.email).slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{user.display_name ?? user.username ?? "Account"}</span></Link><Button className="min-h-10 rounded-xl px-3 sm:px-4" disabled={isSigningOut} isLoading={isSigningOut} onClick={() => void handleSignOut()} variant="secondary">Sign out</Button></> : <><Link className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-[var(--mm-text-muted)] transition hover:bg-[var(--mm-hover-surface)] hover:text-[var(--mm-text)] sm:block" to="/login">Log in</Link><Link to="/register"><Button className="min-h-10 rounded-xl px-3 sm:px-4"><span className="sm:hidden">Join</span><span className="hidden sm:inline">Create account</span></Button></Link></>}
           </nav>
         </header>
         {signOutError && <p className="border-b border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-center text-sm text-[var(--mm-danger)]" role="alert">{signOutError}</p>}
