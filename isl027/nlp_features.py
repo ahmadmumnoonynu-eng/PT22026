@@ -34,13 +34,11 @@ def create_keyword_chart(text: str):
     labels = [word[0].capitalize() for word in top_words]
     counts = [word[1] for word in top_words]
     
-    # Create matplotlib figure and set dark theme colors to match UI
     fig, ax = plt.subplots(figsize=(6, 3.5))
     fig.patch.set_facecolor('#1e293b') 
     ax.set_facecolor('#1e293b')
     ax.bar(labels, counts, color='#3b82f6', width=0.5) 
     
-    # Customize chart borders, ticks, and title
     ax.spines['bottom'].set_color('#475569')
     ax.spines['left'].set_color('#475569')
     ax.spines['top'].set_visible(False)
@@ -63,8 +61,6 @@ def create_skill_gap_chart(matched: List[str], missing: List[str]):
     fig, ax = plt.subplots(figsize=(4, 3.5))
     fig.patch.set_facecolor('#1e293b')
     ax.set_facecolor('#1e293b')
-    
-    # Draw pie chart and style the text labels and percentages
     wedges, texts, autotexts = ax.pie(
         sizes, labels=labels, colors=colors, autopct='%1.0f%%', 
         startangle=90, textprops={'color': '#cbd5e1', 'fontweight': 'bold'}
@@ -76,16 +72,21 @@ def create_skill_gap_chart(matched: List[str], missing: List[str]):
     plt.tight_layout()
     return fig
 
-def create_comparison_chart(candidate_names: List[str], scores: List[float]):
-    """Generates a bar chart comparing multiple candidates' match scores."""
+def create_comparison_chart(candidate_names: List[str], scores: List[float], top_n: int = 3):
+    """
+    Generates a bar chart comparing multiple candidates. 
+    The top N candidates are colored green to highlight them as the best matches.
+    """
     if not candidate_names or not scores:
         return None
         
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(10, 4.5))
     fig.patch.set_facecolor('#1e293b')
     ax.set_facecolor('#1e293b')
     
-    bars = ax.bar(candidate_names, scores, color='#3b82f6', width=0.5)
+    # Color the top N bars green, and the rest blue
+    colors = ['#10b981' if i < top_n else '#3b82f6' for i in range(len(candidate_names))]
+    bars = ax.bar(candidate_names, scores, color=colors, width=0.5)
     
     # Add percentage labels on top of the bars
     for bar in bars:
@@ -98,18 +99,15 @@ def create_comparison_chart(candidate_names: List[str], scores: List[float]):
     ax.spines['right'].set_visible(False)
     ax.tick_params(axis='x', colors='#cbd5e1', labelsize=10)
     ax.tick_params(axis='y', colors='#cbd5e1', labelsize=10)
-    ax.set_ylim(0, 110) # Set Y-axis limit to make room for labels
-    ax.set_title("Candidate Match Score Comparison", color='#f8fafc', pad=15, fontweight='bold')
+    ax.set_ylim(0, 110) 
+    ax.set_title(f"Candidate Match Score Comparison (Top {top_n} Highlighted)", color='#f8fafc', pad=15, fontweight='bold')
     plt.xticks(rotation=15, ha='right')
     plt.tight_layout()
     return fig
 
 def generate_interview_questions(matched_skills: List[str]) -> str:
-    """Generates mock interview questions based on skills present in the CV."""
     if not matched_skills:
         return "### Mock Interview Questions\nNo specific technical skills matched."
-        
-    # Hardcoded question bank for common skills
     question_bank = {
         "python": "Can you explain the difference between lists and tuples in Python?",
         "sql": "What is the difference between INNER JOIN and LEFT JOIN?",
@@ -121,20 +119,15 @@ def generate_interview_questions(matched_skills: List[str]) -> str:
         "react": "What is the difference between state and props in React?",
         "django": "What is the purpose of middleware in Django?",
     }
-    
     result = "### Mock Interview Questions\nBased on your matched skills:\n\n"
     for skill in matched_skills:
-        # Use a default question if the skill is not in the question bank
         q = question_bank.get(skill.lower(), f"Can you describe a challenging project where you used {skill.capitalize()}?")
         result += f"- **{skill.capitalize()}**: {q}\n"
     return result
 
 def detect_fake_job(jd_text: str) -> str:
-    """Scans the Job Description for common scam indicators and red flags."""
     jd_lower = jd_text.lower()
     red_flags = []
-    
-    # Dictionary of suspicious keywords and their explanations
     scam_keywords = {
         "registration fee": "Legitimate companies never ask for money for registration.",
         "pay a fee": "Never pay money to get a job.",
@@ -147,43 +140,32 @@ def detect_fake_job(jd_text: str) -> str:
         "western union": "Scammers often use untraceable payment methods.",
         "bitcoin": "Crypto payments for jobs are a common scam.",
     }
-    
-    # Check for suspicious keywords
     for keyword, reason in scam_keywords.items():
         if keyword in jd_lower:
             red_flags.append(f"- **Detected '{keyword}'**: {reason}")
             
-    # Check for free email domains instead of corporate ones
     emails = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', jd_text)
     for email in emails:
         if "@gmail.com" in email or "@yahoo.com" in email or "@hotmail.com" in email:
             red_flags.append(f"- **Suspicious Email ({email})**: Legitimate companies use corporate email addresses.")
     
     if not red_flags:
-        return "### Job Authenticity Check\n **Looks Safe**: No common scam patterns detected."
+        return "### Job Authenticity Check\nLooks Safe: No common scam patterns detected."
     
-    # Format the warning message if red flags were found
-    result = "### Job Authenticity Check\n **Warning: Potential Red Flags Detected**\n\n"
+    result = "### Job Authenticity Check\nWarning: Potential Red Flags Detected\n\n"
     result += "\n".join(red_flags)
     result += "\n\n*Note: Always verify the company independently.*"
     return result
 
 def check_ats_compatibility(cv_text: str, missing_skills: List[str], matched_skills: List[str]) -> str:
-    """Evaluates the CV against basic formatting rules expected by ATS systems."""
     score = 100
     issues = []
-    
-    # Check for email address
     if not re.search(r'[\w\.-]+@[\w\.-]+\.\w+', cv_text):
         score -= 15
         issues.append("- **Missing Email**: ATS requires a valid email.")
-        
-    # Check for phone number
     if not re.search(r'\+?\d[\d -]{8,12}\d', cv_text):
         score -= 15
         issues.append("- **Missing Phone Number**: Add a contact number.")
-        
-    # Check CV length (word count)
     word_count = len(cv_text.split())
     if word_count < 100:
         score -= 10
@@ -191,24 +173,18 @@ def check_ats_compatibility(cv_text: str, missing_skills: List[str], matched_ski
     elif word_count > 1200:
         score -= 10
         issues.append("- **Too Long**: Keep it concise.")
-        
-    # Check for keyword density
     if missing_skills:
         total_jd_skills = len(missing_skills) + len(matched_skills)
         if total_jd_skills > 0 and (len(missing_skills) / total_jd_skills) > 0.6:
             score -= 10
             issues.append("- **Low Keyword Density**: Missing many required keywords.")
-            
     final_score = max(0, score)
-    
     if not issues:
         return f"### ATS Score: {final_score}/100 (Pass)\nYour CV passes basic ATS checks."
-    
     issues_str = "\n".join(issues)
     return f"### ATS Score: {final_score}/100\n**Issues found:**\n{issues_str}"
 
 def generate_feedback(score: float, missing_skills: List[str]) -> str:
-    """Generates textual feedback based on the final match score."""
     if score >= 75:
         return "Excellent match! Your CV aligns very well with the job description."
     elif score >= 50:
@@ -220,10 +196,8 @@ def generate_feedback(score: float, missing_skills: List[str]) -> str:
         return "Low match. Your CV does not seem to meet the core requirements."
 
 def get_learning_recommendations(missing_skills: List[str]) -> str:
-    """Suggests online courses/resources for the skills missing from the CV."""
     if not missing_skills:
         return "No missing skills detected. Your CV looks strong!"
-        
     resources = {
         "python": "Try 'Python for Everybody' on Coursera.",
         "sql": "Practice on LeetCode Database or W3Schools.",
@@ -237,7 +211,6 @@ def get_learning_recommendations(missing_skills: List[str]) -> str:
         "aws": "AWS Cloud Practitioner Essentials.",
         "react": "Follow the official React tutorial (react.dev).",
     }
-    
     recs = ["Here are recommended resources:"]
     for skill in missing_skills:
         res = resources.get(skill, "Search for free tutorials on YouTube.")
@@ -245,10 +218,7 @@ def get_learning_recommendations(missing_skills: List[str]) -> str:
     return "\n".join(recs)
 
 def generate_cover_letter(matched_skills: List[str]) -> str:
-    """Drafts a professional cover letter template using the matched skills."""
     skills_str = ", ".join(matched_skills) if matched_skills else "relevant skills"
-    
-    # Build the cover letter using string formatting
     letter = "Dear Hiring Manager,\n\n"
     letter += "I am writing to express my strong interest in the position described in your recent job posting. "
     letter += "With my background and expertise, I am confident that I can make a significant contribution to your team.\n\n"
