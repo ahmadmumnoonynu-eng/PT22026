@@ -45,3 +45,20 @@ occasional grayscale, stronger colour jitter and random erasing, to imitate real
 The final model is chosen by validation macro-F1 only: **E3 (ViT-B/16, full fine-tuning)**,
 validation macro-F1 0.9825, epoch 7 checkpoint. Test and real-photo results are reported for
 all experiments, but they did not influence this choice.
+
+## Reject threshold
+Chosen on the validation split only, from E3's predictions (results/eval/E3_vit_full_val_thresholds.csv):
+a prediction is accepted when its confidence is at least 0.90. On validation this keeps 91.7% of images
+with 99.5% accuracy on the accepted ones.
+
+## Final test and real-photo results (single use)
+| ID | Test acc | Test macro-F1 | Real acc | Real macro-F1 |
+|---|---|---|---|---|
+| E1 | 0.9724 | 0.9650 | 0.4953 | 0.4837 |
+| E2 | 0.9742 | 0.9646 | 0.5935 | 0.5860 |
+| E3 | 0.9802 | 0.9734 | 0.5701 | 0.5577 |
+| E4 | 0.9780 | 0.9691 | 0.5748 | 0.5613 |
+
+The model choice (E3) was made on validation only. The first real-photo run used unresized original copies
+of the 28 trash photos by mistake (an upload error on Drive); it was repeated after the folder was corrected.
+With 214 photos, differences between models on real photos are within the margin of error.
