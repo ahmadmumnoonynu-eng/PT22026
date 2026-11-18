@@ -163,7 +163,7 @@ def run_batch_analysis(jd_text: str, files: list):
     return chart_fig, df
 
 def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
-    """Generate a cover letter using skills matched from the supplied CV and JD."""
+    """Generate a cover letter using the supplied CV, JD, and supported skills."""
     if not cv_text or not cv_text.strip():
         return "Please provide your resume text."
 
@@ -180,9 +180,16 @@ def run_cover_letter(cv_text: str, jd_text: str, skills_text: str) -> str:
             if skill.strip()
         ]
 
-        selected_skills = list(dict.fromkeys(selected_skills + manual_skills))
+        # Only keep manually requested skills that are actually present in the resume.
+        supported_manual_skills = [
+            skill
+            for skill in manual_skills
+            if re.search(r"(?<!\w)" + re.escape(skill) + r"(?!\w)", cv_text, re.IGNORECASE)
+        ]
 
-        return generate_cover_letter(selected_skills)
+        selected_skills = list(dict.fromkeys(selected_skills + supported_manual_skills))
+
+        return generate_cover_letter(cv_text, jd_text, selected_skills)
 
     except Exception as error:
         return f"Could not generate the cover letter: {error}"
