@@ -346,3 +346,21 @@ def test_no_search_hits_shows_warning(monkeypatch):
 
     assert not at.exception
     assert any("No song matches" in w.value for w in at.warning)
+
+
+@requires_dataset
+def test_results_are_hidden_after_choosing_another_song(monkeypatch):
+    """Old recommendations must not stay on screen under a different reference song."""
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setenv("MRS_DISABLE_PREVIEWS", "1")
+    at = AppTest.from_file(APP_PATH, default_timeout=240).run()
+
+    at.text_input[0].set_value("BTS").run()
+    next(b for b in at.button if "Find Similar Songs" in b.label).click().run()
+    assert any("Songs similar to your reference" in m.value for m in at.markdown)
+
+    at.text_input[0].set_value("Coldplay").run()
+    assert not at.exception
+    assert not any("Songs similar to your reference" in m.value for m in at.markdown)
+    assert any("Find Similar Songs" in i.value for i in at.info)

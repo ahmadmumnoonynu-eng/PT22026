@@ -1394,6 +1394,15 @@ def run_app() -> None:
 
     # G. Results ------------------------------------------------------------ #
     results = st.session_state.get("results")
+    # Results belong to the song (and preferences) they were computed for. If the
+    # user has since picked another song or changed preferences, do not show the
+    # old list under the new song -- ask them to press the button again.
+    if results is not None and (
+        st.session_state.get("results_track") != track_id
+        or st.session_state.get("results_preferences") != preferences
+    ):
+        st.info("You changed the song or your preferences. Press **Find Similar Songs** to update the results.")
+        results = None
     if results is not None:
         section_label("5 · Results", "Songs similar to your reference")
         show_results(results, st.session_state.get("results_preferences", Preferences()))
