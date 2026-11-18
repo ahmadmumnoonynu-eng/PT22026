@@ -32,7 +32,7 @@ Requires **Python 3.9+**.
 ```bash
 # 1. Clone the shared repository and enter your folder
 git clone https://github.com/xahiru/PT22026.git
-cd PT22026/YOUR_FOLDER          # e.g. ahm123
+cd PT22026/ach054/question-answering-system         
 
 # 2. (Recommended) create a virtual environment
 python -m venv .venv
