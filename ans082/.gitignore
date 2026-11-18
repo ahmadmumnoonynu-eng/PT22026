@@ -16,3 +16,4 @@ outputs/
 kaggle.json
 Secrets/
 models/
+app_tests/
