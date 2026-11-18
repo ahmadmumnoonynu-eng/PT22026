@@ -38,3 +38,7 @@ It was trained on one public dataset only and has no clinical validation.
 ## Acknowledgments
 Dataset by Masoud Nickparvar (Kaggle); PyTorch, torchvision, Gradio and Hugging Face tools.
 An AI assistant (Claude) was used for learning support and debugging.
+
+## Sample images
+`demo_images/` contains four example MRI images (one per class) taken from the
+Brain Tumor MRI Dataset (Masoud Nickparvar, Kaggle) to try the app.
