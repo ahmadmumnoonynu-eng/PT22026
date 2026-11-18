@@ -38,7 +38,12 @@ py -3.11 -m venv .venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r requirements.
+If the downloads are slow or fail (for example in China), try more retries and a mirror:
+
+```powershell
+pip install -r requirements.txt --default-timeout 120 --retries 10 -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 python -m pytest -q
 ```
 
@@ -54,7 +59,9 @@ The last command runs the 58 tests (about 30 seconds).
 ## Model download
 The final model is on Hugging Face: https://huggingface.co/ansari-ai-dev/smartsort-vit-waste
 
-The app downloads it automatically on the first start (about 350 MB) into `models/smartsort-vit-waste`. After that it works without internet. If huggingface.co cannot be reached, you can set a mirror before starting the app: `$env:HF_ENDPOINT = "https://hf-mirror.com"` (a community mirror).
+The app downloads it automatically on the first start (about 350 MB) into `models/smartsort-vit-waste`. After that it works without internet. If huggingface.co cannot be reached, you have two options:
+- Set a community mirror before starting the app: `$env:HF_ENDPOINT = "https://hf-mirror.com"`.
+- Download the files by hand from the "Files" tab of the Hugging Face page (`config.json`, `model.safetensors`, `preprocessor_config.json`) and put them in `models/smartsort-vit-waste`.
 
 ## How to run the app
 ```powershell
