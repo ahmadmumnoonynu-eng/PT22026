@@ -1,16 +1,21 @@
-import html
-import os
+"""
+app.py - Gradio user interface for ContextAI (Question Answering).
+
+Run with:  python app.py
+The ML logic lives in qa_engine.py and the styling lives in styles.py.
+"""
 
 import gradio as gr
-from transformers import pipeline
 
+from qa_engine import DEFAULT_MODEL, MIN_CONFIDENCE, load_model, predict
+from styles import CUSTOM_CSS
 
-# ------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------
-APP_TITLE = "ContextAI"
-MODEL_NAME = "distilbert/distilbert-base-cased-distilled-squad"
-SERVER_PORT = int(os.getenv("GRADIO_SERVER_PORT", "7862"))
+EMPTY_HISTORY = [["No questions asked yet.", "", ""]]
+
+NO_ANSWER_MESSAGE = (
+    "I couldn't find a confident answer in the provided text. "
+    "Try rephrasing your question or adding more context."
+)
 
 EXAMPLE_CONTEXT = (
     "Artificial Intelligence is a branch of computer science. "
@@ -19,67 +24,47 @@ EXAMPLE_CONTEXT = (
     "AI is used in healthcare, education, transportation, and business."
 )
 
-print("Loading Question Answering AI model...")
-qa_model = pipeline("question-answering", model=MODEL_NAME)
-print("AI model loaded successfully!")
+# Load the model once when the app starts so the first question is fast.
+load_model(DEFAULT_MODEL)
 
 
 # ------------------------------------------------------------
 # Application logic
 # ------------------------------------------------------------
 def answer_question(context, question, history):
-    context = context or ""
-    question = question or ""
+    """Run the QA model and return everything the interface needs to update."""
+    context = (context or "").strip()
+    question = (question or "").strip()
     history = history or []
 
-    if not context.strip():
-        return (
-            "Please enter some context text or upload a TXT file.",
-            "0%",
-            confidence_html(0),
-            history_table(history),
-            history,
-        )
+    # 1. Validate the inputs.
+    if not context:
+        return ("Please enter some context text or upload a TXT file.",
+                "0%", confidence_html(0), history_table(history), history)
+    if not question:
+        return ("Please enter a question.",
+                "0%", confidence_html(0), history_table(history), history)
 
-    if not question.strip():
-        return (
-            "Please enter a question.",
-            "0%",
-            confidence_html(0),
-            history_table(history),
-            history,
-        )
-
+    # 2. Ask the model; never let an exception crash the interface.
     try:
-        result = qa_model(
-            question=question.strip(),
-            context=context.strip(),
-            max_seq_len=384,
-            doc_stride=128,
-            max_question_len=64,
-            handle_impossible_answer=False,
-        )
+        result = predict(question, context)
+    except Exception as error:  # noqa: BLE001 - we want to catch everything here
+        print(f"System error: {error}")
+        return ("An error occurred while processing your question. Please try again.",
+                "0%", confidence_html(0), history_table(history), history)
 
-        answer = (result.get("answer") or "").strip()
-        score = float(result.get("score", 0.0))
-        score = max(0.0, min(score, 1.0))
-        confidence = f"{score:.2%}"
+    answer, score = result["answer"], result["score"]
+    confidence = f"{score:.2%}"
 
-        if score < 0.05 or not answer:
-            answer = (
-                "I couldn't find a confident answer in the provided text. "
-                "Try rephrasing your question or adding more context."
-            )
+    # 3. Handle "no answer" cases (empty span or very low confidence).
+    if score < MIN_CONFIDENCE or not answer:
+        answer = NO_ANSWER_MESSAGE
+        score = 0.0  # don't show "no answer" certainty as answer confidence
+        confidence = "No answer in text"
 
-        history.append([question.strip(), answer, confidence])
-        history = history[-10:]  # Keep the latest 10 entries.
-
-        return answer, confidence, confidence_html(score), history_table(history), history
-
-    except Exception as error:
-        message = f"System error: {error}"
-        return message, "0%", confidence_html(0), history_table(history), history
-
+    # 4. Save to history and return all five outputs.
+    history = (history + [[question, answer, confidence]])[-10:]  # keep latest 10
+    return answer, confidence, confidence_html(score), history_table(history), history
 
 def confidence_html(score):
     """Return a styled confidence bar for the estimated model score."""
@@ -87,10 +72,10 @@ def confidence_html(score):
     percent = score * 100
 
     if percent >= 70:
-        color = "#5CA3C5"
+        color = "#55A9D1"
         label = "High"
     elif percent >= 35:
-        color = "#8ABAD3"
+        color = "#87CEEB"
         label = "Moderate"
     else:
         color = "#800020"
@@ -115,289 +100,39 @@ def confidence_html(score):
 
 def history_table(history):
     if not history:
-        return [["No questions asked yet.", "", ""]]
+        return EMPTY_HISTORY
     return history
 
 
 def load_txt_file(file_path):
+    """Read an uploaded TXT file into the context box."""
     if not file_path:
         return gr.update()
-
     try:
         with open(file_path, "r", encoding="utf-8") as file:
             content = file.read()
-
-        if not content.strip():
-            return "The uploaded TXT file is empty."
-
-        return content
     except UnicodeDecodeError:
-        return "Could not read this file as UTF-8 text. Please upload a UTF-8 TXT file."
-    except Exception as error:
-        return f"Could not load file: {error}"
+        gr.Warning("Could not read this file as UTF-8 text. Please upload a UTF-8 TXT file.")
+        return gr.update()
+    except Exception as error:  # noqa: BLE001
+        gr.Warning(f"Could not load file: {error}")
+        return gr.update()
+
+    if not content.strip():
+        gr.Warning("The uploaded TXT file is empty.")
+        return gr.update()
+    return content
 
 
 def clear_all():
-    return (
-        "",
-        "",
-        "",
-        "0%",
-        confidence_html(0),
-        [["No questions asked yet.", "", ""]],
-        [],
-        None,
-    )
-
-
-# ------------------------------------------------------------
-# Custom CSS
-# ------------------------------------------------------------
-custom_css = """
-:root {
-    --bg: #102431;
-    --panel: #f8fcff;
-    --panel-soft: #eaf5fb;
-    --border: #c6deeb;
-    --text: #173244;
-    --muted: #5d7d91;
-    --blue: #8ABAD3;
-    --purple: #800020;
-}
-
-body {
-    background: radial-gradient(ellipse at top, #d8edf7 0%, #f7fbfe 62%) !important;
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-    color: var(--text) !important;
-}
-
-.gradio-container {
-    max-width: 1420px !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    padding: 28px clamp(14px, 3vw, 42px) 30px !important;
-    background: transparent !important;
-}
-
-.gradio-container, .gradio-container .main, .gradio-container .wrap {
-    background: transparent !important;
-}
-
-#hero {
-    text-align: center;
-    padding: 10px 0 28px;
-}
-
-#hero h1 {
-    font-size: clamp(34px, 4vw, 48px) !important;
-    font-weight: 850 !important;
-    letter-spacing: -1.4px;
-    margin: 0 0 8px !important;
-    background: linear-gradient(90deg, #8ABAD3, #5CA3C5, #800020);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-#hero .subtitle {
-    color: #173244;
-    font-size: 17px;
-    font-weight: 650;
-    margin-bottom: 8px;
-}
-
-#hero .description {
-    color: var(--muted);
-    font-size: 15px;
-}
-
-.panel {
-    background: rgba(255, 255, 255, 0.96) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 20px !important;
-    padding: 22px !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
-}
-
-.panel h2, .section-heading {
-    color: #173244 !important;
-    font-size: 23px !important;
-    font-weight: 750 !important;
-    margin: 0 0 8px !important;
-}
-
-.panel-description {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 18px;
-}
-
-label span, .label {
-    color: #31566b !important;
-    font-weight: 650 !important;
-}
-
-textarea, input, .input-container {
-    background: #ffffff !important;
-    border: 1px solid #bfd9e7 !important;
-    color: #173244 !important;
-    border-radius: 10px !important;
-}
-
-textarea:focus, input:focus {
-    border-color: #8ABAD3 !important;
-    box-shadow: 0 0 0 2px rgba(138, 186, 211, 0.24) !important;
-}
-
-textarea::placeholder, input::placeholder {
-    color: #8aa5b5 !important;
-}
-
-#context-box textarea {
-    min-height: 245px !important;
-    line-height: 1.65 !important;
-}
-
-#answer-box textarea {
-    min-height: 245px !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    line-height: 1.7 !important;
-    color: #800020 !important;
-}
-
-button.primary {
-    background: linear-gradient(100deg, #8ABAD3, #5CA3C5) !important;
-    border: 0 !important;
-    color: white !important;
-    font-weight: 750 !important;
-    border-radius: 10px !important;
-    min-height: 48px !important;
-    transition: transform .18s ease, box-shadow .18s ease !important;
-}
-
-button.primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 7px 20px rgba(92, 163, 197, .30) !important;
-}
-
-button.secondary {
-    background: #800020 !important;
-    border: 1px solid #6f1731 !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    border-radius: 10px !important;
-    min-height: 48px !important;
-}
-
-#button-row {
-    align-items: stretch !important;
-    flex-wrap: nowrap !important;
-    margin-top: 12px !important;
-}
-
-#upload-area {
-    background: rgba(234, 245, 251, .85) !important;
-    border: 1px dashed #8ABAD3 !important;
-    border-radius: 12px !important;
-}
-
-#confidence-panel {
-    background: #eaf5fb !important;
-    border: 1px solid #bfd9e7 !important;
-    border-radius: 12px !important;
-    padding: 12px 14px !important;
-}
-
-.confidence-wrap { padding: 2px 0 0; }
-.confidence-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-.confidence-caption { color: #5d7d91; font-size: 13px; font-weight: 600; }
-.confidence-value { font-size: 15px; font-weight: 800; white-space: nowrap; }
-.confidence-track {
-    height: 10px;
-    background: #ffffff;
-    border: 1px solid #bfd9e7;
-    border-radius: 999px;
-    overflow: hidden;
-}
-.confidence-fill {
-    height: 100%;
-    border-radius: 999px;
-    transition: width .25s ease;
-}
-.confidence-note {
-    color: #6e8a9d;
-    font-size: 12px;
-    margin: 10px 0 0;
-}
-
-#examples-section {
-    margin-top: 28px !important;
-}
-#history-panel {
-    margin-top: 28px !important;
-}
-#history-table {
-    border: 1px solid #bfd9e7 !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-}
-#history-table table {
-    background: #ffffff !important;
-}
-#history-table th {
-    background: #dceef7 !important;
-    color: #173244 !important;
-}
-#history-table td {
-    color: #31566b !important;
-}
-
-#about-box {
-    border: 1px solid #2e405a !important;
-    border-radius: 14px !important;
-    background: rgba(255, 255, 255, .88) !important;
-    margin-top: 22px !important;
-}
-
-#footer {
-    text-align: center;
-    color: #5d7d91;
-    font-size: 13px;
-    padding: 24px 0 6px;
-}
-#footer .brand {
-    color: #800020;
-    font-weight: 750;
-}
-
-@media (max-width: 850px) {
-    .gradio-container {
-        padding: 18px 12px 24px !important;
-    }
-    .panel {
-        padding: 16px !important;
-        border-radius: 16px !important;
-    }
-    #context-box textarea, #answer-box textarea {
-        min-height: 190px !important;
-    }
-    #button-row {
-        flex-wrap: wrap !important;
-    }
-}
-"""
+    """Reset every input, output and the session history."""
+    return "", "", "", "0%", confidence_html(0), EMPTY_HISTORY, [], None
 
 
 # ------------------------------------------------------------
 # Gradio interface
 # ------------------------------------------------------------
-with gr.Blocks(theme=gr.themes.Soft(), css=custom_css, title="ContextAI | Question Answering") as app:
+with gr.Blocks(theme=gr.themes.Soft(), css=CUSTOM_CSS, title="ContextAI | Question Answering") as app:
     history_state = gr.State([])
 
     gr.HTML(
@@ -506,7 +241,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css, title="ContextAI | Questi
 
         history_output = gr.Dataframe(
             headers=["Question", "AI Answer", "Confidence"],
-            value=[["No questions asked yet.", "", ""]],
+            value=EMPTY_HISTORY,
             datatype=["str", "str", "str"],
             interactive=False,
             wrap=True,
@@ -518,9 +253,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css, title="ContextAI | Questi
     with gr.Accordion("ℹ️ About ContextAI | How It Works", open=False, elem_id="about-box"):
         gr.Markdown(
             """
-            **ContextAI** uses a DistilBERT transformer model fine-tuned for
-            extractive question answering.
-
+       **ContextAI** uses RoBERTa (deepset/roberta-base-squad2), a transformer fine-tuned for
+    extractive question answering.
             1. Enter or upload text that contains the information.
             2. Ask a question about that text.
             3. The model selects a likely answer span from the context.
@@ -535,7 +269,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css, title="ContextAI | Questi
         """
         <div id="footer">
             <span class="brand">🤖 ContextAI</span>
-            <span> · Powered by DistilBERT Transformer</span>
+            <span> · Powered by RoBERTa Transformer</span>
             <div>Built with Python, Hugging Face and Gradio</div>
         </div>
         """
@@ -588,9 +322,6 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css, title="ContextAI | Questi
 
 
 if __name__ == "__main__":
-    app.launch(
-    server_name="127.0.0.1",
-    server_port=7863,
-    share=False,
-    show_error=True,
-)
+    # GRADIO_SERVER_NAME / GRADIO_SERVER_PORT env vars are respected automatically,
+    # so the same file works locally and on Hugging Face Spaces.
+    app.launch(show_error=True)
