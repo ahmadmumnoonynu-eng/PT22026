@@ -381,3 +381,26 @@ def test_preferred_artist_shows_more_by_artist_section(monkeypatch):
 
     assert not at.exception, f"app raised: {at.exception}"
     assert any("More by Coldplay" in m.value for m in at.markdown)
+
+
+def test_arabic_reference_song_has_audio_player(monkeypatch):
+    """The Arabic page offers a player for the selected song when a preview is verified."""
+    from streamlit.testing.v1 import AppTest
+
+    import previews as pv
+
+    monkeypatch.delenv("MRS_DISABLE_PREVIEWS", raising=False)
+    fake = pv.Preview(
+        url="https://audio.example/x.m4a",
+        provider="Apple iTunes preview",
+        external_url="https://music.apple.com/x",
+        artwork_url="",
+        matched_title="Amarain",
+        matched_artist="Amr Diab",
+    )
+    monkeypatch.setattr(pv, "find_preview", lambda *a, **k: fake)
+    at = AppTest.from_file(APP_PATH, default_timeout=240).run()
+    mode = next(r for r in at.radio if "Arabic Music" in r.options)
+    mode.set_value("Arabic Music").run()
+    assert not at.exception, f"app raised: {at.exception}"
+    assert any("Listen to your reference song" in c.value for c in at.caption)

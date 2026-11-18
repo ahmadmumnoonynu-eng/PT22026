@@ -1231,6 +1231,10 @@ def page_arabic() -> None:
     )
     if preview is not None:
         st.caption(f"Verified preview match: {preview.matched_title} — {preview.matched_artist}")
+    if preview is not None and getattr(preview, "url", ""):
+        # Same as the main page: let the user hear the song they picked.
+        st.caption("استمع إلى الأغنية / Listen to your reference song (30-second Apple preview):")
+        st.audio(preview.url)
 
     # Filters ------------------------------------------------------------ #
     section_label(
