@@ -216,6 +216,10 @@ redistributed by this project.
 | `Dataset CSV not found at: …` | Complete step 2 of the quick start. |
 | Cards all say "Preview unavailable" | No network access to `itunes.apple.com`, or the track has no official preview. |
 | `ModuleNotFoundError` | Install dependencies into the venv (step 1). |
+| `No Python at '...\Python312\python.exe'` after copying the project to another computer | Virtual environments are not portable. Create a new one there: `python -m venv venv`, then `venv\Scripts\python.exe -m pip install -r requirements.txt`. |
+| Streamlit asks for an e-mail address on the first run | Leave it empty and press Enter. |
+| `Please replace st.components.v1.html with st.iframe` in the terminal | A deprecation warning only; the pinned Streamlit 1.67 still supports it, so the player works. |
+| The progress bar moves but nothing is heard | Check the system volume and that the browser tab is not muted ("Unmute site"). |
 
 ## Acknowledgements
 
