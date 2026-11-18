@@ -46,6 +46,10 @@ st.markdown("""
 
 /* Hide Streamlit clutter */
 #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+
+/* Fix Expander Text Visibility */
+[data-testid="stExpander"] summary { color: #000000 !important; font-weight: 600 !important; }
+[data-testid="stExpander"] p { color: #000000 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,14 +113,18 @@ def display_products(results, title, show_score=True):
 '''
             st.markdown(card_html, unsafe_allow_html=True)
 
+# ==========================================
+#  MAIN APPLICATION LOGIC
+# ==========================================
 def main():
+     # --- Render Header ---
     st.markdown("""
 <div class="top-banner">FREE EXPRESS SHIPPING ON ALL ORDERS OVER $50</div>
 <div class="header-container">
 <div class="store-logo">VISUAL<span style="color:#E50914;">COMMERCE</span></div>
 </div>
 """, unsafe_allow_html=True)
-    
+     # --- Load AI Engine ---
     with st.spinner("Loading Catalog..."):
         engine, num_images = load_engine()
         
@@ -175,6 +183,7 @@ def main():
     all_filtered_results = []
     title_text = ""
     
+     # --- Determine What to Show ---
     # 1. If there is a text search
     if query:
         with st.spinner("Searching..."):
@@ -191,7 +200,7 @@ def main():
             if selected_category != "All Categories":
                 title_text += f" in {selected_category}"
 
-    # 2. If there is an image upload
+    # 2. If there is an image search
     elif uploaded_file is not None:
         with st.spinner("Finding similar items..."):
             raw_results = engine.search_by_image(uploaded_file, top_k=200)
