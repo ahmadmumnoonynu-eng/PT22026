@@ -20,3 +20,10 @@ This project provides a Gradio-based interface with two main features:
    ```bash
    git clone https://github.com/baqir-askary-se/PT22026.git
    cd PT22026/ask084
+
+   ## Fine-tuned model
+
+The project also includes a fine-tuned BERT model, trained on the CoNLL-2003 training split using Google Colab (T4 GPU). 
+*   **Training script:** `notebooks/finetune_ner_colab.ipynb`
+*   **How to use:** The app automatically detects the model if it is placed in `models/ner-finetuned/`.
+*   **Results:** The fine-tuned model achieved an F1 of **0.901**, improving on the pre-trained baseline (0.888) and specifically improving PER detection (F1 0.951).

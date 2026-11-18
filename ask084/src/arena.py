@@ -1,9 +1,12 @@
-"""Model arena: compare the BERT NER model with spaCy on the same text."""
+"""Model arena: compare any two NER models on the same text."""
 from functools import lru_cache
 
 import spacy
 
-from src.inference import predict
+from src.inference import MODELS, predict
+
+SPACY_NAME = "spaCy (en_core_web_sm)"
+ARENA_CHOICES = list(MODELS) + [SPACY_NAME]
 
 # spaCy uses OntoNotes labels; map them onto the 4 CoNLL labels.
 # Labels with no CoNLL equivalent (DATE, MONEY, CARDINAL, ...) are ignored.
@@ -51,22 +54,28 @@ def _overlaps(a, others):
     return any(a["start"] < o["end"] and o["start"] < a["end"] for o in others)
 
 
-def compare(text, threshold=0.5):
-    """Return BERT entities, spaCy entities and a comparison table."""
-    bert = [e for e in predict(text) if e["score"] >= threshold]
-    sp = predict_spacy(text)
-    b = {(e["start"], e["end"]): e for e in bert}
-    s = {(e["start"], e["end"]): e for e in sp}
+def _entities(text, name, threshold):
+    if name == SPACY_NAME:
+        return predict_spacy(text)
+    return [e for e in predict(text, name) if e["score"] >= threshold]
+
+
+def compare(text, name_a, name_b, threshold=0.5):
+    """Return entities of model A, entities of model B and a comparison table."""
+    a = _entities(text, name_a, threshold)
+    b = _entities(text, name_b, threshold)
+    da = {(e["start"], e["end"]): e for e in a}
+    db = {(e["start"], e["end"]): e for e in b}
 
     rows = []
-    for span in sorted(set(b) | set(s)):
-        eb, es = b.get(span), s.get(span)
-        if eb and es:
-            status = "Agree" if eb["label"] == es["label"] else "Label conflict"
-        elif eb:
-            status = "Boundary conflict" if _overlaps(eb, sp) else "Only BERT"
+    for span in sorted(set(da) | set(db)):
+        ea, eb = da.get(span), db.get(span)
+        if ea and eb:
+            status = "Agree" if ea["label"] == eb["label"] else "Label conflict"
+        elif ea:
+            status = "Boundary conflict" if _overlaps(ea, b) else f"Only {name_a}"
         else:
-            status = "Boundary conflict" if _overlaps(es, bert) else "Only spaCy"
-        shown = (eb or es)["text"]
-        rows.append([shown, eb["label"] if eb else "-", es["label"] if es else "-", status])
-    return bert, sp, rows
+            status = "Boundary conflict" if _overlaps(eb, a) else f"Only {name_b}"
+        shown = (ea or eb)["text"]
+        rows.append([shown, ea["label"] if ea else "-", eb["label"] if eb else "-", status])
+    return a, b, rows

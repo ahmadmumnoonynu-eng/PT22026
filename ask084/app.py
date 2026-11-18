@@ -1,24 +1,35 @@
 """Gradio app: NER Studio (analyzer + model arena)."""
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"  # use the cached model (network blocks HF checks)
 
-"""Gradio app: NER Studio (analyzer + model arena)."""
-import os
 if os.environ.get("NER_OFFLINE") == "1":  # set on networks that block Hugging Face
     os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["NO_PROXY"] = "localhost,127.0.0.1,0.0.0.0"
-os.environ["no_proxy"] = "localhost,127.0.0.1,0.0.0.0"
+    os.environ["NO_PROXY"] = "localhost,127.0.0.1,0.0.0.0"
+    os.environ["no_proxy"] = "localhost,127.0.0.1,0.0.0.0"
+
 import csv
 import tempfile
 
 import gradio as gr
 
-from src.arena import compare, to_segments
-from src.inference import predict
+from src.arena import ARENA_CHOICES, SPACY_NAME, compare, to_segments
+from src.inference import DEFAULT_MODEL, MODELS, predict
 
 MAX_CHARS = 1500
 LABELS = ["PER", "ORG", "LOC", "MISC"]
-COLORS = {"PER": "#4C9AFF", "ORG": "#FFAB00", "LOC": "#36B37E", "MISC": "#B37FEB"}
+COLORS = {"PER": "#6366F1", "ORG": "#0EA5E9", "LOC": "#10B981", "MISC": "#F59E0B"}
+
+THEME = gr.themes.Soft(
+    primary_hue="indigo",
+    secondary_hue="blue",
+    neutral_hue="slate",
+    font=("Segoe UI", "system-ui", "sans-serif"),
+)
+CSS = """
+.app-header {background: linear-gradient(90deg, #1F3864 0%, #4F46E5 100%);
+             color: white; padding: 20px 26px; border-radius: 12px; margin-bottom: 8px;}
+.app-header h1 {margin: 0 0 4px 0; font-size: 1.9rem; color: white;}
+.app-header p {margin: 0; opacity: 0.9; color: white;}
+"""
 
 ANALYZER_EXAMPLES = [
     ["Elon Musk visited Google headquarters in California last Monday.", 0.5, LABELS],
@@ -41,9 +52,9 @@ def check_text(text):
         raise gr.Error(f"Text is too long ({len(text)} characters). Keep it under {MAX_CHARS}.")
 
 
-def analyze(text, threshold, selected_labels):
+def analyze(text, threshold, selected_labels, model_name):
     check_text(text)
-    entities = [e for e in predict(text)
+    entities = [e for e in predict(text, model_name)
                 if e["score"] >= threshold and e["label"] in selected_labels]
     entities.sort(key=lambda e: e["start"])
     segments = to_segments(text, entities)
@@ -67,24 +78,29 @@ def analyze(text, threshold, selected_labels):
     return segments, summary, rows, csv_path
 
 
-def run_arena(text, threshold):
+def run_arena(text, name_a, name_b, threshold):
     check_text(text)
-    bert, sp, rows = compare(text, threshold)
+    if name_a == name_b:
+        raise gr.Error("Please choose two different models.")
+    a, b, rows = compare(text, name_a, name_b, threshold)
     agree = sum(1 for r in rows if r[3] == "Agree")
     if rows:
-        summary = f"**{len(rows)} entity spans compared:** {agree} agreed, {len(rows) - agree} disagreements."
+        summary = (f"**{name_a}** vs **{name_b}**: {len(rows)} entity spans compared, "
+                   f"{agree} agreed, {len(rows) - agree} disagreements.")
     else:
         summary = "**Neither model found entities.**"
-    return to_segments(text, bert), to_segments(text, sp), summary, rows
+    return to_segments(text, a), to_segments(text, b), summary, rows
 
 
 with gr.Blocks(title="NER Studio") as demo:
-    gr.Markdown("# NER Studio\nDetect people, organizations, locations and misc. entities in English text.")
+    gr.HTML("<div class='app-header'><h1>NER Studio</h1>"
+            "<p>Named Entity Recognition for English text: compare pre-trained, fine-tuned and spaCy models.</p></div>")
 
     with gr.Tab("Analyzer"):
         with gr.Row():
             with gr.Column(scale=1):
                 text_in = gr.Textbox(label="Input text", lines=7, placeholder="Paste or type English text here...")
+                model_dd = gr.Dropdown(list(MODELS), value=DEFAULT_MODEL, label="Model")
                 threshold = gr.Slider(0.0, 1.0, value=0.5, step=0.05, label="Confidence threshold")
                 labels = gr.CheckboxGroup(LABELS, value=LABELS, label="Entity types to show")
                 run_btn = gr.Button("Analyze", variant="primary")
@@ -94,25 +110,27 @@ with gr.Blocks(title="NER Studio") as demo:
                 table = gr.Dataframe(headers=["Entity", "Type", "Confidence"], interactive=False, label="Entity table")
                 csv_file = gr.File(label="Download results (CSV)")
         gr.Examples(examples=ANALYZER_EXAMPLES, inputs=[text_in, threshold, labels], label="Try an example")
-        run_btn.click(analyze, inputs=[text_in, threshold, labels],
+        run_btn.click(analyze, inputs=[text_in, threshold, labels, model_dd],
                       outputs=[highlighted, summary_md, table, csv_file])
 
     with gr.Tab("Model Arena"):
-        gr.Markdown("**Same text, two models.** BERT (dslim/bert-base-NER, trained on CoNLL-2003) vs "
-                    "spaCy (en_core_web_sm). Disagreements are classified as label conflicts, "
-                    "boundary conflicts, or entities found by only one model.")
+        gr.Markdown("**Same text, two models.** Pick any two models. Disagreements are classified as label "
+                    "conflicts, boundary conflicts, or entities found by only one model.")
         arena_in = gr.Textbox(label="Input text", lines=4, placeholder="Paste or type English text here...")
+        with gr.Row():
+            model_a = gr.Dropdown(ARENA_CHOICES, value=DEFAULT_MODEL, label="Model A")
+            model_b = gr.Dropdown(ARENA_CHOICES, value=SPACY_NAME, label="Model B")
         arena_thr = gr.Slider(0.0, 1.0, value=0.5, step=0.05, label="BERT confidence threshold")
         arena_btn = gr.Button("Compare models", variant="primary")
         with gr.Row():
-            out_bert = gr.HighlightedText(label="BERT NER", color_map=COLORS, show_legend=True)
-            out_spacy = gr.HighlightedText(label="spaCy", color_map=COLORS, show_legend=True)
+            out_a = gr.HighlightedText(label="Model A", color_map=COLORS, show_legend=True)
+            out_b = gr.HighlightedText(label="Model B", color_map=COLORS, show_legend=True)
         arena_summary = gr.Markdown()
-        arena_table = gr.Dataframe(headers=["Text", "BERT", "spaCy", "Status"], interactive=False,
+        arena_table = gr.Dataframe(headers=["Text", "Model A", "Model B", "Status"], interactive=False,
                                    label="Comparison")
         gr.Examples(examples=ARENA_EXAMPLES, inputs=[arena_in], label="Try an example")
-        arena_btn.click(run_arena, inputs=[arena_in, arena_thr],
-                        outputs=[out_bert, out_spacy, arena_summary, arena_table])
+        arena_btn.click(run_arena, inputs=[arena_in, model_a, model_b, arena_thr],
+                        outputs=[out_a, out_b, arena_summary, arena_table])
 
-    if __name__ == "__main__":
-     demo.launch(share=True)
+if __name__ == "__main__":
+    demo.launch(theme=THEME, css=CSS)
