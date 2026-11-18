@@ -48,3 +48,9 @@ report/*.log
 report/*.out
 report/*.toc
 report/*.synctex.gz
+
+# The Arabic catalogue is small (~3 MB) MusicBrainz metadata released under CC0,
+# and rebuilding it takes many slow API calls, so it is committed on purpose.
+!data/arabic_catalogue*.csv
+!data/arabic_catalogue*_provenance.json
+!data/arabic_artist_aliases.json
