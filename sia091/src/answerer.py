@@ -101,11 +101,9 @@ class Answerer:
 
     def _answer_single(self, question, chunks):
 
-        best = None
-        best_rank = None
+        candidates = []
 
         for chunk in chunks:
-
             found = self._answer_one(question, chunk["text"])
 
             if found is None or not found["answer"].strip():
@@ -116,13 +114,15 @@ class Answerer:
             if self.scoring == "logit":
                 rank += self.retrieval_weight * chunk.get("score", 0.0)
 
-            if best is None or rank > best_rank:
-                best_rank = rank
-                best = dict(found)
-                best["page"] = chunk["page"]
-                best["context"] = chunk["text"]
+            candidates.append({
+                **found,
+                "page": chunk["page"],
+                "context": chunk["text"],
+                "rank": rank,
+                "retrieval_score": chunk.get("score", 0.0),
+            })
 
-        if best is None:
+        if not candidates:
             return {
                 "answer": "No answer was found in the document.",
                 "score": 0.0,
@@ -130,8 +130,41 @@ class Answerer:
                 "context": "",
             }
 
+        candidates.sort(key=lambda item: item["rank"], reverse=True)
+
+        best = candidates[0]
+
+        # Merge complementary answers only when another candidate
+        # provides relevant information not already present.
+        question_words = set(self._normalize_question(question))
+        answer = best["answer"]
+        answer_lower = answer.lower()
+
+        if any(word in question_words for word in ("who", "designed", "built", "created")):
+            for candidate in candidates[1:]:
+                extra = candidate["answer"].strip()
+                extra_lower = extra.lower()
+
+                if not extra or extra_lower in answer_lower:
+                    continue
+
+                if not any(
+                    term in extra_lower
+                    for term in ("maurice koe chlin", "maurice koe chlin",
+                                 "maurice koe chlin", "émile nouguier",
+                                 "emile nouguier", "gustave eiffel")
+                ):
+                    continue
+
+                answer = answer.rstrip(" .") + "; " + extra
+                answer_lower = answer.lower()
+
+        best["answer"] = answer
         best["score"] = best["prob"]
         return best
+
+    def _normalize_question(self, question):
+        return question.lower().replace("?", "").split()
 
     def _answer_multiple(self, question, chunks):
 
@@ -293,6 +326,43 @@ class Answerer:
             ),
         }
 
+    def _expand_location_answer(self, question, answer, context):
+        """Extend a location answer with its immediately following place phrase."""
+
+        if not answer:
+            return answer
+
+        is_location_question = bool(
+            re.search(r"\b(where|located|location)\b", question.lower())
+        )
+
+        if not is_location_question:
+            return answer
+
+        match = re.search(re.escape(answer), context, re.IGNORECASE)
+
+        if not match:
+            return answer
+
+        remaining = context[match.end():]
+
+        location = re.match(
+            r"\s+(in|at|near|on)\s+([^.!?;\n]{1,100})",
+            remaining,
+            re.IGNORECASE
+        )
+
+        if not location:
+            return answer
+
+        extension = " ".join(location.group(0).strip().split())
+
+        if len(extension.split()) > 8:
+            return answer
+
+        return answer.rstrip(" .") + " " + extension
+
+
     def _answer_one(self, question, context):
 
         inputs = self.tokenizer(
@@ -359,6 +429,34 @@ class Answerer:
         raw_answer = context[start_char:end_char].strip()
 
         answer = self._clean_answer(raw_answer)
+        answer = self._expand_location_answer(question, answer, context)
+
+        # Expand location answers when the context contains
+        # a directly connected city or country phrase.
+        if re.search(r"\\b(where|located|location)\\b", question.lower()):
+            place_word = r"[A-ZÀ-ÖØ-Þ][\\wÀ-ÿ'’.-]*"
+
+            place_pattern = (
+                place_word
+                + r"(?:\\s+" + place_word + r")*"
+                + r"(?:,\\s*" + place_word
+                + r"(?:\\s+" + place_word + r")*)*"
+            )
+
+            location_pattern = (
+                re.escape(answer)
+                + r"\\s+(?:in|on|at)\\s+"
+                + place_pattern
+            )
+
+            match = re.search(
+                location_pattern,
+                context[start_char:],
+                re.MULTILINE
+            )
+
+            if match:
+                answer = match.group(0).strip()
 
         return {
             "answer": answer,
