@@ -81,6 +81,23 @@ def ask_question(question, retriever, top_k):
 
     retrieved = format_hits(hits)
 
+    # Temporary QA candidate diagnostics
+    candidates = answerer.candidates(question, hits)
+
+    candidate_lines = []
+    for item in candidates:
+        candidate_lines.append(
+            f"Page {item['page']} | "
+            f"QA Probability: {item['prob']:.4f} | "
+            f"QA Logit: {item['logit']:.4f} | "
+            f"Retrieval: {item['retrieval']:.4f} | "
+            f"Answer: {item['answer']}"
+        )
+
+    retrieved += "\n\n--- QA CANDIDATES ---\n"
+    retrieved += "\n".join(candidate_lines)
+
+
     if result["page"] is None:
         return result["answer"], "", "", retrieved
 
@@ -632,8 +649,7 @@ with gr.Blocks(
 
                 question = gr.Textbox(
                     label="Your question",
-                    placeholder="What are the main characteristics of Solar PV?",
-                    lines=3
+                     
                 )
 
                 top_k = gr.Slider(
