@@ -1109,6 +1109,38 @@ def show_results(results: pd.DataFrame, preferences: Preferences) -> None:
     st.caption(SCORE_INTERPRETATION_WARNING)
 
 
+def show_more_by_artist(engine: Recommender, track_id: str, artist: str, k: int = 5) -> None:
+    """Extra list: the preferred artist's own songs, closest in sound to the reference.
+
+    Shown below the main results so the main ranking (and its evaluation) stays
+    unchanged; it answers "I asked for this artist, where are their songs?".
+    """
+    try:
+        extra = engine.more_by_artist(track_id, artist, k=k)
+    except Exception:  # noqa: BLE001
+        return
+    if extra.empty:
+        st.info(f'No other songs by "{artist}" are in the catalogue.')
+        return
+
+    st.markdown(f"#### More by {html.escape(artist.title())} — closest in sound to your song")
+    items = tuple(
+        (str(row["track_id"]), str(row["track_name"]), str(row["artists"]))
+        for _, row in extra.iterrows()
+    )
+    if previews_disabled():
+        previews_by_id: dict[str, Any] = {}
+    else:
+        with st.spinner("Finding 30-second previews…"):
+            previews_by_id = cached_previews(items)
+    payload = build_result_payload(extra, previews_by_id)
+    components.html(
+        render_results_html(payload),
+        height=results_height(len(payload)),
+        scrolling=False,
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Arabic metadata mode
 # --------------------------------------------------------------------------- #
@@ -1410,6 +1442,9 @@ def run_app() -> None:
     if results is not None:
         section_label("5 · Results", "Songs similar to your reference")
         show_results(results, st.session_state.get("results_preferences", Preferences()))
+        result_preferences = st.session_state.get("results_preferences", Preferences())
+        if result_preferences.artists:
+            show_more_by_artist(engine, track_id, result_preferences.artists[0])
 
 
 def main() -> None:  # pragma: no cover - Streamlit entry point

@@ -385,6 +385,50 @@ class Recommender:
             preferences=preferences,
         )
 
+    def more_by_artist(self, track_id: str, artist: str, k: int = 5) -> pd.DataFrame:
+        """Up to ``k`` tracks by ``artist``, ordered by content similarity to the reference.
+
+        This is a separate, explicitly labelled list for users who want songs by a
+        particular artist. It does not change :meth:`recommend` or its scores: the
+        ``score`` column is the plain content similarity (no preference boost).
+        """
+        if not isinstance(k, int) or isinstance(k, bool) or k < MIN_TOP_K or k > MAX_TOP_K:
+            raise InvalidRequestError(f"k must be between {MIN_TOP_K} and {MAX_TOP_K}, got {k!r}")
+        wanted = str(artist or "").strip().casefold()
+        if not wanted:
+            return pd.DataFrame(columns=RESULT_COLUMNS)
+
+        reference_row = self.track_row(track_id)
+        preferences = Preferences.build(artists=[artist])
+        scored = self.scores(track_id)
+        base = scored["score"].to_numpy()
+
+        candidates = np.array(
+            [i for i, artists in enumerate(self._artist_sets) if wanted in artists and i != reference_row],
+            dtype=int,
+        )
+        if candidates.size == 0:
+            return self._format_results(scored, [], base, np.zeros_like(base), reference_row, preferences)
+
+        order = candidates[np.lexsort((self._track_ids[candidates], -base[candidates]))]
+        chosen: list[int] = []
+        seen: set[_DuplicateKey] = set()
+        if self._suppress and self._duplicate_keys is not None:
+            seen.add(self._duplicate_keys[reference_row])
+        for row in order:
+            if self._suppress and self._duplicate_keys is not None:
+                key = self._duplicate_keys[row]
+                if key in seen:
+                    continue
+                seen.add(key)
+            chosen.append(int(row))
+            if len(chosen) == k:
+                break
+
+        preference_scores = np.zeros_like(base)
+        preference_scores[chosen] = 1.0
+        return self._format_results(scored, chosen, base, preference_scores, reference_row, preferences)
+
     # -- explanations -------------------------------------------------------- #
 
     def _explain(

@@ -461,3 +461,33 @@ def test_real_data_recommendations():
         # duplicate-recording signature (title + artist + audio + duration)
         keys = [engine._duplicate_keys[engine.track_row(t)] for t in results["track_id"]]
         assert len(keys) == len(set(keys))
+
+
+# --------------------------------------------------------------------------- #
+# "More by artist" list
+# --------------------------------------------------------------------------- #
+
+
+def test_more_by_artist_returns_only_that_artist(engine):
+    result = engine.more_by_artist("id01", "Var Artist", k=5)
+    assert len(result) == 2
+    assert set(result["artists"]) == {"Var Artist"}
+    assert list(result["rank"]) == [1, 2]
+    assert result["score"].is_monotonic_decreasing
+
+
+def test_more_by_artist_is_case_insensitive_and_excludes_reference(engine):
+    result = engine.more_by_artist("id01", "ref artist", k=5)
+    assert result.empty  # the only "Ref Artist" track is the reference itself
+
+
+def test_more_by_artist_unknown_or_blank_artist_is_empty(engine):
+    assert engine.more_by_artist("id01", "Nobody", k=5).empty
+    assert engine.more_by_artist("id01", "   ", k=5).empty
+
+
+def test_more_by_artist_does_not_change_recommend(engine):
+    before = engine.recommend("id01", k=5)
+    engine.more_by_artist("id01", "Var Artist", k=5)
+    after = engine.recommend("id01", k=5)
+    pd.testing.assert_frame_equal(before, after)

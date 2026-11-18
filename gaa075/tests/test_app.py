@@ -364,3 +364,20 @@ def test_results_are_hidden_after_choosing_another_song(monkeypatch):
     assert not at.exception
     assert not any("Songs similar to your reference" in m.value for m in at.markdown)
     assert any("Find Similar Songs" in i.value for i in at.info)
+
+
+@requires_dataset
+def test_preferred_artist_shows_more_by_artist_section(monkeypatch):
+    """Typing an artist in preferences also lists that artist's own songs."""
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setenv("MRS_DISABLE_PREVIEWS", "1")
+    at = AppTest.from_file(APP_PATH, default_timeout=240).run()
+
+    at.text_input[0].set_value("Hymn for the Weekend").run()
+    artist_box = next(t for t in at.text_input if t.label == "Preferred artist")
+    artist_box.set_value("coldplay").run()
+    next(b for b in at.button if "Find Similar Songs" in b.label).click().run()
+
+    assert not at.exception, f"app raised: {at.exception}"
+    assert any("More by Coldplay" in m.value for m in at.markdown)
