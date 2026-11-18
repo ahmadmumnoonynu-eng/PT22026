@@ -48,6 +48,37 @@ class Retriever:
 
         return len(matched_words) / len(query_words)
 
+    def _content_intent_bonus(self, question, chunk_text):
+        """Reward chunks containing evidence relevant to material questions."""
+
+        q = question.lower()
+
+        material_question = bool(
+            re.search(
+                r"\b(made of|built from|constructed from|composed of|consists? of|material)\b",
+                q
+            )
+        )
+
+        if not material_question:
+            return 0.0
+
+        text = chunk_text.lower()
+
+        material_terms = (
+            "iron", "steel", "aluminium", "aluminum", "copper",
+            "bronze", "wood", "timber", "concrete", "stone",
+            "brick", "glass", "plastic", "carbon fiber",
+            "fiberglass", "fibreglass"
+        )
+
+        has_material = any(
+            re.search(r"\b" + re.escape(term) + r"\b", text)
+            for term in material_terms
+        )
+
+        return 0.25 if has_material else 0.0
+
     def _get_table_section(self, question):
         q = question.lower()
 
@@ -103,23 +134,57 @@ class Retriever:
 
         top_k = max(1, min(top_k, len(self.chunks)))
 
-        query_vector = self.embedder.encode([question])
-
-        scores, positions = self.index.search(
-            query_vector,
-            len(self.chunks)
+        is_location_question = bool(
+            re.search(r"\b(where|located|location)\b", question.lower())
         )
+
+        if is_location_question:
+            search_question = (
+                question + " city country geographical position"
+            )
+            query_vectors = self.embedder.encode(
+                [question, search_question]
+            )
+            scores, positions = self.index.search(
+                query_vectors, len(self.chunks)
+            )
+
+            original_scores = {
+                int(pos): float(score)
+                for score, pos in zip(scores[0], positions[0])
+                if pos >= 0
+            }
+            expanded_scores = {
+                int(pos): float(score)
+                for score, pos in zip(scores[1], positions[1])
+                if pos >= 0
+            }
+        else:
+            query_vector = self.embedder.encode([question])
+            scores, positions = self.index.search(
+                query_vector, len(self.chunks)
+            )
+            original_scores = {
+                int(pos): float(score)
+                for score, pos in zip(scores[0], positions[0])
+                if pos >= 0
+            }
+            expanded_scores = {}
 
         results = []
 
-        for score, position in zip(scores[0], positions[0]):
+        for position, original_chunk in enumerate(self.chunks):
 
-            if position < 0:
-                continue
+            chunk = dict(original_chunk)
 
-            chunk = dict(self.chunks[position])
+            semantic_score = original_scores.get(position, 0.0)
 
-            semantic_score = float(score)
+            if is_location_question:
+                expanded_score = expanded_scores.get(position, 0.0)
+                semantic_score = (
+                    0.80 * semantic_score
+                    + 0.20 * expanded_score
+                )
 
             keyword_score = self._keyword_score(
                 question,
@@ -137,6 +202,43 @@ class Retriever:
                 + 0.45 * keyword_score
                 + table_bonus
             )
+
+            hybrid_score += self._content_intent_bonus(
+                question,
+                chunk["text"]
+            )
+
+            if is_location_question:
+                text_lower = chunk["text"].lower()
+
+                location_cue = bool(
+                    re.search(
+                        r"\b(located|situated|stands|lies)\s+(in|on|at)\b",
+                        text_lower
+                    )
+                    or re.search(
+                        r"\b(in|on|at)\s+(?:the\s+)?[A-Z][A-Za-zÀ-ÿ-]+",
+                        chunk["text"]
+                    )
+                )
+
+                if location_cue:
+                    hybrid_score += 0.12
+
+                reference_signals = sum([
+                    bool(re.search(
+                        r"\b(retrieved|accessed|doi|isbn)\b",
+                        text_lower
+                    )),
+                    bool(re.search(
+                        r"^\s*(references|bibliography|footnotes)\s*$",
+                        text_lower,
+                        re.MULTILINE
+                    )),
+                ])
+
+                if reference_signals >= 1:
+                    hybrid_score -= 0.20
 
             chunk["semantic_score"] = semantic_score
             chunk["keyword_score"] = keyword_score
