@@ -331,13 +331,422 @@ def get_learning_recommendations(missing_skills: List[str]) -> str:
         recs.append(f"- **{skill.capitalize()}**: {res}")
     return "\n".join(recs)
 
-def generate_cover_letter(matched_skills: List[str]) -> str:
-    skills_str = ", ".join(matched_skills) if matched_skills else "relevant skills"
-    letter = "Dear Hiring Manager,\n\n"
-    letter += "I am writing to express my strong interest in the position described in your recent job posting. "
-    letter += "With my background and expertise, I am confident that I can make a significant contribution to your team.\n\n"
-    letter += f"As highlighted in my CV, I possess strong skills in {skills_str}, which directly align with your requirements. "
-    letter += "I have consistently delivered results in my previous roles and am eager to bring this same level of dedication to your company.\n\n"
-    letter += "Thank you for considering my application. I look forward to discussing how my skills align with your team's needs.\n\n"
-    letter += "Sincerely,\n[Your Name]"
-    return letter
+
+# ---------------------------------------------------------------------------
+# Cover letter generation helpers
+# ---------------------------------------------------------------------------
+
+_SECTION_ALIASES = {
+    "education": ["education", "academic background", "academics", "qualifications"],
+    "skills": [
+        "skills", "technical skills", "core competencies", "technologies",
+        "skills technologies", "technical proficiencies"
+    ],
+    "experience": [
+        "work experience", "professional experience", "experience",
+        "employment history", "employment", "work history"
+    ],
+    "projects": [
+        "projects", "personal projects", "academic projects",
+        "selected projects", "key projects"
+    ],
+    "achievements": [
+        "achievements", "awards", "honors", "honours",
+        "certifications", "certificates", "achievements certifications"
+    ],
+}
+
+_NAME_EXCLUDED_WORDS = {
+    "resume", "curriculum", "vitae", "summary", "objective", "profile",
+    "contact", "phone", "email", "address", "linkedin", "github",
+    "education", "experience", "skills", "projects", "achievements",
+    "engineer", "developer", "manager", "analyst", "scientist", "designer",
+    "consultant", "intern", "specialist", "architect", "administrator",
+    "director", "lead", "senior", "junior", "software", "data", "marketing",
+    "sales", "professional", "about",
+}
+
+
+def _clean_line(line: str) -> str:
+    """Normalize a resume/JD line and remove common leading bullet characters."""
+    return re.sub(r"\s+", " ", (line or "").strip(" \t\r\n-•*")).strip()
+
+
+def _normalized_heading(line: str) -> str:
+    return re.sub(r"\s+", " ", (line or "").lower()).strip(" \t-•*")
+
+
+def _is_section_heading(line: str, aliases: List[str]) -> bool:
+    normalized = _normalized_heading(line)
+    for alias in aliases:
+        alias = alias.lower()
+        if (
+            normalized == alias
+            or normalized.startswith(alias + ":")
+            or normalized.startswith(alias + " -")
+            or normalized.startswith(alias + " –")
+        ):
+            return True
+    return False
+
+
+def _is_any_section_heading(line: str) -> bool:
+    return any(_is_section_heading(line, aliases) for aliases in _SECTION_ALIASES.values())
+
+
+def _extract_section_lines(text: str, aliases: List[str], max_lines: int = 4) -> List[str]:
+    """Extract lines under a section heading, stopping at the next known section."""
+    lines = (text or "").splitlines()
+    start_index = None
+    inline_content = ""
+
+    for index, line in enumerate(lines):
+        if _is_section_heading(line, aliases):
+            start_index = index + 1
+            if ":" in line:
+                remainder = line.split(":", 1)[1].strip()
+                if remainder:
+                    inline_content = _clean_line(remainder)
+            break
+
+    if start_index is None:
+        return []
+
+    collected = []
+    if inline_content:
+        collected.append(inline_content)
+
+    for line in lines[start_index:]:
+        if _is_any_section_heading(line):
+            break
+        cleaned = _clean_line(line)
+        if cleaned:
+            collected.append(cleaned)
+        if len(collected) >= max_lines:
+            break
+
+    return collected[:max_lines]
+
+
+def _format_person_name(name: str) -> str:
+    name = _clean_line(name).strip(" ,|")
+    if name.isupper():
+        name = name.title()
+    return name
+
+
+def _looks_like_person_name(line: str) -> bool:
+    cleaned = _clean_line(line)
+    if not cleaned or _is_any_section_heading(cleaned):
+        return False
+    if re.search(r"[@\d]|https?://|www\.", cleaned):
+        return False
+    if len(cleaned) > 60:
+        return False
+
+    words = cleaned.split()
+    if len(words) == 1:
+        return (
+            cleaned.isupper()
+            and len(cleaned) >= 3
+            and cleaned.lower() not in _NAME_EXCLUDED_WORDS
+        )
+
+    if not (2 <= len(words) <= 5):
+        return False
+
+    lowered = {word.lower().strip(".,") for word in words}
+    if lowered & _NAME_EXCLUDED_WORDS:
+        return False
+
+    return all(
+        re.fullmatch(r"[A-Za-z][A-Za-z'.-]*", word.strip(".,"))
+        for word in words
+    )
+
+
+def _extract_candidate_name(cv_text: str) -> str:
+    cleaned_lines = [
+        _clean_line(line)
+        for line in (cv_text or "").splitlines()
+        if _clean_line(line)
+    ]
+
+    for line in cleaned_lines[:15]:
+        match = re.match(r"(?i)^name\s*[:\-]\s*(.+)$", line)
+        if match:
+            return _format_person_name(match.group(1))
+
+    for line in cleaned_lines[:8]:
+        # Prefer the part before a pipe or comma, e.g. "Jane Doe | Software Engineer"
+        candidate = re.split(r"\s*[|]\s*", line)[0].strip()
+        if _looks_like_person_name(candidate):
+            return _format_person_name(candidate)
+
+        candidate = re.split(r"\s*,\s*", line)[0].strip()
+        if _looks_like_person_name(candidate):
+            return _format_person_name(candidate)
+
+    return ""
+
+
+def _extract_job_info(jd_text: str):
+    """Extract a likely job title and company from the JD, only when explicitly available."""
+    lines = [
+        _clean_line(line)
+        for line in (jd_text or "").splitlines()
+        if _clean_line(line)
+    ]
+
+    title = ""
+    company = ""
+
+    for line in lines[:20]:
+        match = re.match(r"(?i)^(?:job\s*title|position|role)\s*[:\-]\s*(.+)$", line)
+        if match:
+            title = _clean_line(match.group(1))
+            break
+
+    if not title:
+        for line in lines[:8]:
+            match = re.search(
+                r"(?i)(?:seeking|looking for|hiring|recruiting)\s+(?:a|an)\s+"
+                r"([A-Za-z0-9][A-Za-z0-9 /+.-]{2,70})",
+                line,
+            )
+            if match:
+                title = _clean_line(match.group(1))
+                break
+
+    if not title and lines:
+        first = lines[0]
+        if (
+            len(first) <= 80
+            and not re.search(
+                r"(?i)\b(job description|about|we are|our company|company overview|responsibilities)\b",
+                first,
+            )
+            and not first.endswith(".")
+        ):
+            title = first
+
+    for line in lines[:20]:
+        match = re.match(r"(?i)^(?:company|organization|employer)\s*[:\-]\s*(.+)$", line)
+        if match:
+            company = _clean_line(match.group(1))
+            break
+
+    if not company:
+        for line in lines[:8]:
+            match = re.search(
+                r"(?i)\b(?:join|at)\s+([A-Z][A-Za-z0-9&.-]+(?:\s+[A-Z][A-Za-z0-9&.-]+){0,3})",
+                line,
+            )
+            if match:
+                company = _clean_line(match.group(1))
+                break
+
+    if re.search(r"(?i)\s+at\s+", title):
+        parts = re.split(r"\s+at\s+", title, maxsplit=1, flags=re.I)
+        if len(parts) == 2:
+            title = parts[0].strip()
+            if not company:
+                company = parts[1].strip()
+
+    title = re.sub(r"\s+", " ", title).strip(" .,:;-")
+    company = re.sub(r"\s+", " ", company).strip(" .,:;-")
+    return title, company
+
+
+def _extract_education(cv_text: str) -> List[str]:
+    lines = _extract_section_lines(cv_text, _SECTION_ALIASES["education"], max_lines=3)
+    if lines:
+        return lines[:2]
+
+    fallback = []
+    for line in (cv_text or "").splitlines():
+        cleaned = _clean_line(line)
+        if cleaned and re.search(
+            r"(?i)\b(bachelor|master|b\.?s\.?|m\.?s\.?|ph\.?d|doctorate|university|college|institute|degree|diploma)\b",
+            cleaned,
+        ):
+            fallback.append(cleaned)
+            if len(fallback) >= 2:
+                break
+    return fallback
+
+
+def _extract_experience(cv_text: str) -> List[str]:
+    lines = _extract_section_lines(cv_text, _SECTION_ALIASES["experience"], max_lines=4)
+    return lines[:2]
+
+
+def _extract_projects(cv_text: str) -> List[str]:
+    lines = _extract_section_lines(cv_text, _SECTION_ALIASES["projects"], max_lines=4)
+    if lines:
+        return lines[:2]
+
+    fallback = []
+    for line in (cv_text or "").splitlines():
+        cleaned = _clean_line(line)
+        if re.match(r"(?i)^project\s*[:\-]", cleaned):
+            fallback.append(cleaned)
+            if len(fallback) >= 2:
+                break
+    return fallback
+
+
+def _extract_achievements(cv_text: str) -> List[str]:
+    lines = _extract_section_lines(cv_text, _SECTION_ALIASES["achievements"], max_lines=3)
+    if lines:
+        return lines[:2]
+
+    fallback = []
+    for line in (cv_text or "").splitlines():
+        cleaned = _clean_line(line)
+        if re.search(r"(?i)\b(award|certified|certification|honor|honour|achievement|winner)\b", cleaned):
+            fallback.append(cleaned)
+            if len(fallback) >= 2:
+                break
+    return fallback
+
+
+def _skill_is_supported(skill: str, cv_text: str) -> bool:
+    skill = (skill or "").strip()
+    if not skill:
+        return False
+    pattern = r"(?<!\w)" + re.escape(skill) + r"(?!\w)"
+    return bool(re.search(pattern, cv_text, re.IGNORECASE))
+
+
+def _filter_supported_skills(skills: List[str], cv_text: str) -> List[str]:
+    """Keep only skills that appear in the resume text, preserving order and removing duplicates."""
+    supported = []
+    seen = set()
+    for skill in skills or []:
+        key = (skill or "").lower().strip()
+        if key and key not in seen and _skill_is_supported(skill, cv_text):
+            seen.add(key)
+            supported.append(skill)
+    return supported
+
+
+def _human_list(items: List[str], conjunction: str = "and", sep: str = ", ") -> str:
+    items = [item for item in items if item]
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} {conjunction} {items[1]}"
+    return f"{sep.join(items[:-1])}, {conjunction} {items[-1]}"
+
+
+def _top_jd_keywords(jd_text: str, top_n: int = 3) -> List[str]:
+    generic = {
+        "team", "work", "role", "job", "company", "looking", "experience",
+        "skills", "ability", "strong", "working", "years", "plus", "using",
+        "knowledge", "requirements", "responsibilities", "candidate", "ideal",
+        "new", "well", "also", "including", "within", "across", "related",
+    }
+    keywords = []
+    for word, _count in Counter(get_filtered_words(jd_text)).most_common(25):
+        if word in generic:
+            continue
+        if word not in keywords:
+            keywords.append(word)
+        if len(keywords) >= top_n:
+            break
+    return keywords
+
+
+def generate_cover_letter(cv_text: str, jd_text: str, matched_skills: List[str]) -> str:
+    """
+    Generate a dynamic cover letter from the resume, job description and supported skills.
+
+    The function only uses information that is present in the resume. It does not invent
+    education, experience, projects, achievements, or skills.
+    """
+    cv_text = (cv_text or "").strip()
+    jd_text = (jd_text or "").strip()
+
+    if not cv_text:
+        return "Please provide your resume text."
+    if not jd_text:
+        return "Please provide the job description."
+
+    name = _extract_candidate_name(cv_text)
+    job_title, company = _extract_job_info(jd_text)
+    supported_skills = _filter_supported_skills(matched_skills or [], cv_text)
+    education = _extract_education(cv_text)
+    experience = _extract_experience(cv_text)
+    projects = _extract_projects(cv_text)
+    achievements = _extract_achievements(cv_text)
+    jd_keywords = _top_jd_keywords(jd_text)
+
+    greeting = "Dear Hiring Manager,"
+    paragraphs = []
+
+    position_phrase = (
+        f"the {job_title} position" if job_title else "the position described in your job posting"
+    )
+    company_phrase = f" at {company}" if company else ""
+
+    if name:
+        opening = (
+            f"My name is {name}, and I am writing to express my interest in "
+            f"{position_phrase}{company_phrase}."
+        )
+    else:
+        opening = (
+            f"I am writing to express my interest in "
+            f"{position_phrase}{company_phrase}."
+        )
+
+    if jd_keywords:
+        opening += f" I was particularly drawn to the role’s focus on {_human_list(jd_keywords)}."
+
+    paragraphs.append(opening)
+
+    if supported_skills:
+        skill_names = [skill.capitalize() for skill in supported_skills]
+        skills_paragraph = (
+            f"My resume demonstrates experience with {_human_list(skill_names)}."
+        )
+        if jd_keywords:
+            skills_paragraph += (
+                f" These capabilities align with the role’s emphasis on "
+                f"{_human_list(jd_keywords)}."
+            )
+        paragraphs.append(skills_paragraph)
+
+    if education:
+        paragraphs.append(
+            "My education and academic background include " + "; ".join(education) + "."
+        )
+
+    if experience:
+        paragraphs.append(
+            "Relevant experience from my resume includes: " + "; ".join(experience) + "."
+        )
+
+    if projects:
+        paragraphs.append(
+            "I have also worked on projects such as " + "; ".join(projects) + "."
+        )
+
+    if achievements:
+        paragraphs.append(
+            "Additional achievements and certifications from my resume include: "
+            + "; ".join(achievements)
+            + "."
+        )
+
+    paragraphs.append(
+        "I would welcome the opportunity to discuss how my background and skills "
+        "can contribute to your team. Thank you for your time and consideration."
+    )
+
+    closing = "Sincerely,\n" + (name if name else "[Your Name]")
+
+    return greeting + "\n\n" + "\n\n".join(paragraphs) + "\n\n" + closing
