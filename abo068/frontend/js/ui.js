@@ -88,8 +88,9 @@ export function setPlaceholder(container, title, description, icon = "◉") {
 
 export function formatTime(value) {
   if (!value) return "—";
-  const date = new Date(value.replace(" ", "T"));
+  const formattedValue = String(value);
+  const date = new Date(formattedValue.replace(" ", "T"));
   return Number.isNaN(date.getTime())
-    ? value
+    ? formattedValue
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }

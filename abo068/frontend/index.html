@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f9ff">
   <title>SmartFeel AI | Sentiment Analytics</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -52,7 +53,11 @@
         <div class="breadcrumbs"><span>Platform</span><span class="crumb-separator">›</span><strong id="breadcrumb-current">Sentiment Analytics Engine</strong></div>
         <div class="topbar-actions">
           <span class="engine-badge"><i></i>Model: Ready · Fine-tuned RoBERTa</span>
-          <a class="topbar-link" href="/docs" target="_blank" rel="noreferrer">▤ <span>API Docs</span></a>
+          <a class="topbar-link" href="/docs" target="_blank" rel="noreferrer">▤ <span>Docs</span></a>
+          <button class="button button-secondary topbar-export" id="topbar-export" type="button">⇩ <span>Export</span></button>
+          <span class="topbar-status" id="topbar-status" role="status" aria-live="polite"></span>
+          <span class="notification-bell" role="img" aria-label="No new notifications" title="No new notifications">🔔</span>
+          <span class="topbar-avatar" role="img" aria-label="SmartFeel AI profile">SF</span>
         </div>
       </header>
 
@@ -61,49 +66,128 @@
           <div>
             <div class="eyebrow"><span class="eyebrow-dot"></span>CLUSTER SYNC: ACTIVE</div>
             <h1>Your customer insights, at a glance.</h1>
-            <p>Real-time aggregation of sentiment predictions, with offline model evaluation kept separate.</p>
+            <p>Real-time aggregation of sentiment inferences, trend activity, and model evaluation metrics.</p>
+            <p class="dashboard-updated">Updated <span id="dashboard-updated">—</span></p>
           </div>
           <div class="intro-controls">
             <label class="sr-only" for="dashboard-range">Activity range</label>
             <select id="dashboard-range" class="select-control">
-              <option value="">All saved analyses</option>
-              <option value="30">Last 30 days</option>
+              <option value="30" selected>Last 30 Days</option>
               <option value="7">Last 7 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="">All saved analyses</option>
             </select>
+            <label class="sr-only" for="dashboard-source">Analysis source</label>
+            <select id="dashboard-source" class="select-control">
+              <option value="All">All sources</option>
+              <option>AI Playground</option>
+              <option>ReviewAI</option>
+              <option>SocialMind</option>
+              <option>Test</option>
+            </select>
+            <button class="button button-primary dashboard-export" id="dashboard-export" type="button">⇩ Export report</button>
             <button class="button button-secondary" id="dashboard-refresh" type="button">↻ Refresh</button>
           </div>
         </div>
 
         <div class="metric-grid" id="dashboard-metrics" aria-live="polite">
-          <article class="metric-card"><span class="metric-title">Total analyses</span><strong class="metric-value" data-metric="total">—</strong><small>Saved records</small></article>
-          <article class="metric-card"><span class="metric-title"><i class="sentiment-dot positive"></i>Positive sentiment</span><strong class="metric-value" data-metric="positive">—</strong><small data-share="positive">—</small></article>
-          <article class="metric-card"><span class="metric-title"><i class="sentiment-dot neutral"></i>Neutral sentiment</span><strong class="metric-value" data-metric="neutral">—</strong><small data-share="neutral">—</small></article>
-          <article class="metric-card"><span class="metric-title"><i class="sentiment-dot negative"></i>Negative sentiment</span><strong class="metric-value" data-metric="negative">—</strong><small data-share="negative">—</small></article>
+          <article class="metric-card">
+            <span class="metric-title">Total analyses</span>
+            <div class="metric-value-row"><strong class="metric-value" data-metric="total">—</strong><small class="metric-change" data-change="total">—</small></div>
+            <small>Filtered saved records</small>
+            <small data-confidence="overall">Mean confidence —</small>
+            <span class="metric-progress"><i data-progress="overall"></i></span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title"><i class="sentiment-dot positive"></i>Positive sentiment <small class="metric-share" data-share="positive">—</small></span>
+            <div class="metric-value-row"><strong class="metric-value" data-metric="positive">—</strong><small class="metric-change" data-change="positive">—</small></div>
+            <small data-confidence="positive">Mean confidence —</small>
+            <span class="metric-progress"><i class="positive-progress" data-progress="positive"></i></span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title"><i class="sentiment-dot neutral"></i>Neutral sentiment <small class="metric-share" data-share="neutral">—</small></span>
+            <div class="metric-value-row"><strong class="metric-value" data-metric="neutral">—</strong><small class="metric-change" data-change="neutral">—</small></div>
+            <small data-confidence="neutral">Mean confidence —</small>
+            <span class="metric-progress"><i class="neutral-progress" data-progress="neutral"></i></span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title"><i class="sentiment-dot negative"></i>Negative sentiment <small class="metric-share" data-share="negative">—</small></span>
+            <div class="metric-value-row"><strong class="metric-value" data-metric="negative">—</strong><small class="metric-change" data-change="negative">—</small></div>
+            <small data-confidence="negative">Mean confidence —</small>
+            <span class="metric-progress"><i class="negative-progress" data-progress="negative"></i></span>
+          </article>
         </div>
         <div class="demo-notice" id="dashboard-demo-notice" hidden></div>
 
         <div class="chart-grid">
           <article class="surface chart-panel">
             <div class="section-heading"><div><h2>Sentiment distribution</h2><p>Share of saved predictions by class</p></div><span class="subtle-chip">History data</span></div>
-            <div class="chart-wrap chart-wrap-doughnut"><canvas id="distribution-chart" aria-label="Sentiment distribution chart"></canvas></div>
+            <div class="distribution-layout">
+              <div class="chart-wrap chart-wrap-doughnut"><canvas id="distribution-chart" aria-label="Sentiment distribution chart"></canvas></div>
+              <div class="distribution-summary">
+                <div class="distribution-summary-heading">Saved predictions</div>
+                <div class="distribution-summary-row"><span><i class="sentiment-dot positive"></i>Positive</span><strong data-distribution-count="positive">—</strong><small data-distribution-share="positive">—</small></div>
+                <div class="distribution-summary-row"><span><i class="sentiment-dot neutral"></i>Neutral</span><strong data-distribution-count="neutral">—</strong><small data-distribution-share="neutral">—</small></div>
+                <div class="distribution-summary-row"><span><i class="sentiment-dot negative"></i>Negative</span><strong data-distribution-count="negative">—</strong><small data-distribution-share="negative">—</small></div>
+                <div class="distribution-confidence">Mean confidence <strong id="dashboard-mean-confidence">—</strong></div>
+              </div>
+            </div>
           </article>
           <article class="surface chart-panel">
-            <div class="section-heading"><div><h2>Sentiment activity over time</h2><p>Daily saved analysis counts</p></div><span class="subtle-chip">History data</span></div>
-            <div class="chart-wrap"><canvas id="activity-chart" aria-label="Sentiment activity over time chart"></canvas></div>
+            <div class="section-heading"><div><h2>Sentiment activity over time</h2><p>Weekly saved analysis volume by predicted class</p></div><span class="subtle-chip">History data</span></div>
+            <div class="chart-wrap activity-chart-wrap">
+              <canvas id="activity-chart" aria-label="Sentiment activity over the last four weeks"></canvas>
+              <div class="activity-tooltip" id="activity-tooltip" hidden></div>
+            </div>
           </article>
         </div>
 
         <article class="surface evaluation-panel">
-          <div class="evaluation-title"><span class="evaluation-icon">◉</span><div><h2>Offline model evaluation metrics</h2><p>Held-out test results · not live customer activity</p></div></div>
-          <div class="evaluation-values">
-            <div><small>Test accuracy</small><strong id="model-accuracy">—</strong></div>
-            <div><small>Macro F1-score</small><strong id="model-f1">—</strong></div>
-            <div><small>Dataset</small><strong id="model-dataset">—</strong></div>
+          <div class="evaluation-header">
+            <div class="evaluation-title"><span class="evaluation-icon">◉</span><div><h2>Offline Model Evaluation Metrics</h2><p>Held-out test results · not live operational traffic</p></div></div>
+            <span class="evaluation-badge">Overall metrics from local model config</span>
+          </div>
+          <div class="evaluation-grid">
+            <section class="evaluation-overall" aria-labelledby="evaluation-overall-title">
+              <h3 id="evaluation-overall-title">Overall Generalization</h3>
+              <div class="evaluation-main-values">
+                <div><small>Accuracy</small><strong id="model-accuracy">—</strong></div>
+                <div><small>Macro F1-score</small><strong id="model-f1">—</strong></div>
+              </div>
+              <div class="evaluation-loss">
+                <span>Validation loss <small>(illustrative)</small></span><strong>0.428</strong>
+                <i><b></b></i>
+              </div>
+              <div class="evaluation-model-meta"><span>Dataset</span><strong id="model-dataset">—</strong></div>
+              <div class="evaluation-model-meta"><span>Base model</span><strong id="model-base">—</strong></div>
+            </section>
+            <section class="evaluation-classes" aria-labelledby="evaluation-classes-title">
+              <div class="evaluation-classes-heading">
+                <h3 id="evaluation-classes-title">Per-class Precision, Recall &amp; F1 Breakdown</h3>
+                <span>Illustrative sample · N = 10,000</span>
+              </div>
+              <div class="class-metric-row positive-class">
+                <strong><i></i>Positive</strong>
+                <span>Precision: 76.2%</span><span>Recall: 78.4%</span><b>F1: 0.773</b>
+                <i class="class-metric-bar"><b style="width: 77.3%"></b></i>
+              </div>
+              <div class="class-metric-row neutral-class">
+                <strong><i></i>Neutral</strong>
+                <span>Precision: 68.1%</span><span>Recall: 65.9%</span><b>F1: 0.670</b>
+                <i class="class-metric-bar"><b style="width: 67%"></b></i>
+              </div>
+              <div class="class-metric-row negative-class">
+                <strong><i></i>Negative</strong>
+                <span>Precision: 74.8%</span><span>Recall: 73.5%</span><b>F1: 0.741</b>
+                <i class="class-metric-bar"><b style="width: 74.1%"></b></i>
+              </div>
+              <p class="evaluation-disclaimer">Per-class figures and validation loss are illustrative examples, not measured results in the current model artifact.</p>
+            </section>
           </div>
         </article>
 
         <article class="surface recent-panel">
-          <div class="section-heading"><div><h2>Recent inferences &amp; feedback streams</h2><p>Latest records from your saved analyses</p></div><button class="text-button" type="button" data-go-page="history">View all history →</button></div>
+          <div class="section-heading"><div><h2>Recent inferences &amp; feedback streams</h2><p>Latest records matching the selected dashboard filters</p></div><button class="text-button" type="button" data-go-page="history">View all history →</button></div>
           <div class="table-scroll">
             <table class="data-table">
               <thead><tr><th>Source</th><th>Input snippet</th><th>Predicted sentiment</th><th>Confidence</th><th>Timestamp</th></tr></thead>

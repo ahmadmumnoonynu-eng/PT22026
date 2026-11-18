@@ -74,10 +74,11 @@ function renderRows(records) {
     const row = document.createElement("tr");
     addSourceCell(row, record);
     const text = document.createElement("td");
-    const reviewText = (record.text || "").split("Review: ").pop().replace(/\s+/g, " ");
+    const recordText = typeof record.text === "string" ? record.text : "";
+    const reviewText = recordText.split("Review: ").pop().replace(/\s+/g, " ");
     text.textContent = record.customer_name
       ? `${record.customer_name} · ${record.product_name || "Customer review"} · ${reviewText}`
-      : (record.text || "").replace(/\s+/g, " ");
+      : recordText.replace(/\s+/g, " ");
     text.title = text.textContent;
     row.append(text);
     addSentimentCell(row, record.sentiment);
@@ -170,7 +171,7 @@ export function initHistory() {
       document.body.append(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       showError("history-error", error.message);
     } finally {

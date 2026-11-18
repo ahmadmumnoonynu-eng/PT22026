@@ -237,14 +237,18 @@ def filtered_history(search="", sentiment="All", source="All", days=None):
             continue
         if source != "All" and record.get("source") != source:
             continue
-        if normalized_search and normalized_search not in record.get("text", "").casefold():
+        record_text = record.get("text")
+        if normalized_search and (
+            not isinstance(record_text, str)
+            or normalized_search not in record_text.casefold()
+        ):
             continue
         if cutoff is not None:
             try:
                 record_time = datetime.strptime(
                     record.get("time", ""), "%Y-%m-%d %H:%M:%S"
                 )
-            except ValueError:
+            except (TypeError, ValueError):
                 continue
             if record_time.timestamp() < cutoff:
                 continue
@@ -400,15 +404,82 @@ def delete_history():
 
 
 @app.get("/api/dashboard")
-def dashboard(days: int | None = Query(default=None, ge=1, le=3650)):
-    records = filtered_history(days=days)
+def dashboard(
+    days: int | None = Query(default=None, ge=1, le=3650),
+    source: str = Query(default="All", max_length=100),
+):
+    all_records = filtered_history(source=source)
+    previous_records = []
+    if days is None:
+        records = all_records
+    else:
+        now = datetime.now().timestamp()
+        cutoff = now - days * 24 * 60 * 60
+        previous_cutoff = cutoff - days * 24 * 60 * 60
+        records = []
+        for record in all_records:
+            try:
+                record_time = datetime.strptime(
+                    record.get("time", ""), "%Y-%m-%d %H:%M:%S"
+                ).timestamp()
+            except (TypeError, ValueError):
+                continue
+            if record_time >= cutoff:
+                records.append(record)
+            elif previous_cutoff <= record_time < cutoff:
+                previous_records.append(record)
 
-    counts = Counter(record.get("sentiment") for record in records)
+    counts = Counter(
+        record.get("sentiment")
+        for record in records
+        if record.get("sentiment") in SENTIMENTS
+    )
+    previous_counts = Counter(
+        record.get("sentiment")
+        for record in previous_records
+        if record.get("sentiment") in SENTIMENTS
+    )
+
+    def percent_change(current, previous):
+        return round((current - previous) / previous * 100, 1) if previous else None
+
+    period_change = None
+    if days is not None:
+        period_change = {
+            "total": percent_change(len(records), len(previous_records)),
+            "distribution": {
+                label: percent_change(counts[label], previous_counts[label])
+                for label in SENTIMENTS
+            },
+        }
+
     total = len(records)
+    confidence_values = [
+        float(record["confidence"])
+        for record in records
+        if isinstance(record.get("confidence"), (int, float))
+        and not isinstance(record.get("confidence"), bool)
+    ]
+    confidence_by_label = {label: [] for label in SENTIMENTS}
+    for record in records:
+        label = record.get("sentiment")
+        confidence = record.get("confidence")
+        if (
+            label in SENTIMENTS
+            and isinstance(confidence, (int, float))
+            and not isinstance(confidence, bool)
+        ):
+            confidence_by_label[label].append(float(confidence))
+
     distribution = {
         label: {
             "count": counts[label],
             "percentage": round(counts[label] / total * 100, 2) if total else 0,
+            "mean_confidence": (
+                round(sum(confidence_by_label[label]) / len(confidence_by_label[label]), 2)
+                if confidence_by_label[label]
+                else None
+            ),
         }
         for label in SENTIMENTS
     }
@@ -419,7 +490,7 @@ def dashboard(days: int | None = Query(default=None, ge=1, le=3650)):
             record_date = datetime.strptime(
                 record.get("time", ""), "%Y-%m-%d %H:%M:%S"
             ).date()
-        except ValueError:
+        except (TypeError, ValueError):
             continue
         bucket = grouped_activity.setdefault(
             record_date,
@@ -434,6 +505,12 @@ def dashboard(days: int | None = Query(default=None, ge=1, le=3650)):
 
     return {
         "total_analyses": total,
+        "period_change": period_change,
+        "mean_confidence": (
+            round(sum(confidence_values) / len(confidence_values), 2)
+            if confidence_values
+            else None
+        ),
         "counts": {label: counts[label] for label in SENTIMENTS},
         "distribution": distribution,
         "activity": [
@@ -446,6 +523,8 @@ def dashboard(days: int | None = Query(default=None, ge=1, le=3650)):
             "accuracy": float(model_config["test_accuracy"]) * 100,
             "macro_f1": float(model_config["test_macro_f1"]),
             "dataset": "CardiffNLP TweetEval",
+            "base_model": model_config["base_model"],
+            "model_name": model_config["model_name"],
             "is_offline_test_metric": True,
         },
     }

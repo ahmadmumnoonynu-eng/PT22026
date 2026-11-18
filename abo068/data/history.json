@@ -9,6 +9,195 @@
             "Neutral": 2.27,
             "Positive": 0.18
         },
+        "time": "2026-11-18 14:17:03"
+    },
+    {
+        "source": "AI Playground",
+        "text": "The product arrived yesterday. It has the features described on the website.",
+        "sentiment": "Neutral",
+        "confidence": 95.02,
+        "scores": {
+            "Negative": 0.12,
+            "Neutral": 95.02,
+            "Positive": 4.86
+        },
+        "time": "2026-11-18 14:16:53"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-18 14:16:49"
+    },
+    {
+        "source": "SocialMind",
+        "text": "Noah Rivera: My billing question has been waiting for a reply for three days.",
+        "sentiment": "Neutral",
+        "confidence": 78.65,
+        "scores": {
+            "Negative": 20.07,
+            "Neutral": 78.65,
+            "Positive": 1.28
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "SocialMind",
+        "text": "Maya Chen: Sentiment tracking is accurate and has helped our team respond to customers faster.",
+        "sentiment": "Positive",
+        "confidence": 80.62,
+        "scores": {
+            "Negative": 0.1,
+            "Neutral": 19.28,
+            "Positive": 80.62
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "SocialMind",
+        "text": "Ethan Cole: The reports are useful, though I wish there were more export options.",
+        "sentiment": "Positive",
+        "confidence": 70.73,
+        "scores": {
+            "Negative": 0.49,
+            "Neutral": 28.78,
+            "Positive": 70.73
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "SocialMind",
+        "text": "Aisha Khan: Support helped me fix an import issue the same day. Great experience.",
+        "sentiment": "Positive",
+        "confidence": 97.48,
+        "scores": {
+            "Negative": 0.22,
+            "Neutral": 2.3,
+            "Positive": 97.48
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "SocialMind",
+        "text": "Daniel Brooks: Setup was easy, but the latest update keeps logging me out during reviews.",
+        "sentiment": "Neutral",
+        "confidence": 71.2,
+        "scores": {
+            "Negative": 25.67,
+            "Neutral": 71.2,
+            "Positive": 3.13
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "SocialMind",
+        "text": "Sofia Martinez: I love how quickly the new dashboard turns customer feedback into clear insights.",
+        "sentiment": "Positive",
+        "confidence": 96.49,
+        "scores": {
+            "Negative": 0.13,
+            "Neutral": 3.38,
+            "Positive": 96.49
+        },
+        "time": "2026-11-18 14:13:22",
+        "is_demo": true
+    },
+    {
+        "source": "ReviewAI",
+        "text": "Product: UltraSound Pro ANC Headphones v3\nCustomer: Maya Chen\nReview: The noise cancellation is definitely top-tier and beats my older Bose pair easily on flights. Soundstage is crisp with punchy bass. However, the companion mobile app disconnects intermittently and the earcups get warm after two hours of continuous wear. Still worth the price for frequent travel.",
+        "sentiment": "Positive",
+        "confidence": 88.5,
+        "scores": {
+            "Negative": 0.58,
+            "Neutral": 10.92,
+            "Positive": 88.5
+        },
+        "time": "2026-11-18 14:13:05",
+        "product_name": "UltraSound Pro ANC Headphones v3",
+        "customer_name": "Maya Chen",
+        "is_demo": true
+    },
+    {
+        "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-18 14:12:56"
+    },
+    {
+        "source": "AI Playground",
+        "text": "The product arrived yesterday. It has the features described on the website.",
+        "sentiment": "Neutral",
+        "confidence": 95.02,
+        "scores": {
+            "Negative": 0.12,
+            "Neutral": 95.02,
+            "Positive": 4.86
+        },
+        "time": "2026-11-18 13:13:56"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-18 12:58:28"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I am very disappointed with this product. The quality is terrible and customer service was unhelpful.",
+        "sentiment": "Negative",
+        "confidence": 97.55,
+        "scores": {
+            "Negative": 97.55,
+            "Neutral": 2.27,
+            "Positive": 0.18
+        },
+        "time": "2026-11-18 12:57:31"
+    },
+    {
+        "source": "AI Playground",
+        "text": "The product arrived yesterday. It has the features described on the website.",
+        "sentiment": "Neutral",
+        "confidence": 95.02,
+        "scores": {
+            "Negative": 0.12,
+            "Neutral": 95.02,
+            "Positive": 4.86
+        },
+        "time": "2026-11-18 12:57:29"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I am very disappointed with this product. The quality is terrible and customer service was unhelpful.",
+        "sentiment": "Negative",
+        "confidence": 97.55,
+        "scores": {
+            "Negative": 97.55,
+            "Neutral": 2.27,
+            "Positive": 0.18
+        },
         "time": "2026-11-18 00:34:20"
     },
     {

@@ -39,8 +39,11 @@ data/
 
 ## Sections
 
-- **Dashboard:** Counts, history-derived charts, recent saved analyses, and
-  separately labeled offline test metrics.
+- **Dashboard:** Filter history by date range and analysis source, export the
+  filtered records, compare sentiment counts with the previous period, explore
+  four weeks of activity, review recent analyses, and inspect offline model
+  metrics. Any illustrative validation loss or per-class scores are labeled as
+  sample data.
 - **AI Playground:** Analyze one text and view its predicted class and class
   probabilities.
 - **ReviewAI:** Analyze a customer review with its product name.
@@ -69,8 +72,9 @@ comments.
   `limit`, and `offset` query parameters
 - `GET /api/history/export.csv` — exports matching history records
 - `DELETE /api/history` — clears saved records
-- `GET /api/dashboard` — history statistics, activity, recent records, and
-  offline evaluation metrics; optional `days` filter for activity statistics
+- `GET /api/dashboard` — filtered history statistics, mean confidence, activity,
+  recent records, and available offline evaluation metrics; optional `days` and
+  `source` filters
 - `GET /docs` — interactive API documentation
 
 The history file and model files remain in their original project-level
