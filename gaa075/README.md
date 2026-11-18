@@ -39,7 +39,7 @@ Everything happens on one page, top to bottom:
 |---|---|
 | **Header** | "Music Recommendation System" and a one-line welcome. |
 | **1 · Search** | Search by song title or artist; a dropdown of matching tracks. |
-| **2 · Selected song** | Title, artists, genres, and album artwork **only when a legitimate source provides it** (Apple's official artwork for the matched track). Otherwise a neutral note. |
+| **2 · Selected song** | Title, artists, genres, and album artwork **only when a legitimate source provides it** (Apple's official artwork for the matched track), plus a **player for the song's own 30-second preview** when one is verified. Otherwise a neutral note. |
 | **3 · Preferences** *(optional)* | Preferred genres and artist. Clearly marked optional — you can skip it entirely. |
 | **4 · Results** | Choose 5 or 10 recommendations. |
 | **Find Similar Songs** | One primary button that produces the list. |
@@ -47,6 +47,19 @@ Everything happens on one page, top to bottom:
 
 There is no sidebar, no navigation and no login screen. The visual theme is dark
 violet (`#090611` background, `#963BFF` accent, `#B66BFF` glow).
+
+### More by your preferred artist
+
+If you type an artist under **Preferences**, a second list appears below the
+results: **"More by <artist> — closest in sound to your song"**. It shows up to
+five of that artist's own tracks, ordered by similarity to your reference, each
+with a preview button. The main ranking is not changed by this list: the
+preference there stays a bounded 0.20 nudge, so the evaluated results remain
+reproducible.
+
+If you change the song or your preferences after pressing **Find Similar
+Songs**, the old list is hidden and the app asks you to press the button again,
+so results never appear under the wrong song.
 
 ### Now Playing
 
