@@ -1336,6 +1336,10 @@ def run_app() -> None:
     except Exception:  # noqa: BLE001
         selected_preview = None
     selected_song_panel(reference, selected_preview)
+    if selected_preview is not None and getattr(selected_preview, "url", ""):
+        # Let the user listen to the song they searched for, not only to the results.
+        st.caption("Listen to your reference song (30-second Apple preview):")
+        st.audio(selected_preview.url)
 
     # D. Optional preferences ---------------------------------------------- #
     section_label(
