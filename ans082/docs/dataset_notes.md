@@ -38,7 +38,7 @@ done by label mapping when the split file is built.
   biological classes.
 
 ## Real-photo test set
-- 214 photos taken with my own phone (Galaxy Sumsung S24), 19 to 28 per class, in 10 class folders:
+- 214 photos taken with my own phone (Samsung Galaxy S24), 19 to 28 per class, in 10 class folders:
   battery 21, biological 19, cardboard 21, clothes 19, glass 21, metal 19, paper 19, plastic 24, shoes 23, trash 28.
 - The trash class was extended with 8 photos of items of the kind the dataset calls trash (face masks, toothbrushes and similar hygiene items). This was done after looking at the dataset's trash class and before any model was evaluated on real photos.
 - Taken with varied backgrounds, lighting and angles, with at least 5 different items per class.
