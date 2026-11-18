@@ -70,6 +70,23 @@ the selected song** — the compact bar keeps the track and its controls, and
 reopening restores the full view. Only one preview can play at a time: a single
 `Audio` object drives everything, and at most one card is highlighted.
 
+## Arabic music page
+
+Besides the Spotify catalogue, the app has an **Arabic music** page (search and
+recommendations over Arabic and Yemeni artists, with previews where Apple has them).
+
+![Arabic search](assets/p11-arabic-search.png)
+
+* **Data:** `data/arabic_catalogue.csv` (6,910 tracks, 36 artists) plus the Yemeni
+  files `data/arabic_catalogue_yemeni*.csv`, built from **MusicBrainz** metadata
+  (CC0 1.0). Region and genre labels are editorial choices of this project.
+* **Included in the repository:** these files are small and CC0, so they are
+  committed and the page works straight after cloning. Provenance is recorded in
+  the matching `*_provenance.json` files.
+* **Rebuilding (optional, slow):** `scripts/fetch_arabic_metadata.py`,
+  `scripts/fetch_aliases_and_yemeni.py` and `scripts/build_corrected_yemeni.py`
+  re-download the metadata from MusicBrainz.
+
 ## Audio previews
 
 * **Provider:** the public **iTunes Search API** — no API key, no OAuth, no
@@ -123,7 +140,7 @@ interface: `app.py` only calls `Recommender`.
 ├── evaluation.py              # reproducible evaluation → report/
 ├── .streamlit/config.toml     # light theme, minimal toolbar
 ├── assets/                    # UI screenshots
-├── data/                      # dataset (git-ignored)
+├── data/                      # Spotify dataset (git-ignored) + Arabic catalogue (committed)
 ├── docs/                      # dataset, design, evaluation, testing notes
 ├── report/                    # generated evaluation results
 ├── analysis/                  # weight study and sample scripts
