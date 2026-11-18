@@ -95,5 +95,11 @@ class ViTExplainer:
         return overlay, heat, probs, int(class_index)
 
     def close(self) -> None:
-        """Remove the hooks that Grad-CAM added to the model."""
-        self.cam.activations_and_grads.release()
+        """Remove the hooks that Grad-CAM added to the model. Call it once, when you are finished.
+
+        The Grad-CAM object is dropped here, while Python is still fully running, so that it does not
+        print an error message when the program exits.
+        """
+        if self.cam is not None:
+            self.cam.activations_and_grads.release()
+            self.cam = None
