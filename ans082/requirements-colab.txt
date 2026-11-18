@@ -11,7 +11,7 @@ pytest==9.2.0
 PyYAML==6.0.3
 scikit-learn==1.9.1
 seaborn==0.13.2
-torch==2.15.0
+torch==2.15.requirements-colab.txt
 torchvision==0.29.2
 tqdm==4.70.1
 transformers==5.22.1
