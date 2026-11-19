@@ -297,3 +297,45 @@ Developed as a university course project.
 **Repository:** [PT22026](https://github.com/shakil57-max/PT22026)  
 **Project Folder:** `sia091`  
 **Branch:** `rag-qa`
+
+##14. Project Structure
+
+```text
+sia091/
+├── app.py
+├── src/
+│   ├── answerer.py
+│   ├── chunker.py
+│   ├── embedder.py
+│   ├── loader.py
+│   ├── loader_layout.py
+│   └── retriever.py
+├── data/
+│   ├── assignment_guidelines.pdf
+│   ├── eiffel_answers.txt
+│   ├── eiffel.pdf
+│   └── sample.txt
+├── eval/
+│   ├── figures/
+│   │   ├── controlled_best_configurations.png
+│   │   ├── controlled_model_comparison.png
+│   │   ├── controlled_ranking_strategies.png
+│   │   ├── controlled_recall_vs_topk.png
+│   │   ├── model_comparison.png
+│   │   ├── ranking_rules.png
+│   │   └── recall_vs_topk.png
+│   ├── eval_eiffel.json
+│   ├── eval_hard.json
+│   ├── eval_set.json
+│   ├── controlled_model_comparison.csv
+│   ├── results.csv
+│   └── results_distilbert.csv
+├── evaluate.py
+├── evaluate_layout.py
+├── evaluate_strict.py
+├── evaluate_models.py
+├── plot_results.py
+├── requirements.txt
+├── .gitignore
+├── .gitkeep
+└── README.md
