@@ -26,7 +26,7 @@ The following diagram shows the main workflow of the application.
 
 ```mermaid
 flowchart TD
-    A["Upload PDF or TXT"] --> B["Document Loader"]
+    A["Upload PDF or TXT/input in Gradio"] --> B["Document Loader"]
     B --> C{"Loader Type"}
     C --> D["Standard Loader"]
     C --> E["Layout-aware Loader"]
