@@ -16,12 +16,12 @@ Run from the ans082 folder, for example:
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
-from PIL import Image
 from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix,
                              precision_recall_fscore_support)
 from torch.utils.data import Dataset
@@ -30,6 +30,10 @@ from data import CLASS_TO_IDX, CLASSES, SmartSortDataset, build_loader, build_tr
 from model_loader import build_model
 
 logger = logging.getLogger(__name__)
+
+# Where the Colab runs keep their files. Set these environment variables to use other folders.
+DRIVE_ROOT = Path(os.environ.get("SMARTSORT_DRIVE_ROOT", "/content/drive/MyDrive/SmartSort_AI"))
+DATA_ROOT = os.environ.get("SMARTSORT_DATA_ROOT", "/content/data/garbage_classification")
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
 DEFAULT_THRESHOLDS = (0.0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95)
@@ -229,11 +233,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--split", required=True, choices=["val", "test", "real"])
     parser.add_argument("--confirm-final", action="store_true",
                         help="required for the test split and the real photos (single use)")
-    parser.add_argument("--ckpt-dir", default="/content/drive/MyDrive/SmartSort_AI/checkpoints")
+    parser.add_argument("--ckpt-dir", default=str(DRIVE_ROOT / "checkpoints"))
     parser.add_argument("--split-csv", default="splits/split_v1.csv")
-    parser.add_argument("--data-root", default="/content/data/garbage_classification")
-    parser.add_argument("--real-root", default="/content/drive/MyDrive/SmartSort_AI/real_photos")
-    parser.add_argument("--out-dir", default="/content/drive/MyDrive/SmartSort_AI/outputs/eval")
+    parser.add_argument("--data-root", default=DATA_ROOT)
+    parser.add_argument("--real-root", default=str(DRIVE_ROOT / "real_photos"))
+    parser.add_argument("--out-dir", default=str(DRIVE_ROOT / "outputs" / "eval"))
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--workers", type=int, default=2)

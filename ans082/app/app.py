@@ -92,7 +92,11 @@ def get_predictor():
     """Load the model on first use and keep it. A failed load is tried again on the next click."""
     global _predictor
     if _predictor is None:
-        _predictor = load_predictor()
+        try:
+            _predictor = load_predictor()
+        except ModelLoadError as problem:
+            logger.error("%s | technical reason: %r", problem, problem.__cause__)
+            raise
     return _predictor
 
 
@@ -138,8 +142,8 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
         get_predictor()                      # load now, so the first click is fast
-    except ModelLoadError as problem:
-        logger.error("%s", problem)          # the page still opens and shows the message on Classify
+    except ModelLoadError:
+        logger.warning("Starting without the model. The page opens and shows the problem when you press Classify.")
     port = int(os.environ.get("SMARTSORT_PORT", "7860"))
     try:
         launch_options = {"theme": THEME} if GRADIO_6_OR_NEWER else {}
