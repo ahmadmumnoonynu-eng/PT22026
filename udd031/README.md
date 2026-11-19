@@ -3,8 +3,8 @@
 **Emotion and stress prediction by fusing speech audio and transcribed text using Hugging Face Transformers**
 
 > **Author** · UDDIN MEJBAH — `20243120031`
-> **Programme** · B.Sc. Software Engineering
-> **Course** · Professional Training (`YN3012170034`)
+> **Programme** · Software Engineering
+> **Course** · Professional Training 2(`YN3012170034`)
 > **Project type** · individual, Python, Gradio web application
 
 ---
@@ -46,7 +46,7 @@ always visible in the interface rather than hidden behind a click.
 ## 2. Quick start
 
 ```bash
-cd mej031
+cd udd031
 python -m pip install -r requirements.txt      # torch, transformers, gradio, librosa...
 python scripts/download_models.py              # optional: pre-fetch and verify weights
 python scripts/train_acoustic_probe.py         # optional: refit the 6-class head (~4 min)
@@ -103,56 +103,6 @@ Everything is optional; all values have working defaults.
 ## 3. Pipeline
 
 ```
-                    ┌───────────────────────────────┐
-   microphone /     │  audio_io.py                  │
-   WAV upload  ────▶│  decode → mono → 16 kHz       │
-                    │  validate → trim → describe   │
-                    └───────────────┬───────────────┘
-                                    │
-                    ┌───────────────▼───────────────┐
-                    │  asr.py                       │
-                    │  Whisper small.en             │──▶ transcript + confidence
-                    └───────────────┬───────────────┘
-                                    │
-              ┌─────────────────────┴─────────────────────┐
-              │                                           │
-   ┌──────────▼───────────┐                   ┌───────────▼──────────┐
-   │ acoustic_branch.py   │                   │ text_branch.py       │
-   │ wav2vec2 SUPERB ER   │                   │ DistilBERT emotion   │
-   │ 4 native classes     │                   │ 6 native classes     │
-   └──────────┬───────────┘                   └───────────┬──────────┘
-              │                                           │
-              └──────────────┬────────────────────────────┘
-                             │
-                  ┌──────────▼───────────┐
-                  │  ontology.py         │  native → canonical, per branch,
-                  │  sparse projection M │  preserving unmapped mass
-                  └──────────┬───────────┘
-                             │
-        ┌────────────────────┴────────────────────┐
-        │                                         │
-┌───────▼────────┐                    ┌───────────▼──────────┐
-│ prosody.py     │                    │ fusion.py            │
-│ f0, energy,    │                    │ per-class reliability │
-│ pauses, ZCR    │                    │ credal pooling        │
-└───────┬────────┘                    └───────────┬──────────┘
-        │                                         │
-        └────────────────┬────────────────────────┘
-                         │
-              ┌──────────▼───────────┐        ┌────────────────────┐
-              │  stress.py           │        │  narrative.py      │
-              │  transparent 7-term  │        │  deterministic     │
-              │  composite           │        │  explanation       │
-              └──────────┬───────────┘        └─────────┬──────────┘
-                         └───────────────┬──────────────┘
-                                         │
-                              ┌──────────▼───────────┐
-                              │  schemas.py          │
-                              │  AnalysisResult      │──▶ UI · JSON · figures
-                              └──────────────────────┘
-```
-
-Two design decisions carry most of the project's intellectual weight:
 
 **1 · The label-ontology adapter keeps its ignorance.**
 The published acoustic head was trained on four classes (`ang, hap, neu, sad`); the
@@ -249,7 +199,7 @@ python scripts/fetch_ravdess.py --from-zip data/raw/Audio_Speech_Actors_01-24.zi
 ## 6. Layout
 
 ```
-mej031/
+udd031/
 ├── app.py                     entry point: python app.py
 ├── config/
 │   ├── ontology.yaml          native → canonical projection matrices
@@ -278,7 +228,6 @@ mej031/
 │   └── ui/                    theme, CSS, fragments, page assembly
 ├── scripts/                   download, training, calibration, evaluation, report
 ├── tests/                     102 tests, no models or network required
-├── report/                    the technical report as submitted (report.pdf)
 ├── demo_samples/              six held-out RAVDESS excerpts + provenance
 ```
 
@@ -330,23 +279,7 @@ if it were measured would invalidate the entire document.
 
 ---
 
-## 9. Documentation
-
-Design rationale lives in the report rather than beside the code, so there is one
-authoritative description of the system instead of two that can drift apart:
-
-| Where | Contents |
-|---|---|
-| this README, §3–§4 | pipeline order, branch behaviour, model identifiers |
-| `report/report.pdf` §3 | architecture, ontology projection, fusion maths, stress composite |
-| `report/report.pdf` §5 | every measurement, with the script that produced it |
-| `report/report.pdf` Appendix A | model and dataset cards, licences, references |
-| `report/report.pdf` Appendix B | declaration of AI assistance and original work |
-| `report/report.pdf` Appendix A.1 | demonstration script, minute by minute |
-
----
-
-## 10. Limitations
+## 9. Limitations
 
 Stated plainly, because a project that admits its edges is more credible than one that
 does not:
@@ -366,24 +299,6 @@ does not:
 - Only six excerpts ship, so a broader claim needs the full corpus rather than the
   bundled examples. On those six the fitted head matches three labels exactly — the
   demonstration shows that error rate rather than hiding it.
-
----
-
-## 11. Licence
-
-Code: **MIT** — see [`LICENSE`](LICENSE), which also lists the licence of every model
-and dataset referenced. Model weights and RAVDESS audio are **not** covered by that
-licence and remain under their own terms; `audeering/...` is non-commercial and
-RAVDESS is non-commercial share-alike.
-
----
-
-## 12. Acknowledgement of AI assistance
-
-Parts of this project were developed with AI coding assistance, under the author's
-direction and review. What that means concretely, and what it does not, is stated in
-Appendix B of `report/report.pdf`. All design decisions, verification and reported
-measurements remain the author's responsibility.
 
 ---
 
