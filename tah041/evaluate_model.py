@@ -16,7 +16,8 @@ df = pd.read_csv(DATA_PATH)
 X = df.drop(columns=["median_house_value"])
 y = df["median_house_value"]
 
-# Reproduce the original stratified 80/20 split
+# Create a stratified 80/20 evaluation split.
+# The original model training indices have not been verified.
 df["income_cat"] = pd.cut(
     df["median_income"],
     bins=[0., 1.5, 3.0, 4.5, 6., np.inf],
