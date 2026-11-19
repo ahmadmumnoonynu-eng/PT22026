@@ -122,7 +122,20 @@ sia091/
 │   ├── loader.py
 │   ├── loader_layout.py
 │   └── retriever.py
+├── data/
+│   ├── assignment_guidelines.pdf
+│   ├── eiffel_answers.txt
+│   ├── eiffel.pdf
+│   └── sample.txt
 ├── eval/
+│   ├── figures/
+│   │   ├── controlled_best_configurations.png
+│   │   ├── controlled_model_comparison.png
+│   │   ├── controlled_ranking_strategies.png
+│   │   ├── controlled_recall_vs_topk.png
+│   │   ├── model_comparison.png
+│   │   ├── ranking_rules.png
+│   │   └── recall_vs_topk.png
 │   ├── eval_eiffel.json
 │   ├── eval_hard.json
 │   ├── eval_set.json
