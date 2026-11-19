@@ -20,8 +20,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
-
 
 def make_synthetic(folder: Path, sample: Path = None) -> list:
     """Write edge-case files into folder/synthetic and return their names."""
