@@ -1,6 +1,30 @@
 [
     {
         "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-19 20:24:14"
+    },
+    {
+        "source": "AI Playground",
+        "text": "I absolutely love this product! The quality is excellent and the service was amazing.",
+        "sentiment": "Positive",
+        "confidence": 99.51,
+        "scores": {
+            "Negative": 0.16,
+            "Neutral": 0.33,
+            "Positive": 99.51
+        },
+        "time": "2026-11-19 20:20:31"
+    },
+    {
+        "source": "AI Playground",
         "text": "I am very disappointed with this product. The quality is terrible and customer service was unhelpful.",
         "sentiment": "Negative",
         "confidence": 97.55,
