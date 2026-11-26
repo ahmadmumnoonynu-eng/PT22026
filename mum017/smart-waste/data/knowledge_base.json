@@ -1,0 +1,176 @@
+{
+  "_note": "General guidance only. Recycling rules differ by city and country, so always check local rules.",
+  "battery": {
+    "display_name": "Battery",
+    "category": "Hazardous waste",
+    "bin": "Special battery collection point (not any household bin)",
+    "prepare": [
+      "Cover the terminals of lithium or button batteries with tape.",
+      "Store used batteries in a dry, non-metal container until drop-off."
+    ],
+    "dispose": "Take to a battery drop-off box in a supermarket, electronics shop, or a hazardous-waste collection point.",
+    "avoid": [
+      "Do not put batteries in general waste or recycling bins.",
+      "Do not crush, burn, or open them."
+    ],
+    "tip": "Damaged lithium batteries can start fires in bins and collection trucks.",
+    "environment": "Batteries contain metals that can leak into soil and water if landfilled, and the metals inside can be recovered when recycled properly."
+  },
+  "biological": {
+    "display_name": "Biological / Organic waste",
+    "category": "Organic",
+    "bin": "Food / organic waste bin or home compost",
+    "prepare": [
+      "Remove any plastic, foil, or packaging.",
+      "Drain excess liquid."
+    ],
+    "dispose": "Place in the food-waste or compost bin. If your area has no collection, home composting works for most fruit, vegetable, and garden waste.",
+    "avoid": [
+      "Do not put organic waste in the recycling bin; it contaminates paper and cardboard."
+    ],
+    "tip": "Cooked food, meat, and dairy usually suit municipal food-waste collection but not simple home compost heaps.",
+    "environment": "Food waste in landfill breaks down without oxygen and produces methane, a strong greenhouse gas. Composting avoids this and returns nutrients to the soil."
+  },
+  "brown-glass": {
+    "display_name": "Brown glass",
+    "category": "Recyclable",
+    "bin": "Glass recycling (brown / mixed glass bank)",
+    "prepare": [
+      "Empty the bottle or jar and give it a quick rinse.",
+      "Remove metal or plastic lids and recycle them separately.",
+      "Labels can usually stay on."
+    ],
+    "dispose": "Place in the glass bank or glass bin. Where colours are separated, use the brown section.",
+    "avoid": [
+      "Do not include ceramics, Pyrex or oven glass, mirrors, or window glass; they melt differently and spoil a batch."
+    ],
+    "tip": "Colour sorting matters: mixing colours lowers the quality of recycled glass.",
+    "environment": "Glass can be recycled again and again without losing quality, and using recycled glass saves raw materials and furnace energy."
+  },
+  "cardboard": {
+    "display_name": "Cardboard",
+    "category": "Recyclable",
+    "bin": "Paper and cardboard recycling",
+    "prepare": [
+      "Flatten boxes to save space.",
+      "Remove tape, staples, and plastic inserts where possible.",
+      "Keep it dry."
+    ],
+    "dispose": "Place flattened cardboard in the paper/cardboard bin or take it to a cardboard collection point.",
+    "avoid": [
+      "Do not recycle heavily greasy or food-soiled cardboard (for example pizza-box bases); tear off the clean part and bin the rest."
+    ],
+    "tip": "Wet or soiled cardboard cannot be turned back into paper pulp efficiently.",
+    "environment": "Recycling cardboard reduces the number of trees cut for new paper fibre and cuts the volume going to landfill."
+  },
+  "clothes": {
+    "display_name": "Clothes / Textiles",
+    "category": "Reuse / Textile recycling",
+    "bin": "Clothing donation bin or textile collection point",
+    "prepare": [
+      "Wash items and make sure they are dry.",
+      "Tie pairs of socks or gloves together."
+    ],
+    "dispose": "Donate wearable clothes to charity or a donation bin. Worn-out textiles can go to textile recycling points where available.",
+    "avoid": [
+      "Do not put clothes in the paper or plastic recycling bin.",
+      "Do not donate wet or mouldy textiles."
+    ],
+    "tip": "Reusing clothing is better than recycling it. Consider swapping, reselling, or repairing first.",
+    "environment": "Producing clothes takes a lot of water and energy, so extending a garment's life is one of the most effective ways to reduce its footprint."
+  },
+  "green-glass": {
+    "display_name": "Green glass",
+    "category": "Recyclable",
+    "bin": "Glass recycling (green / mixed glass bank)",
+    "prepare": [
+      "Empty and quickly rinse the bottle or jar.",
+      "Remove lids and recycle them separately."
+    ],
+    "dispose": "Place in the glass bank or glass bin. Where colours are separated, use the green section.",
+    "avoid": [
+      "Do not include ceramics, Pyrex or oven glass, mirrors, or window glass."
+    ],
+    "tip": "Green glass is often easiest to recycle into new green bottles, so keep it separate from other colours when asked to.",
+    "environment": "Recycled glass can replace a large share of raw material in new bottles and lowers the energy needed for melting."
+  },
+  "metal": {
+    "display_name": "Metal",
+    "category": "Recyclable",
+    "bin": "Metal / mixed recycling",
+    "prepare": [
+      "Empty the can or tin and rinse off food.",
+      "Flattening is optional; follow local guidance."
+    ],
+    "dispose": "Place in the metal or mixed recycling bin. Large metal items can go to a scrap-metal collection point.",
+    "avoid": [
+      "Do not put aerosol cans that still contain product, or gas canisters, into regular recycling.",
+      "Do not include paint tins with wet paint."
+    ],
+    "tip": "Aluminium and steel can be separated with a magnet: steel sticks, aluminium does not.",
+    "environment": "Recycling metals, especially aluminium, needs far less energy than producing new metal from ore, and metals can be recycled many times."
+  },
+  "paper": {
+    "display_name": "Paper",
+    "category": "Recyclable",
+    "bin": "Paper recycling",
+    "prepare": [
+      "Keep paper clean and dry.",
+      "Remove plastic windows or covers where easy."
+    ],
+    "dispose": "Place in the paper recycling bin. Shred confidential documents first if needed.",
+    "avoid": [
+      "Do not recycle paper that is greasy, wet, or heavily soiled.",
+      "Tissues, paper towels, and thermal receipts usually do not belong in paper recycling."
+    ],
+    "tip": "Paper fibres get shorter each time they are recycled, so it can be recycled only a limited number of times.",
+    "environment": "Recycling paper saves trees and reduces water and energy use compared with making paper from fresh wood pulp."
+  },
+  "plastic": {
+    "display_name": "Plastic",
+    "category": "Recyclable (depends on type)",
+    "bin": "Plastic / mixed recycling",
+    "prepare": [
+      "Empty the container and rinse it.",
+      "Check the recycling number (1 to 7) on the bottom.",
+      "Follow local advice about whether lids stay on."
+    ],
+    "dispose": "Place in the plastic or mixed recycling bin if your area accepts that plastic type. Soft films and bags often need a separate store drop-off.",
+    "avoid": [
+      "Do not put dirty or food-filled containers in recycling.",
+      "Do not bag recyclables inside plastic bags unless your local scheme asks you to."
+    ],
+    "tip": "Bottles and rigid tubs (numbers 1 and 2) are the most widely accepted. Reducing single-use plastic helps more than recycling it.",
+    "environment": "Plastic can persist in the environment for a very long time and break into microplastics. Recycling keeps it in use and out of waterways."
+  },
+  "shoes": {
+    "display_name": "Shoes",
+    "category": "Reuse / Textile recycling",
+    "bin": "Donation bin or shoe-recycling collection point",
+    "prepare": [
+      "Clean off mud and tie pairs together.",
+      "Keep shoes dry."
+    ],
+    "dispose": "Donate wearable pairs. Worn-out shoes can go to shoe or textile recycling schemes run by some shops and councils.",
+    "avoid": [
+      "Do not put shoes in household recycling bins; mixed materials jam sorting machines."
+    ],
+    "tip": "Repair (resoling, stitching) can double a shoe's useful life.",
+    "environment": "Shoes combine rubber, fabric, and glue, which makes them hard to recycle, so reuse and repair have the biggest benefit."
+  },
+  "trash": {
+    "display_name": "General waste (non-recyclable)",
+    "category": "Residual waste",
+    "bin": "General / residual waste bin",
+    "prepare": [
+      "Check whether part of the item is recyclable (for example a clean plastic or paper part).",
+      "Bag loose waste to keep bins clean."
+    ],
+    "dispose": "Place in the general waste bin. This is the last option once reuse and recycling are ruled out.",
+    "avoid": [
+      "Do not put hazardous items such as batteries, electronics, or chemicals in general waste."
+    ],
+    "tip": "This category is a catch-all. If you are unsure, retake the photo or check the item's packaging for recycling symbols.",
+    "environment": "Residual waste usually goes to landfill or incineration, so the best approach is to reduce what ends up here."
+  }
+}

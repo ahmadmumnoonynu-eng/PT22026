@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Model weights and caches (never commit these)
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+.cache/
+huggingface/
+
+# Datasets and evaluation outputs (describe them in the README instead)
+evaluation/test_images/
+evaluation/results/
+gradio_cached_examples/
+flagged/
+
+# Secrets
+.env
