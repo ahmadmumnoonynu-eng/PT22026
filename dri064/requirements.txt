@@ -1,7 +1,0 @@
-gradio
-transformers
-torch
-sentencepiece
-datasets
-evaluate
-rouge_score

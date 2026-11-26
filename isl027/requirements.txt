@@ -1,6 +1,0 @@
-﻿gradio
-sentence-transformers
-pypdf
-transformers
-matplotlib
-pandas

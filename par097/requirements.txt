@@ -1,7 +1,0 @@
-torch
-torchvision
-gradio
-pillow
-matplotlib
-numpy
-scikit-learn
